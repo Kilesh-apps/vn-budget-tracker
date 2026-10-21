@@ -267,10 +267,32 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .adj button:active{background:var(--raised)}
 .phr{display:flex;gap:8px;overflow-x:auto;padding:6px 0 2px;scrollbar-width:none}
 .phr::-webkit-scrollbar{display:none}
-.phr button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px;text-align:left;line-height:1.25;max-width:200px}
-.phr button b{display:block;font-size:.95rem}
-.phr button small{color:var(--muted);font-size:.76rem}
+.phr button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px;text-align:left;line-height:1.25;max-width:210px}
+.phr button b{display:block;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phr button small{display:block;color:var(--muted);font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .phr button.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+.phr-all{width:100%;min-height:44px;margin-top:8px;border:1px dashed var(--line);background:transparent;border-radius:14px;font-weight:600;color:var(--muted)}
+.speak-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.speak{min-height:46px;border:1.5px solid var(--accent);color:var(--accent);background:transparent;border-radius:999px;padding:0 12px;font-weight:700;font-size:.88rem;white-space:nowrap}
+.speak:active,.speak.on{background:var(--accent-soft)}
+.speak.slow{border-color:var(--line);color:var(--muted)}
+.speak.slow.on{border-color:var(--accent);color:var(--accent)}
+.voice-note{font-size:.8rem;color:var(--warn);margin:8px 0 0;max-width:420px}
+.phr-panel{position:absolute;left:0;right:0;bottom:0;max-height:80%;overflow-y:auto;overscroll-behavior:contain;background:var(--surface);border-radius:22px 22px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.28);padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px));z-index:3}
+.phr-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:-14px;background:var(--surface);padding:4px 0 8px;margin-top:-4px;z-index:1}
+.phr-panel-head b{font-size:1.1rem}
+.phr-sec{font-size:.8rem;font-weight:700;color:var(--muted);margin:16px 2px 6px;text-transform:uppercase;letter-spacing:.04em}
+.phr-list{display:grid;gap:6px}
+.phr-item{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.phr-item>button:first-child{flex:1;min-width:0;border:0;background:transparent;text-align:left;padding:9px 12px;line-height:1.3}
+.phr-item b{display:block;font-size:.98rem}
+.phr-item small{display:block;color:var(--muted);font-size:.8rem}
+.phr-item.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+.phr-item .x{flex:none;width:40px;height:40px;border:0;background:transparent;color:var(--muted);border-radius:10px;margin-right:4px}
+.add-box{border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--bg)}
+.add-box input,.add-box textarea{width:100%;min-height:48px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;resize:vertical}
+.add-box input:focus,.add-box textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.add-box label{display:block;font-size:.84rem;font-weight:600;margin:10px 0 6px}
 
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
@@ -449,8 +471,34 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <button type="button" data-adj="-50000">−50k</button><button type="button" data-adj="-10000">−10k</button>
       <button type="button" data-adj="10000">+10k</button><button type="button" data-adj="50000">+50k</button>
     </div>
+    <div class="speak-row">
+      <button type="button" class="speak" id="shSayPhrase">🔊 Say phrase</button>
+      <button type="button" class="speak" id="shSayPrice">🔊 Say price</button>
+      <button type="button" class="speak slow" id="shSlow" aria-pressed="false">🐢 Slow</button>
+    </div>
+    <p class="voice-note" id="shVoiceNote" hidden></p>
   </div>
-  <div class="phr" id="shPhrases"></div>
+  <div class="phr" id="shQuick"></div>
+  <button type="button" class="phr-all" id="shAllBtn">All phrases · add your own</button>
+
+  <div class="phr-panel" id="shPanel" hidden>
+    <div class="phr-panel-head"><b>Phrases</b><button type="button" class="mini" id="shPanelClose">Done</button></div>
+    <div class="add-box">
+      <label for="shEnIn" style="margin-top:0">Say something new</label>
+      <input id="shEnIn" type="text" maxlength="200" placeholder="Type in English, e.g. Do you have this in black?" autocomplete="off" enterkeyhint="go">
+      <button type="button" class="secondary" id="shTranslate" style="margin-top:8px">Translate to Vietnamese</button>
+      <div id="shAddResult" hidden>
+        <label for="shViOut">Vietnamese (you can edit it)</label>
+        <textarea id="shViOut" rows="2" maxlength="300" lang="vi"></textarea>
+        <div class="btn-pair" style="margin-top:8px">
+          <button type="button" class="secondary" id="shTry">🔊 Listen</button>
+          <button type="button" class="primary" id="shSaveP" style="margin-top:0">Save &amp; show</button>
+        </div>
+      </div>
+      <p class="status" id="shAddStatus" style="margin-bottom:0"></p>
+    </div>
+    <div id="shList"></div>
+  </div>
 </div>
 
 <!-- exchange -->
@@ -628,19 +676,23 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   };
   const CITIES = ['Ho Chi Minh City','Phu Quoc','Hanoi','Ha Long','Elsewhere'];
   const PLACES = ['Market stall','Street vendor','Shop','Tourist area'];
-  const PHRASES = [
-    { vi:'Giá này được không?', en:'Is this price OK?' },
-    { vi:'Bao nhiêu tiền?', en:'How much?' },
-    { vi:'Đắt quá!', en:'Too expensive!' },
-    { vi:'Bớt chút đi', en:'Lower it a bit' },
-    { vi:'Giảm giá được không?', en:'Can you give a discount?' },
-    { vi:'Lấy hai cái, bao nhiêu?', en:'If I take two, how much?' },
-    { vi:'Tôi không có tiền lẻ', en:'I don’t have small notes' },
-    { vi:'Không, cảm ơn', en:'No, thank you' },
-    { vi:'Tính tiền', en:'The bill, please' },
-    { vi:'Cảm ơn!', en:'Thank you!' },
-    { vi:'Xin chào', en:'Hello' }
+  const PHRASE_GROUPS = [
+    { name:'Bargaining', items:[
+      ['Giá này được không?','Is this price OK?'], ['Bao nhiêu tiền?','How much?'], ['Đắt quá!','Too expensive!'],
+      ['Bớt chút đi','Lower it a bit'], ['Giảm giá được không?','Can you give a discount?'], ['Giá cuối cùng là bao nhiêu?','What’s your final price?'],
+      ['Lấy hai cái, bao nhiêu?','If I take two, how much?'], ['Để tôi suy nghĩ thêm','Let me think about it'], ['Tôi sẽ quay lại sau','I’ll come back later'],
+      ['Tôi lấy cái này','I’ll take this one'], ['Viết giá ra giúp tôi','Please write the price down'] ] },
+    { name:'Shopping', items:[
+      ['Có màu khác không?','Do you have another colour?'], ['Có size lớn hơn không?','Do you have a bigger size?'], ['Có size nhỏ hơn không?','Do you have a smaller size?'],
+      ['Tôi thử được không?','Can I try it on?'], ['Tôi không có tiền lẻ','I don’t have small notes'], ['Có tiền thối không?','Do you have change?'] ] },
+    { name:'Food & drink', items:[
+      ['Cho tôi xem thực đơn','Can I see the menu?'], ['Không cay','Not spicy'], ['Không đá','No ice'], ['Ít đường','Less sugar'],
+      ['Ngon quá!','Delicious!'], ['Tính tiền','The bill, please'] ] },
+    { name:'Getting by', items:[
+      ['Xin chào','Hello'], ['Cảm ơn!','Thank you!'], ['Không, cảm ơn','No, thank you'], ['Xin lỗi','Sorry / Excuse me'],
+      ['Tôi không hiểu','I don’t understand'], ['Nhà vệ sinh ở đâu?','Where is the toilet?'] ] }
   ];
+  const PHRASES = []; PHRASE_GROUPS.forEach(g => g.items.forEach(([vi, en]) => PHRASES.push({ key:'b' + PHRASES.length, vi, en, group:g.name })));
   const NOTES = [
     { v:10000, c:'#c5a03c', name:'Yellow-brown', back:'Offshore oil rig' },
     { v:20000, c:'#3b6db3', name:'Blue', back:'Hội An covered bridge', warn:true },
@@ -677,7 +729,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     return { v:3, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
       nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, rateFetchedAt:null, rateSource:null,
       exchanges:[], entries:[], settlements:[], friends:[], lastCat:'Shopping', city:'Ho Chi Minh City',
-      theme:'auto', lastBackup:null, ai:{ key:'', place:'Market stall', search:false } };
+      theme:'auto', lastBackup:null, ttsSlow:false, phrases:[], ai:{ key:'', place:'Market stall', search:false } };
   }
   function validTs(t) { const d = new Date(t); return t && !isNaN(d) ? d.toISOString() : new Date().toISOString(); }
   function uniqById(arr) { const seen = new Set(); return arr.filter(x => !seen.has(x.id) && seen.add(x.id)); }
@@ -701,8 +753,9 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     if (!raw || typeof raw !== 'object') return b;
     if (raw.rates) { b.nprPerUsd = Number(raw.rates.nprPerUsd) || b.nprPerUsd; b.marketVndPerUsd = Number(raw.rates.vndPerUsd) || b.marketVndPerUsd; }
     if (raw.budgetNpr) b.targetNpr = Number(raw.budgetNpr) || null;
-    ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','lastCat','city','theme','lastBackup']
+    ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','lastCat','city','theme','lastBackup','ttsSlow']
       .forEach(k => { if (raw[k] !== undefined && raw[k] !== null) b[k] = raw[k]; });
+    b.phrases = (raw.phrases || []).filter(x => x && x.id && x.vi).map(x => ({ id:String(x.id), en:String(x.en || '').slice(0,200), vi:String(x.vi).slice(0,300) }));
     if (raw.ai && typeof raw.ai === 'object') {
       b.ai = Object.assign(b.ai, { key: raw.ai.key || '', place: raw.ai.place || b.ai.place, search: !!raw.ai.search });
       if (raw.ai.city && !raw.city) b.city = raw.ai.city;
@@ -715,6 +768,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     b.entries = (raw.entries || []).map(e => normEntry(e, b)).filter(Boolean);
     b.settlements = (raw.settlements || []).filter(t => t && t.id && t.friend && Number(t.vnd) > 0 && (t.dir === 'in' || t.dir === 'out'))
       .map(t => ({ id:String(t.id), ts:validTs(t.ts), friend:String(t.friend), vnd:Number(t.vnd), dir:t.dir }));
+    b.phrases = uniqById(b.phrases);
     b.friends = uniqById(b.friends); b.exchanges = uniqById(b.exchanges); b.entries = uniqById(b.entries); b.settlements = uniqById(b.settlements);
     // anyone referenced but missing from the people list gets a placeholder, so no debt is ever hidden
     const known = new Set(b.friends.map(f => f.id)); let n = 0;
@@ -790,7 +844,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   function hideSheet() {
     if (!openId) return;
     $(openId).classList.remove('open'); $('scrim').classList.remove('on');
-    if (openId === 'sheet-show' && wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    if (openId === 'sheet-show') { if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; } try { speechSynthesis.cancel(); } catch (e) {} }
     openId = null;
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
@@ -948,8 +1002,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   });
 
   // ---------- show the seller ----------
-  let showVal = 0, phraseIdx = 0;
-  let peeking = false;
+  let showVal = 0, phrase = null, peeking = false;
   function peekText() {
     const c = calc();
     return npr(showVal * c.nprPerVnd) + ' · ' + usd(Math.round(showVal / c.vndPerUsd * 100) / 100);
@@ -970,19 +1023,39 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       while (el.scrollWidth > max && size > 20) { size -= 2; el.style.fontSize = size + 'px'; }
     });
   }
+  const myPhrases = () => state.phrases.map(x => ({ key:'c' + x.id, id:x.id, vi:x.vi, en:x.en, group:'Mine' }));
+  const allPhrases = () => myPhrases().concat(PHRASES);
+  const phraseBtn = (q, sel) => '<button type="button" class="' + (sel ? 'sel' : '') + '" data-pk="' + esc(q.key) + '"><b lang="vi">' + esc(q.vi) + '</b><small>' + esc(q.en) + '</small></button>';
   function renderShow() {
     if (peeking) $('shPeek').textContent = peekText();
-    const p = PHRASES[phraseIdx];
-    $('shPhrase').textContent = p.vi; $('shEn').textContent = p.en;
+    $('shPhrase').textContent = phrase.vi; $('shEn').textContent = phrase.en;
     $('shVal').textContent = vnDots(showVal); fitShowVal();
     $('shK').textContent = short(showVal) + ' ₫';
-    $('shPhrases').innerHTML = PHRASES.map((q, i) => '<button type="button" class="' + (i === phraseIdx ? 'sel' : '') + '" data-ph="' + i + '"><b lang="vi">' + esc(q.vi) + '</b><small>' + esc(q.en) + '</small></button>').join('');
+    $('shVal').hidden = $('shK').hidden = !showVal; document.querySelector('#sheet-show .adj').hidden = false;
+    $('shSayPrice').disabled = !showVal;
+    $('shSlow').classList.toggle('on', !!state.ttsSlow); $('shSlow').setAttribute('aria-pressed', String(!!state.ttsSlow));
+    const quick = myPhrases().slice(0, 4).concat(PHRASES.slice(0, 8));
+    $('shQuick').innerHTML = quick.map(q => phraseBtn(q, q.key === phrase.key)).join('');
+  }
+  function renderPanel() {
+    const mine = myPhrases();
+    const item = (q, del) => '<div class="phr-item' + (q.key === phrase.key ? ' sel' : '') + '"><button type="button" data-pk="' + esc(q.key) + '"><b lang="vi">' + esc(q.vi) + '</b><small>' + esc(q.en) + '</small></button>' +
+      (del ? '<button type="button" class="x" data-delp="' + esc(q.id) + '" aria-label="Delete this phrase">✕</button>' : '') + '</div>';
+    let h = '';
+    if (mine.length) h += '<p class="phr-sec">My phrases</p><div class="phr-list">' + mine.map(q => item(q, true)).join('') + '</div>';
+    PHRASE_GROUPS.forEach(g => { h += '<p class="phr-sec">' + esc(g.name) + '</p><div class="phr-list">' + PHRASES.filter(q => q.group === g.name).map(q => item(q, false)).join('') + '</div>'; });
+    $('shList').innerHTML = h;
+  }
+  function pickPhrase(key) {
+    const q = allPhrases().find(x => x.key === key); if (!q) return;
+    phrase = q; $('shPanel').hidden = true; renderShow();
   }
   $('showBtn').onclick = async () => {
     const ask = Number(vals.ask) || 0, paid = Number(vals.paid) || 0;
     showVal = paid || Math.round(ask * 0.6 / 1000) * 1000;
     if (!paid && showVal) { setVal('paid', String(showVal)); setActive('paid', true); }
-    phraseIdx = 0; peek(false); renderShow(); openSheet('sheet-show');
+    phrase = PHRASES[0]; peek(false); $('shPanel').hidden = true; $('shVoiceNote').hidden = true;
+    renderShow(); openSheet('sheet-show');
     try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { wakeLock = null; }
   };
   $('shClose').onclick = () => closeSheet();
@@ -990,7 +1063,94 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     showVal = Math.max(0, showVal + Number(b.dataset.adj));
     setVal('paid', showVal ? String(showVal) : ''); active = 'paid'; setActive('paid', true); renderShow();
   }; });
-  $('shPhrases').addEventListener('click', e => { const b = e.target.closest('[data-ph]'); if (!b) return; phraseIdx = Number(b.dataset.ph); renderShow(); });
+  $('shQuick').addEventListener('click', e => { const b = e.target.closest('[data-pk]'); if (b) pickPhrase(b.dataset.pk); });
+  $('shAllBtn').onclick = () => { renderPanel(); $('shPanel').hidden = false; $('shPanel').scrollTop = 0; };
+  $('shPanelClose').onclick = () => { $('shPanel').hidden = true; };
+  $('shList').addEventListener('click', e => {
+    const d = e.target.closest('[data-delp]');
+    if (d) { const x = state.phrases.find(p => p.id === d.dataset.delp);
+      if (x && confirm('Delete “' + (x.en || x.vi) + '”?')) { state.phrases = state.phrases.filter(p => p.id !== x.id); save(); if (phrase.key === 'c' + x.id) phrase = PHRASES[0]; renderPanel(); renderShow(); }
+      return; }
+    const b = e.target.closest('[data-pk]'); if (b) pickPhrase(b.dataset.pk);
+  });
+
+  // voice: the phone's own Vietnamese text-to-speech (works offline once the voice is installed)
+  const VOICE_HELP = 'No Vietnamese voice found on this phone. Install it: Settings → General management → Text-to-speech → Google engine ⚙ → Install voice data → Vietnamese. Then turn up media volume.';
+  function viVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    return speechSynthesis.getVoices().find(v => /^vi([-_]|$)/i.test(v.lang)) || null;
+  }
+  if ('speechSynthesis' in window) { try { speechSynthesis.getVoices(); speechSynthesis.addEventListener('voiceschanged', () => {}); } catch (e) {} }
+  function speak(text) {
+    const note = $('shVoiceNote');
+    if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) { note.textContent = 'This browser can’t speak. Show the screen instead.'; note.hidden = false; return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'vi-VN'; u.volume = 1; u.pitch = 1; u.rate = state.ttsSlow ? 0.6 : 0.85;
+    const v = viVoice(); if (v) { try { u.voice = v; } catch (e) {} }
+    const voices = speechSynthesis.getVoices();
+    if (voices.length && !v) { note.textContent = VOICE_HELP; note.hidden = false; } else note.hidden = true;
+    u.onerror = ev => { if (ev.error !== 'interrupted' && ev.error !== 'canceled') { note.textContent = 'Couldn’t play the voice (' + ev.error + '). ' + VOICE_HELP; note.hidden = false; } };
+    try { speechSynthesis.speak(u); } catch (e) { note.textContent = 'Couldn’t play the voice. ' + VOICE_HELP; note.hidden = false; }
+  }
+  $('shSayPhrase').onclick = () => speak(phrase.vi);
+  $('shSayPrice').onclick = () => { if (showVal) speak(Math.round(showVal) + ' đồng'); };
+  $('shSlow').onclick = () => { state.ttsSlow = !state.ttsSlow; save(); renderShow(); };
+  $('shTry').onclick = () => { const t = $('shViOut').value.trim(); if (t) speak(t); };
+
+  // custom phrases: English in, Vietnamese out
+  const decodeHtml = t => { const d = document.createElement('textarea'); d.innerHTML = t; return d.value; };
+  async function translateToVi(en) {
+    const prompt = 'Translate this into short, natural, polite spoken Vietnamese that a tourist would say to a vendor, shopkeeper or waiter in Vietnam. Reply with ONLY a JSON object like {"vi": "..."}.\n\nEnglish: ' + en;
+    if (sampleFn) {
+      const j = await sampleFn.json(prompt, { modelTier:'quick' });
+      if (j && typeof j.vi === 'string' && j.vi.trim()) return { vi:j.vi.trim(), via:'Claude' };
+      throw { code:'invalid_json' };
+    }
+    if (state.ai.key) {
+      const res = await withTimeout(fetch('https://api.anthropic.com/v1/messages', { method:'POST',
+        headers:{ 'content-type':'application/json', 'x-api-key':state.ai.key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({ model:'claude-haiku-5-5', max_tokens:300, messages:[{ role:'user', content:prompt }] }) }), 20000);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const out = (data.content || []).filter(x => x.type === 'text').map(x => x.text).join('');
+        try { const j = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)); if (j.vi) return { vi:String(j.vi).trim(), via:'Claude' }; } catch (e) {}
+      }
+      // fall through to the free service if the key fails
+    }
+    const r = await withTimeout(fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(en.slice(0, 450)) + '&langpair=en|vi'), 12000);
+    const j = await r.json();
+    const vi = j && j.responseData && j.responseData.translatedText;
+    if (String(j.responseStatus) !== '200' || !vi || /MYMEMORY WARNING|QUERY LENGTH|INVALID/i.test(vi)) throw { code:'quota', message:j && j.responseDetails };
+    return { vi:decodeHtml(vi).trim(), via:'free machine translation' };
+  }
+  async function doTranslate() {
+    const en = $('shEnIn').value.trim(), st = $('shAddStatus'), btn = $('shTranslate');
+    if (!en) { $('shEnIn').focus(); return; }
+    if (!navigator.onLine) { st.textContent = 'Translating needs internet. Your saved phrases work offline, or type the Vietnamese yourself below.'; $('shAddResult').hidden = false; return; }
+    btn.disabled = true; btn.textContent = 'Translating…'; st.textContent = '';
+    try {
+      const r = await translateToVi(en);
+      $('shViOut').value = r.vi; $('shAddResult').hidden = false;
+      st.textContent = 'Translated by ' + r.via + '. Tap Listen to hear it, and check the seller understands.';
+    } catch (e) {
+      $('shAddResult').hidden = false;
+      st.textContent = e && e.code === 'quota' ? 'The free translator’s daily limit is used up. Type the Vietnamese yourself, or try tomorrow.'
+        : e && e.code === 'not_granted' ? 'Claude access was declined for this page. Reload it to be asked again.'
+        : 'Couldn’t translate right now. Check your connection, or type the Vietnamese yourself.';
+    } finally { btn.disabled = false; btn.textContent = 'Translate to Vietnamese'; }
+  }
+  $('shTranslate').onclick = doTranslate;
+  $('shEnIn').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doTranslate(); } });
+  $('shEnIn').addEventListener('input', () => { $('shAddResult').hidden = true; $('shAddStatus').textContent = ''; });
+  $('shSaveP').onclick = () => {
+    const en = $('shEnIn').value.trim(), vi = $('shViOut').value.trim();
+    if (!vi) { $('shViOut').focus(); return; }
+    const x = { id:uid(), en: en || vi, vi };
+    state.phrases.unshift(x); save();
+    $('shEnIn').value = ''; $('shViOut').value = ''; $('shAddResult').hidden = true; $('shAddStatus').textContent = '';
+    pickPhrase('c' + x.id);
+  };
 
   // ---------- log / edit purchase form ----------
   let F = null; // { mode, id, vnd, cat, paidBy, among, open }
@@ -1758,7 +1918,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
         d.settlements.forEach(t => { t.friend = m(t.friend); });
       }
       const merge = (key) => { const have = new Set(state[key].map(x => x.id)); const add = d[key].filter(x => !have.has(x.id)); state[key] = state[key].concat(add); return add.length; };
-      const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements');
+      const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements'); merge('phrases');
       save(); fillSettings(); renderAll();
       $('importNote').textContent = 'Restored ' + ne + ' purchases, ' + nx + ' exchanges, ' + ns + ' paybacks and ' + nf + ' people. ' + (fresh ? 'Budget, trip dates and rates were restored too.' : 'Nothing already here was changed.');
     } catch (e) { $('importNote').textContent = 'That file isn’t a backup from this app.'; }
