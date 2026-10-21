@@ -4,22 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f2f3f0">
-<meta name="description" content="Offline Vietnam deal calculator, cash wallet and trip budget tracker.">
+<meta name="description" content="Offline Vietnam trip wallet: deal calculator, bargaining helper, cash and group expense tracker.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>Deal Calc</title>
 <script>try{var t=JSON.parse(localStorage.getItem("vdc.v1")||"{}").theme;if(t&&t!=="auto"){document.documentElement.dataset.theme=t;document.documentElement.dataset.themeOwner="1"}}catch(e){}</script>
 <style>
-/* Light: soft paper, ink not pure black. Dark: charcoal, off-white text. No neon, no pure black/white. */
 :root{
   --bg:#f2f3f0; --surface:#fbfbf9; --raised:#e8ebe6; --press:#dadfd8;
-  --ink:#252a27; --muted:#636d67; --line:#dce0da;
+  --ink:#252a27; --muted:#626c66; --line:#dce0da;
   --accent:#2f6f5e; --accent-ink:#ffffff; --accent-soft:#e2ede7; --sel:#2f6f5e;
   --num:#1e2320; --good:#2b7449; --warn:#a4473a; --warnbg:#f6e5e1; --caret:#2f6f5e;
+  --show-bg:#fbfbf9; --show-ink:#111513;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
@@ -28,6 +28,7 @@
     --ink:#dde2de; --muted:#9aa39e; --line:#323836;
     --accent:#86bea8; --accent-ink:#13201b; --accent-soft:#263430; --sel:#86bea8;
     --num:#eceeeb; --good:#90cfa7; --warn:#e39a8a; --warnbg:#382622; --caret:#86bea8;
+    --show-bg:#1a1d1c; --show-ink:#f4f5f3;
     color-scheme:dark;
   }
 }
@@ -36,39 +37,44 @@
   --ink:#dde2de; --muted:#9aa39e; --line:#323836;
   --accent:#86bea8; --accent-ink:#13201b; --accent-soft:#263430; --sel:#86bea8;
   --num:#eceeeb; --good:#90cfa7; --warn:#e39a8a; --warnbg:#382622; --caret:#86bea8;
+  --show-bg:#1a1d1c; --show-ink:#f4f5f3;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Be Vietnam Pro",system-ui,-apple-system,Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:default}
 input,select{font:inherit}
 .num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
 .app{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto}
 
+/* top bar */
 .top{display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 8px}
 .top h1{margin:0;flex:1;font-size:1.3rem;font-weight:700}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.84rem;font-weight:600;white-space:nowrap}
 .chip.low{border-color:var(--warn);color:var(--warn)}
 @keyframes bump{50%{transform:scale(1.08)}}
 .chip.bump{animation:bump .35s ease}
-.icon-btn{border:0;background:transparent;width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+.icon-btn{border:0;background:transparent;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none}
 .icon-btn:active{background:var(--raised)}
 .icon-btn svg{width:22px;height:22px}
 #installBtn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.errbar{display:flex;gap:10px;align-items:flex-start;background:var(--warnbg);color:var(--warn);border-radius:14px;padding:10px 12px;margin:0 0 10px;font-size:.86rem}
+.errbar span{flex:1}
+.errbar button{border:0;background:transparent;color:inherit;font-weight:700;padding:0 4px}
 
-main{flex:1;overflow-y:auto;padding:4px 16px 20px;overscroll-behavior:contain}
-.view[hidden]{display:none}
+main{flex:1;overflow-y:auto;padding:4px 16px 24px;overscroll-behavior:contain}
 
 /* deal display */
 .display{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:6px;display:grid;gap:4px}
-.amt-row{display:grid;grid-template-columns:1fr auto;align-items:end;gap:0 10px;width:100%;text-align:left;border:2px solid transparent;border-radius:15px;padding:8px 12px 10px;cursor:pointer;outline:none}
+.amt-row{display:grid;grid-template-columns:1fr auto;align-items:end;gap:0 10px;width:100%;text-align:left;border:2px solid transparent;border-radius:15px;padding:6px 12px 10px;cursor:pointer;outline:none}
 .amt-row.active{background:var(--accent-soft);border-color:var(--sel)}
 .amt-row:focus-visible{border-color:var(--sel)}
 .lbl-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;min-height:28px}
 .lbl{font-size:.82rem;color:var(--muted);font-weight:600}
-.clr{border:0;background:var(--raised);color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:1rem;line-height:1;display:grid;place-items:center;padding:0}
-.clr[hidden]{display:none}
+.clr{border:0;background:var(--raised);color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:.9rem;line-height:1;display:grid;place-items:center;padding:0}
 .big{font-size:1.95rem;font-weight:700;line-height:1.15;color:var(--num);letter-spacing:-.01em;overflow-wrap:anywhere;min-height:2.25rem}
 .amt-row:not(.active) .big{font-size:1.35rem;min-height:0}
 .big .ph{color:var(--muted);font-weight:500}
@@ -82,28 +88,29 @@ main{flex:1;overflow-y:auto;padding:4px 16px 20px;overscroll-behavior:contain}
 .conv .saved{color:var(--good)}
 .conv .above{color:var(--warn)}
 
-.offers{margin:12px 0 10px}
-.offers-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
-.offers-head p{margin:0;font-size:.84rem;color:var(--muted)}
-.ai-pill{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:5px 12px;font-size:.82rem;font-weight:700;white-space:nowrap}
-.ai-pill:disabled{border-color:var(--line);color:var(--muted)}
-.offer-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.offer{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 6px;text-align:center;line-height:1.25}
-.offer b{display:block;font-size:1.05rem;font-weight:700}
-.offer small{color:var(--muted);font-size:.76rem}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 8px}
+.act{min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:14px;font-size:.9rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.act:active{background:var(--raised)}
+.act:disabled{color:var(--muted);opacity:.7}
+.act.accent{border-color:var(--accent);color:var(--accent)}
+.offer-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.offer{border:1px dashed var(--line);background:transparent;border-radius:14px;padding:6px 4px;text-align:center;line-height:1.25}
+.offer b{display:block;font-size:1rem;font-weight:700}
+.offer small{color:var(--muted);font-size:.74rem}
 .offer:active{background:var(--raised)}
 
 .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.key{height:54px;border:0;border-radius:14px;background:var(--raised);font-size:1.45rem;font-weight:500}
+.key{height:52px;border:0;border-radius:14px;background:var(--raised);font-size:1.45rem;font-weight:500}
 .key:active{background:var(--press)}
 .key.alt{font-size:1.1rem;color:var(--muted)}
 .primary{width:100%;min-height:54px;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:1.05rem;margin-top:10px}
 .primary:disabled{opacity:.45}
 .primary.done{opacity:1;background:var(--good);color:var(--accent-ink)}
 .secondary{width:100%;min-height:50px;border:1px solid var(--line);border-radius:16px;background:var(--surface);font-weight:600}
+.secondary:active{background:var(--raised)}
 .rate-hint{text-align:center;font-size:.8rem;color:var(--muted);margin:8px 0 0}
 
-/* spent */
+/* cards & lists */
 .hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px}
 .hero .lbl{margin:0}
 .hero .val{margin:2px 0 12px;font-size:2.2rem;font-weight:700;line-height:1.15;color:var(--num)}
@@ -111,33 +118,50 @@ main{flex:1;overflow-y:auto;padding:4px 16px 20px;overscroll-behavior:contain}
 .segbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--raised)}
 .segbar i{display:block;height:100%}
 .hero .sub{margin:8px 0 0;font-size:.86rem;color:var(--muted)}
+.nudge{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted)}
+.nudge button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 12px;font-size:.82rem;font-weight:600;white-space:nowrap}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;min-width:0}
 .stat span{display:block;font-size:.8rem;color:var(--muted);font-weight:600}
 .stat strong{display:block;font-size:1.25rem;font-weight:700;margin-top:2px;overflow-wrap:anywhere}
 .stat strong.over{color:var(--warn)}
+.stat strong.good{color:var(--good)}
 .stat small{display:block;color:var(--muted);font-size:.8rem}
-.legend{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
-.legend span{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:.82rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px}
+.days{display:flex;align-items:flex-end;gap:4px;height:96px;position:relative;margin-top:6px}
+.days .plan{position:absolute;left:0;right:0;border-top:1.5px dashed var(--muted);opacity:.6;pointer-events:none}
+.days .day-b{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.days .day-b i{display:block;width:100%;max-width:22px;border-radius:5px 5px 2px 2px;background:var(--accent);min-height:2px}
+.days .day-b.over i{background:var(--warn)}
+.days .day-b.empty i{background:var(--raised)}
+.days-l{display:flex;gap:4px;margin-top:4px}
+.days-l span{flex:1;text-align:center;font-size:.68rem;color:var(--muted);min-width:0}
+.days-l span.today{color:var(--ink);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+.legend button{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:.82rem}
+.legend button.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
 .legend i{width:9px;height:9px;border-radius:50%}
 .day{display:flex;justify-content:space-between;margin:18px 2px 6px;font-size:.84rem;font-weight:700;color:var(--muted)}
 .list{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
 .row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left}
 .row:first-child{border-top:0}
-.row:active{background:var(--raised)}
+button.row:active{background:var(--raised)}
 .row .emo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:1.15rem;flex:none}
 .row .mid{flex:1;min-width:0}
 .row .mid b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .mid small,.row .amt small{color:var(--muted);font-size:.8rem}
 .row .amt{text-align:right;flex:none}
 .row .amt b{display:block;font-weight:700}
-.empty-msg{text-align:center;color:var(--muted);font-size:.92rem;padding:28px 12px}
+.row .amt b.good{color:var(--good)}
+.row .amt b.over{color:var(--warn)}
+.tag{display:inline-block;font-size:.7rem;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:0 5px;margin-left:6px;vertical-align:1px}
+.empty-msg{text-align:center;color:var(--muted);font-size:.92rem;padding:24px 12px}
+h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 
 /* cash */
 .cash{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.cash .card{border-radius:20px;padding:16px;min-width:0;border:1px solid var(--line)}
-.cash .usd{background:var(--surface)}
-.cash .vnd{background:var(--accent-soft);border-color:transparent}
+.cash .c{border-radius:20px;padding:16px;min-width:0;border:1px solid var(--line);background:var(--surface)}
+.cash .c.vnd{background:var(--accent-soft);border-color:transparent}
 .cash span{display:block;font-size:.8rem;font-weight:600;color:var(--muted)}
 .cash strong{display:block;font-size:1.55rem;font-weight:700;overflow-wrap:anywhere;line-height:1.2;margin-top:2px;color:var(--num)}
 .cash strong.neg{color:var(--warn)}
@@ -147,9 +171,18 @@ main{flex:1;overflow-y:auto;padding:4px 16px 20px;overscroll-behavior:contain}
 .status a{color:inherit}
 .btn-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn-pair .primary{margin-top:0}
-h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
+.notes .row{align-items:center}
+.bill{width:58px;height:30px;border-radius:5px;flex:none;display:grid;place-items:center;font-size:.78rem;font-weight:700;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.bill.long{width:66px}
 
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* group */
+.person-edit{display:flex;gap:8px;margin-top:8px}
+.person-edit input{flex:1}
+.person-edit button{flex:none;width:50px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--muted)}
+.person-edit button:disabled{opacity:.35}
+
+/* tabs */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 .tabs button{border:0;background:transparent;padding:8px 0 10px;display:grid;justify-items:center;gap:2px;font-size:.78rem;font-weight:600;color:var(--muted)}
 .tabs svg{width:24px;height:24px}
 .tabs button[aria-selected=true]{color:var(--accent)}
@@ -157,35 +190,44 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 /* sheets */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
 .scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;max-height:88%;overflow-y:auto;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .25s ease;z-index:21}
-.sheet.open{transform:none}
-.grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;max-height:90%;overflow-y:auto;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .25s ease;z-index:21;visibility:hidden}
+.sheet.open{transform:none;visibility:visible}
+.grab{width:100%;height:26px;margin:-10px 0 4px;display:grid;place-items:center;cursor:grab;touch-action:none}
+.grab::before{content:"";width:40px;height:5px;border-radius:9px;background:var(--muted);opacity:.45}
+.sheet:not(.full) > h2{touch-action:none}
+.sheet.dragging{transition:none}
+.sheet-actions{position:sticky;bottom:calc(-20px - env(safe-area-inset-bottom,0px));margin:12px -18px calc(-20px - env(safe-area-inset-bottom,0px));padding:10px 18px calc(16px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:auto 1fr;gap:10px;z-index:2}
+.sheet-actions .primary{margin-top:0}
+.sheet-actions .ghost{min-height:54px;padding:0 18px;border:1px solid var(--line);border-radius:16px;background:transparent;font-weight:600}
 .sheet h2{margin:0 0 4px;font-size:1.2rem;font-weight:700}
-.sheet .lead{margin:0 0 14px;color:var(--muted);font-size:.92rem}
-.sheet label{display:block;font-size:.86rem;font-weight:600;margin:14px 0 6px}
+.sheet .lead{margin:0 0 10px;color:var(--muted);font-size:.92rem}
+.sheet label,.flabel{display:block;font-size:.86rem;font-weight:600;margin:14px 0 6px}
 .sheet input,.sheet select{width:100%;min-height:50px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);min-width:0}
+.sheet input[type=checkbox]{width:22px;min-height:22px}
 .sheet input:focus,.sheet select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .two>*{min-width:0}
-.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.cat{border:1px solid var(--line);background:var(--bg);border-radius:16px;padding:12px 4px;display:grid;justify-items:center;gap:4px;font-size:.86rem;font-weight:600}
-.cat .e{font-size:1.5rem}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.cat{border:1px solid var(--line);background:var(--bg);border-radius:16px;padding:11px 4px;display:grid;justify-items:center;gap:3px;font-size:.86rem;font-weight:600}
+.cat .e{font-size:1.45rem}
 .cat.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
 .cat:active{background:var(--raised)}
-.note{border-radius:14px;padding:12px 14px;background:var(--accent-soft);font-size:.92rem;margin-top:14px}
+.note{border-radius:14px;padding:12px 14px;background:var(--accent-soft);font-size:.92rem;margin-top:12px}
 .note.warn{background:var(--warnbg);color:var(--warn)}
 .danger{width:100%;min-height:50px;border:1px solid var(--warn);color:var(--warn);background:transparent;border-radius:16px;font-weight:700;margin-top:10px}
-.sheet h3{margin-top:24px}
+.sheet h3{margin-top:22px}
 .small{font-size:.82rem;color:var(--muted)}
 .small a,.note a{color:var(--accent)}
 .rate-wrap{display:flex;gap:8px}
 .rate-wrap input{flex:1}
-.mini{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:0 12px;font-size:.82rem;font-weight:600;white-space:nowrap}
+.mini{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:0 12px;min-height:40px;font-size:.82rem;font-weight:600;white-space:nowrap}
 .seg{display:flex;flex-wrap:wrap;gap:8px}
 .seg button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 13px;font-size:.88rem;font-weight:600}
-.seg button.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+.seg button.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel);background:var(--accent-soft)}
+.split-box{border:1px solid var(--line);border-radius:16px;padding:4px 12px 12px;margin-top:12px}
+.split-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px}
+.split-head b{font-size:.92rem}
 .thumb{display:block;max-width:100%;max-height:160px;border-radius:14px;margin-top:10px}
-.thumb[hidden]{display:none}
 .advice{margin-top:16px}
 .verdict{border-radius:14px;padding:12px 14px;font-weight:700;font-size:1.05rem}
 .verdict.great,.verdict.fair{background:var(--accent-soft);color:var(--good)}
@@ -195,9 +237,30 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .adv-grid span{display:block;font-size:.76rem;color:var(--muted);font-weight:600}
 .adv-grid b{display:block;font-size:1rem;overflow-wrap:anywhere}
 .conf{font-size:.82rem;color:var(--muted);margin:10px 0 0}
+
+/* show-the-seller screen */
+.sheet.full{top:0;max-height:none;height:100%;border-radius:0;display:flex;flex-direction:column;background:var(--show-bg);padding:calc(8px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.show-top{display:flex;align-items:center;justify-content:space-between}
+.peek{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:8px 14px;font-size:.8rem;font-weight:600;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.peek.on{color:var(--ink);border-color:var(--sel);background:var(--accent-soft);font-size:.95rem}
+.show-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:6px;min-height:0}
+.show-phrase{margin:0;font-size:clamp(1.6rem,8vw,2.3rem);font-weight:700;color:var(--show-ink);line-height:1.2}
+.show-en{margin:0;color:var(--muted);font-size:.92rem}
+.show-val{margin:14px 0 4px;white-space:nowrap;font-size:clamp(2.4rem,13.5vw,4.8rem);font-weight:700;color:var(--show-ink);letter-spacing:-.02em;line-height:1}
+.show-k{margin:0;color:var(--muted);font-size:1.1rem;font-weight:600}
+.adj{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;max-width:420px;margin-top:18px}
+.adj button{min-height:50px;border:1px solid var(--line);background:var(--surface);border-radius:14px;font-weight:700;font-size:1rem}
+.adj button:active{background:var(--raised)}
+.phr{display:flex;gap:8px;overflow-x:auto;padding:6px 0 2px;scrollbar-width:none}
+.phr::-webkit-scrollbar{display:none}
+.phr button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px;text-align:left;line-height:1.25;max-width:200px}
+.phr button b{display:block;font-size:.95rem}
+.phr button small{color:var(--muted);font-size:.76rem}
+.phr button.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
-@media (max-height:700px){ .key{height:46px} .big{font-size:1.65rem} }
+@media (max-height:720px){ .key{height:46px} .big{font-size:1.65rem} .actions{margin:8px 0 6px} .act{min-height:40px} }
 </style>
 </head>
 <body>
@@ -205,13 +268,15 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <header class="top">
     <h1 id="title">Deal</h1>
     <button type="button" class="chip" id="installBtn" hidden>Install</button>
-    <button type="button" class="chip num" id="walletChip"></button>
+    <button type="button" class="chip num" id="walletChip" aria-label="Wallet"></button>
     <button type="button" class="icon-btn" id="openSettings" aria-label="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
   </header>
 
-  <main>
+  <main id="main">
+    <div class="errbar" id="errBar" hidden><span id="errText"></span><button type="button" id="errClose" aria-label="Dismiss">✕</button></div>
+
     <!-- DEAL -->
     <section class="view" id="view-deal">
       <div class="display">
@@ -226,10 +291,11 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
           <span class="conv num" id="paidConv"></span>
         </div>
       </div>
-      <div class="offers">
-        <div class="offers-head"><p>Open at… tap one if the seller takes it</p><button type="button" class="ai-pill" id="aiBtn">✨ Check price</button></div>
-        <div class="offer-row" id="offerRow"></div>
+      <div class="actions">
+        <button type="button" class="act" id="showBtn">🗣️ Show seller</button>
+        <button type="button" class="act accent" id="aiBtn">✨ Price advice</button>
       </div>
+      <div class="offer-row" id="offerRow"></div>
       <div class="keypad" id="keypad">
         <button type="button" class="key" data-k="1">1</button><button type="button" class="key" data-k="2">2</button><button type="button" class="key" data-k="3">3</button>
         <button type="button" class="key" data-k="4">4</button><button type="button" class="key" data-k="5">5</button><button type="button" class="key" data-k="6">6</button>
@@ -248,10 +314,17 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
         <p class="val num" id="heroVal"></p>
         <div class="segbar" id="segbar"></div>
         <p class="sub num" id="heroSub"></p>
+        <div class="nudge" id="backupNudge" hidden><span id="backupText"></span><button type="button" id="nudgeBackup">Save backup</button></div>
       </div>
       <div class="stats">
         <div class="stat"><span>Spent today</span><strong class="num" id="todayAmt"></strong><small class="num" id="todayOf"></small></div>
         <div class="stat"><span>Daily allowance</span><strong class="num" id="perDay"></strong><small class="num" id="perDaySub"></small></div>
+      </div>
+      <div class="card" id="daysCard">
+        <span class="lbl">Each day of the trip</span>
+        <div class="days" id="days"></div>
+        <div class="days-l" id="daysL"></div>
+        <p class="small" style="margin:6px 0 0">Dashed line: even daily share of your budget.</p>
       </div>
       <div class="legend" id="legend"></div>
       <div id="spentList"></div>
@@ -261,8 +334,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     <!-- CASH -->
     <section class="view" id="view-cash" hidden>
       <div class="cash">
-        <div class="card usd"><span>Dollars left</span><strong class="num" id="usdLeft"></strong><small class="num" id="usdSub"></small></div>
-        <div class="card vnd"><span>Dong in wallet</span><strong class="num" id="vndLeft"></strong><small class="num" id="vndSub"></small></div>
+        <div class="c"><span>Dollars left</span><strong class="num" id="usdLeft"></strong><small class="num" id="usdSub"></small></div>
+        <div class="c vnd"><span>Dong in wallet</span><strong class="num" id="vndLeft"></strong><small class="num" id="vndSub"></small></div>
       </div>
       <p class="rate-line num" id="rateLine"></p>
       <p class="status" id="rateStatus"></p>
@@ -273,6 +346,25 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <h3>Exchanges</h3>
       <div id="xList"></div>
       <p class="empty-msg" id="xEmpty">No exchanges yet. Log each one as you change dollars into dong.</p>
+      <h3>Know your notes</h3>
+      <div class="note warn" style="margin:0 0 8px">20,000 and 500,000 are both blue. The 500,000 is longer and has five zeros. Check before you hand one over.</div>
+      <div class="list notes" id="notesList"></div>
+      <p class="small">Colours are approximate. Keep small notes (under 100k) separate from big ones.</p>
+    </section>
+
+    <!-- GROUP -->
+    <section class="view" id="view-group" hidden>
+      <div class="stats" style="margin-top:0">
+        <div class="stat"><span>Friends owe you</span><strong class="num good" id="owedToMe"></strong><small class="num" id="owedToMeNpr"></small></div>
+        <div class="stat"><span>You owe</span><strong class="num" id="iOwe"></strong><small class="num" id="iOweNpr"></small></div>
+      </div>
+      <div id="friendList"></div>
+      <p class="empty-msg" id="friendEmpty">Add the people you’re travelling with. When you log a purchase you can then split it or mark who paid.</p>
+      <button type="button" class="secondary" id="openPeople" style="margin-top:10px">Add or rename people</button>
+      <h3>Shared bills</h3>
+      <div id="sharedList"></div>
+      <p class="empty-msg" id="sharedEmpty">No shared bills yet.</p>
+      <p class="small">Tracks only what’s owed between you and each friend. Tap a person to record cash paid back.</p>
     </section>
   </main>
 
@@ -283,33 +375,60 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Spent</button>
     <button type="button" role="tab" data-tab="cash" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>Cash</button>
+    <button type="button" role="tab" data-tab="group" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.7c2 .7 3.2 2.5 3.5 5.3"/></svg>Group</button>
   </nav>
 </div>
 
 <div class="scrim" id="scrim"></div>
 
-<!-- log sheet -->
-<div class="sheet" id="sheet-log" role="dialog" aria-modal="true" aria-labelledby="logTitle">
+<!-- log / edit purchase -->
+<div class="sheet" id="sheet-form" role="dialog" aria-modal="true" aria-labelledby="fTitle">
   <div class="grab"></div>
-  <h2 class="num" id="logTitle"></h2>
-  <p class="lead num" id="logLead"></p>
-  <label for="logItem">What is it? (optional)</label>
-  <input id="logItem" type="text" placeholder="e.g. Silk scarf" autocomplete="off" enterkeyhint="done">
-  <p class="small" style="margin:14px 0 0">Tap a category to save</p>
-  <div class="cats" id="logCats"></div>
+  <h2 class="num" id="fTitle"></h2>
+  <p class="lead num" id="fLead"></p>
+  <div id="fAmountWrap"><label for="fAmount">Amount (₫)</label><input id="fAmount" type="number" inputmode="numeric" min="0" step="1000"></div>
+  <label for="fItem">What is it?</label>
+  <input id="fItem" type="text" placeholder="e.g. Silk scarf, pho, Grab" autocomplete="off" enterkeyhint="done">
+  <div class="split-box" id="fSplitBox">
+    <div class="split-head"><b id="fSplitTitle">Just for me, I paid</b><button type="button" class="mini" id="fSplitToggle">Split</button></div>
+    <div id="fSplitBody" hidden>
+      <span class="flabel">Who paid?</span><div class="seg" id="fPaidBy"></div>
+      <span class="flabel">Shared by <button type="button" class="mini" id="fAll" style="min-height:30px;margin-left:6px">Everyone</button></span><div class="seg" id="fAmong"></div>
+    </div>
+    <p class="status num" id="fSplitSum" style="margin-bottom:0"></p>
+  </div>
+  <p class="small" id="fNoFriends" style="margin:10px 0 0">Splitting with friends? Add them in the Group tab.</p>
+  <span class="flabel">Category</span>
+  <div class="cats" id="fCats"></div>
+  <p class="status" id="fErr" style="color:var(--warn)"></p>
+  <button type="button" class="danger" id="fDelete">Delete purchase</button>
+  <div class="sheet-actions">
+    <button type="button" class="ghost" id="fCancel">Cancel</button>
+    <button type="button" class="primary num" id="fConfirm"></button>
+  </div>
 </div>
 
-<!-- entry sheet -->
-<div class="sheet" id="sheet-entry" role="dialog" aria-modal="true" aria-labelledby="entryTitle">
-  <div class="grab"></div>
-  <h2 id="entryTitle"></h2>
-  <p class="lead num" id="entryLead"></p>
-  <p class="small" style="margin:0">Move to another category</p>
-  <div class="cats" id="entryCats"></div>
-  <button type="button" class="danger" id="entryDelete">Delete purchase</button>
+<!-- show the seller -->
+<div class="sheet full" id="sheet-show" role="dialog" aria-modal="true" aria-label="Show the seller">
+  <div class="show-top">
+    <button type="button" class="icon-btn" id="shClose" aria-label="Close">✕</button>
+    <button type="button" class="peek num" id="shPeek" aria-label="Hold to see this price in rupees and dollars">Hold for NPR · $</button>
+  </div>
+  <div class="show-main">
+    <p class="show-phrase" id="shPhrase" lang="vi"></p>
+    <p class="show-en" id="shEn"></p>
+    <p class="show-val num" id="shVal"></p>
+    <p class="show-k num" id="shK"></p>
+    <div class="adj">
+      <button type="button" data-adj="-50000">−50k</button><button type="button" data-adj="-10000">−10k</button>
+      <button type="button" data-adj="10000">+10k</button><button type="button" data-adj="50000">+50k</button>
+    </div>
+  </div>
+  <div class="phr" id="shPhrases"></div>
 </div>
 
-<!-- exchange sheet -->
+<!-- exchange -->
 <div class="sheet" id="sheet-exchange" role="dialog" aria-modal="true" aria-labelledby="xTitle">
   <div class="grab"></div>
   <h2 id="xTitle">Exchange money</h2>
@@ -326,34 +445,60 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <p class="status">Worked out from the rate. If they hand you a different amount, type what you actually got.</p>
   <label for="xWhere">Where (optional)</label>
   <input id="xWhere" type="text" placeholder="e.g. Gold shop, District 1" autocomplete="off">
-  <div class="note num" id="xPreview">Enter the dollars to see what you’ll get.</div>
+  <div class="note num" id="xPreview"></div>
   <button type="button" class="primary" id="xSave">Save exchange</button>
 </div>
 
-<!-- count sheet -->
+<!-- count wallet -->
 <div class="sheet" id="sheet-count" role="dialog" aria-modal="true" aria-labelledby="cTitle">
   <div class="grab"></div>
   <h2 id="cTitle">Count my wallet</h2>
   <p class="lead num" id="cLead"></p>
   <label for="cVnd">Dong you actually have (₫)</label>
   <input id="cVnd" type="number" inputmode="numeric" min="0" step="1000">
-  <div class="note num" id="cPreview">Count your notes and enter the total.</div>
+  <div class="note num" id="cPreview"></div>
   <button type="button" class="primary" id="cFix" hidden></button>
 </div>
 
-<!-- advice sheet -->
+<!-- people -->
+<div class="sheet" id="sheet-people" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="grab"></div>
+  <h2 id="pTitle">People on this trip</h2>
+  <p class="lead">Names are only stored on this phone.</p>
+  <div id="pList"></div>
+  <div class="person-edit">
+    <input id="pNew" type="text" placeholder="Add a name" autocomplete="off" enterkeyhint="done" aria-label="New person’s name">
+    <button type="button" id="pAdd" aria-label="Add person" style="color:var(--accent);font-weight:700;font-size:1.3rem">＋</button>
+  </div>
+  <p class="small">People with shared bills or paybacks can be renamed but not removed.</p>
+</div>
+
+<!-- friend balance -->
+<div class="sheet" id="sheet-friend" role="dialog" aria-modal="true" aria-labelledby="frName">
+  <div class="grab"></div>
+  <h2 id="frName"></h2>
+  <p class="lead num" id="frLead"></p>
+  <label for="frAmt">Amount (₫)</label>
+  <input id="frAmt" type="number" inputmode="numeric" min="0" step="1000">
+  <div class="btn-pair" style="margin-top:12px">
+    <button type="button" class="primary" id="frIn"></button>
+    <button type="button" class="secondary" id="frOut"></button>
+  </div>
+  <h3>History</h3>
+  <div id="frHist"></div>
+</div>
+
+<!-- price advice -->
 <div class="sheet" id="sheet-advice" role="dialog" aria-modal="true" aria-labelledby="aTitle">
   <div class="grab"></div>
   <h2 id="aTitle">Check this price</h2>
   <p class="lead num" id="aLead"></p>
   <label for="aItem">What is it?</label>
   <input id="aItem" type="text" placeholder="e.g. Silk scarf, hand-embroidered" autocomplete="off" enterkeyhint="done">
-  <label>Where are you buying?</label>
+  <span class="flabel">Where are you buying?</span>
   <div class="seg" id="aPlace"></div>
   <div class="two" style="margin-top:12px">
-    <select id="aCity" aria-label="City">
-      <option>Ho Chi Minh City</option><option>Phu Quoc</option><option>Hanoi</option><option>Ha Long</option><option>Other, Vietnam</option>
-    </select>
+    <select id="aCity" aria-label="City"></select>
     <button type="button" class="secondary" id="aPhotoBtn">📷 Add photo</button>
   </div>
   <input type="file" id="aPhoto" accept="image/*" capture="environment" hidden>
@@ -362,13 +507,13 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <div class="advice" id="aResult"></div>
 </div>
 
-<!-- ai setup sheet -->
+<!-- advice setup -->
 <div class="sheet" id="sheet-aisetup" role="dialog" aria-modal="true" aria-labelledby="suTitle">
   <div class="grab"></div>
   <h2 id="suTitle">Price advice</h2>
   <p class="lead">Claude suggests a fair price range, what to open at, when to walk away and, once you enter a final price, whether the deal was worth it. Needs internet.</p>
   <button type="button" class="primary" id="suOpenClaude" style="margin-top:0">Open in Claude (no key needed)</button>
-  <p class="small">Opens the Claude version of this app with your prices filled in and uses your Claude account. Log the purchase back here afterwards.</p>
+  <p class="small">Opens the Claude version of this app with your prices filled in, using your Claude account. Log the purchase back here afterwards.</p>
   <h3>Or use an API key here</h3>
   <ol class="small" style="padding-left:20px;margin:0">
     <li>Create a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> and add a few dollars of credit.</li>
@@ -377,23 +522,26 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   </ol>
   <label for="suKey">Anthropic API key</label>
   <input id="suKey" type="password" autocomplete="off" placeholder="sk-ant-…">
-  <p class="small">Saved only on this phone and sent only to Anthropic.</p>
   <button type="button" class="secondary" id="suSave" style="margin-top:10px">Save key and check this price</button>
 </div>
 
-<!-- settings sheet -->
+<!-- settings -->
 <div class="sheet" id="sheet-settings" role="dialog" aria-modal="true" aria-labelledby="sTitle">
   <div class="grab"></div>
   <h2 id="sTitle">Settings</h2>
-  <label>Theme</label>
+  <span class="flabel">Where are you now?</span>
+  <div class="seg" id="sCity"></div>
+  <p class="small">Used for price advice and saved with each purchase.</p>
+  <span class="flabel">Theme</span>
   <div class="seg" id="sTheme">
     <button type="button" data-theme-opt="auto">Match phone</button><button type="button" data-theme-opt="light">Light</button><button type="button" data-theme-opt="dark">Dark</button>
   </div>
   <p class="small">Light is easier to read in bright sun; dark is easier at night.</p>
+  <h3>Budget</h3>
   <label for="sStartUsd">Dollars you brought ($)</label>
   <input id="sStartUsd" type="number" inputmode="decimal" min="0" step="1">
   <label for="sTarget">Spending target (NPR, optional)</label>
-  <input id="sTarget" type="number" inputmode="numeric" min="0" step="1000" placeholder="Leave empty to budget against your cash">
+  <input id="sTarget" type="number" inputmode="numeric" min="0" step="1000" placeholder="Empty = budget against your cash">
   <div class="two">
     <div><label for="sStart">Trip starts</label><input id="sStart" type="date"></div>
     <div><label for="sEnd">Trip ends</label><input id="sEnd" type="date"></div>
@@ -407,84 +555,161 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     <button type="button" class="mini" id="sRefresh">Update now</button>
   </div>
   <p class="small">Updates itself when you’re online and is saved for offline use. It’s the mid-market rate; exchange shops pay a bit less. Prices convert at your real average rate once you log an exchange.</p>
-  <button type="button" class="secondary" id="sReset">Reset rates to Oct 21 values</button>
   <h3>Price advice (needs internet)</h3>
-  <label for="sKey">Anthropic API key</label>
+  <label for="sKey">Anthropic API key (optional)</label>
   <input id="sKey" type="password" autocomplete="off" placeholder="sk-ant-…">
-  <p class="small">Optional. Without a key, price advice opens the Claude version of this app instead. The key is saved only on this phone and sent only to Anthropic. Each check costs a fraction of a cent; use a key with a low spending limit.</p>
-  <label style="display:flex;align-items:center;gap:10px;font-weight:600"><input id="sSearch" type="checkbox" style="width:22px;min-height:22px"> Also search the web (slower, costs more)</label>
+  <p class="small">Without a key, price advice opens the Claude version of this app instead. A key is saved only on this phone and sent only to Anthropic.</p>
+  <label style="display:flex;align-items:center;gap:10px"><input id="sSearch" type="checkbox"> Also search the web (slower, costs more)</label>
   <h3>Backup</h3>
-  <p class="small" style="margin-top:0">Everything is stored only on this phone. Uninstalling the app or clearing Chrome’s site data deletes it.</p>
+  <p class="small" style="margin-top:0" id="lastBackupText"></p>
   <div class="btn-pair">
     <button type="button" class="secondary" id="exportJson">Save backup</button>
     <button type="button" class="secondary" id="exportCsv">Export CSV</button>
   </div>
   <button type="button" class="secondary" id="importBtn" style="margin-top:10px">Restore from backup</button>
   <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <p class="small" id="importNote"></p>
   <p class="small" id="persistNote"></p>
-  <div class="note warn" id="fileNote" hidden>You’re opening this as a file, not the installed app. It won’t work as an offline app this way, and records saved here stay with this file only. Save a backup now and restore it after you install the hosted version.</div>
+  <div class="note warn" id="fileNote" hidden>You’re opening this as a file, not the installed app. It won’t work as an offline app this way, and records saved here stay with this file only.</div>
+  <p class="small" style="margin-top:18px">Version 3 · works offline · nothing is sent anywhere except rate updates and price advice.</p>
 </div>
-
-
 <script>
 (function () {
+  'use strict';
   const $ = id => document.getElementById(id);
   const KEY = 'vdc.v1';
   const DEF = { nprPerUsd: 152.55, marketVndPerUsd: 25877 };
+  const ARTIFACT_URL = 'https://claude.ai/artifact/9QYn1kZcDn5FWXV1HBNkFf';
   const CATS = {
     Shopping:{e:'🛍️',c:'#d9577a'}, Food:{e:'🍜',c:'#e8962e'}, Transport:{e:'🛵',c:'#3b82c4'},
     Stay:{e:'🏨',c:'#7c5cc4'}, Activities:{e:'🎟️',c:'#1f9e78'}, Other:{e:'✨',c:'#8a9a94'}
   };
+  const CITIES = ['Ho Chi Minh City','Phu Quoc','Hanoi','Ha Long','Elsewhere'];
+  const PLACES = ['Market stall','Street vendor','Shop','Tourist area'];
+  const PHRASES = [
+    { vi:'Giá này được không?', en:'Is this price OK?' },
+    { vi:'Bao nhiêu tiền?', en:'How much?' },
+    { vi:'Đắt quá!', en:'Too expensive!' },
+    { vi:'Bớt chút đi', en:'Lower it a bit' },
+    { vi:'Giảm giá được không?', en:'Can you give a discount?' },
+    { vi:'Lấy hai cái, bao nhiêu?', en:'If I take two, how much?' },
+    { vi:'Tôi không có tiền lẻ', en:'I don’t have small notes' },
+    { vi:'Không, cảm ơn', en:'No, thank you' },
+    { vi:'Tính tiền', en:'The bill, please' },
+    { vi:'Cảm ơn!', en:'Thank you!' },
+    { vi:'Xin chào', en:'Hello' }
+  ];
+  const NOTES = [
+    { v:10000, c:'#c5a03c', name:'Yellow-brown' },
+    { v:20000, c:'#3b6db3', name:'Blue', warn:true },
+    { v:50000, c:'#c25b8a', name:'Pink' },
+    { v:100000, c:'#4f9157', name:'Green' },
+    { v:200000, c:'#b25a3c', name:'Brown-red' },
+    { v:500000, c:'#2e9fbf', name:'Cyan-blue, longer note', warn:true }
+  ];
+
+  // ---------- formatting ----------
   const fmt = (n, d=0) => Number.isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:d}) : '—';
   const npr = n => Number.isFinite(n) ? 'NPR ' + fmt(Math.round(n)) : '—';
   const vnd = n => fmt(Math.round(n)) + ' ₫';
-  const usd = n => Number.isFinite(n) ? '$' + n.toLocaleString('en-US',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2}) : '—';
+  const vnDots = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' ₫';
+  const usd = n => Number.isFinite(n) ? (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2}) : '—';
   const short = n => { const a = Math.abs(n), s = n < 0 ? '−' : '';
     if (a >= 1e6) return s + (a/1e6).toLocaleString('en-US',{maximumFractionDigits:a>=1e7?1:2}) + 'm';
     if (a >= 1e3) return s + Math.round(a/1e3).toLocaleString('en-US') + 'k';
     return s + Math.round(a); };
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
   const dayKey = d => { d = new Date(d); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
   const timeOf = iso => new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  const dateOf = iso => new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+
+  // ---------- errors: show, never crash silently ----------
+  function showError(msg) { $('errText').textContent = 'Something went wrong (' + msg + '). Your records are safe; reopen the app if a screen looks stuck.'; $('errBar').hidden = false; }
+  window.addEventListener('error', e => showError(e.message || 'error'));
+  window.addEventListener('unhandledrejection', e => { const r = e.reason; if (r && r.code) return; showError((r && r.message) || 'error'); });
+  $('errClose').onclick = () => { $('errBar').hidden = true; };
 
   // ---------- state ----------
   function fresh() {
-    return { v:2, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
-      nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, exchanges:[], entries:[], lastCat:'Shopping',
-      rateFetchedAt:null, rateSource:null, ai:{ key:'', city:'Ho Chi Minh City', place:'Market stall', search:false } };
+    return { v:3, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
+      nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, rateFetchedAt:null, rateSource:null,
+      exchanges:[], entries:[], settlements:[], friends:[], lastCat:'Shopping', city:'Ho Chi Minh City',
+      theme:'auto', lastBackup:null, ai:{ key:'', place:'Market stall', search:false } };
   }
-  function migrate(s) {
+  function normEntry(e, s) {
+    if (!e || !e.id || !(Number(e.vnd) > 0)) return null;
+    const v = Number(e.vnd);
+    let rate = Number(e.rate);
+    if (!(rate > 0)) rate = Number(e.npr) > 0 ? Number(e.npr) / v : s.nprPerUsd / (Number(e.vndPerUsd) || s.marketVndPerUsd);
+    const among = Array.isArray(e.among) && e.among.length ? e.among.map(String) : ['me'];
+    return { id:String(e.id), ts:e.ts || new Date().toISOString(), item:String(e.item || e.cat || 'Purchase'),
+      cat: CATS[e.cat] ? e.cat : 'Other', vnd:v, rate, paidBy: e.paidBy ? String(e.paidBy) : 'me', among,
+      asked: Number(e.asked) || null, city: e.city || null };
+  }
+  function migrate(raw) {
     const b = fresh();
-    if (!s || typeof s !== 'object') return b;
-    if (s.v !== 2) { // from the first version
-      if (s.rates) { b.nprPerUsd = s.rates.nprPerUsd || b.nprPerUsd; b.marketVndPerUsd = s.rates.vndPerUsd || b.marketVndPerUsd; }
-      if (s.budgetNpr) b.targetNpr = s.budgetNpr;
-      ['tripStart','tripEnd'].forEach(k => { if (s[k]) b[k] = s[k]; });
-      b.entries = Array.isArray(s.entries) ? s.entries : [];
-      return b;
+    if (!raw || typeof raw !== 'object') return b;
+    if (raw.rates) { b.nprPerUsd = Number(raw.rates.nprPerUsd) || b.nprPerUsd; b.marketVndPerUsd = Number(raw.rates.vndPerUsd) || b.marketVndPerUsd; }
+    if (raw.budgetNpr) b.targetNpr = Number(raw.budgetNpr) || null;
+    ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','lastCat','city','theme','lastBackup']
+      .forEach(k => { if (raw[k] !== undefined && raw[k] !== null) b[k] = raw[k]; });
+    if (raw.ai && typeof raw.ai === 'object') {
+      b.ai = Object.assign(b.ai, { key: raw.ai.key || '', place: raw.ai.place || b.ai.place, search: !!raw.ai.search });
+      if (raw.ai.city && !raw.city) b.city = raw.ai.city;
     }
-    return Object.assign(b, s, { exchanges: s.exchanges || [], entries: s.entries || [], ai: Object.assign(b.ai, s.ai || {}) });
+    if (!CITIES.includes(b.city)) b.city = /other/i.test(String(b.city || '')) ? 'Elsewhere' : 'Ho Chi Minh City';
+    if (!CATS[b.lastCat]) b.lastCat = 'Shopping';
+    b.friends = (raw.friends || []).filter(f => f && f.id && f.name).map(f => ({ id:String(f.id), name:String(f.name).slice(0,40) }));
+    b.exchanges = (raw.exchanges || []).filter(x => x && x.id && Number(x.usd) > 0 && Number(x.vnd) > 0)
+      .map(x => ({ id:String(x.id), ts:x.ts || new Date().toISOString(), usd:Number(x.usd), vnd:Number(x.vnd), where:String(x.where || '') }));
+    b.entries = (raw.entries || []).map(e => normEntry(e, b)).filter(Boolean);
+    b.settlements = (raw.settlements || []).filter(t => t && t.id && t.friend && Number(t.vnd) > 0 && (t.dir === 'in' || t.dir === 'out'))
+      .map(t => ({ id:String(t.id), ts:t.ts || new Date().toISOString(), friend:String(t.friend), vnd:Number(t.vnd), dir:t.dir }));
+    b.v = 3;
+    return b;
   }
   let state;
   try { state = migrate(JSON.parse(localStorage.getItem(KEY))); } catch (e) { state = fresh(); }
+  let saveWarned = false;
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); }
-    catch (e) { if (!save.warned) { save.warned = true; alert('Couldn’t save on this phone. Save a backup from Settings now.'); } }
+    catch (e) { if (!saveWarned) { saveWarned = true; showError('couldn’t save on this phone; save a backup from Settings now'); } }
   }
+  save(); // writes the migrated shape once
 
-  // ---------- derived numbers ----------
+  // ---------- money model ----------
+  const myShare = e => e.among.includes('me') ? e.vnd / e.among.length : 0;
+  const myNpr = e => myShare(e) * e.rate;
+  const outOfWallet = e => e.paidBy === 'me' ? e.vnd : 0;
+  const friendName = id => id === 'me' ? 'You' : ((state.friends.find(f => f.id === id) || {}).name || 'Someone');
+  const isShared = e => e.paidBy !== 'me' || e.among.length !== 1 || e.among[0] !== 'me';
+  function balances() {
+    const b = {}; state.friends.forEach(f => { b[f.id] = 0; });
+    for (const e of state.entries) {
+      if (!isShared(e)) continue;
+      const share = e.vnd / e.among.length;
+      if (e.paidBy === 'me') e.among.forEach(p => { if (p !== 'me') b[p] = (b[p] || 0) + share; });
+      else if (e.among.includes('me')) b[e.paidBy] = (b[e.paidBy] || 0) - share;
+    }
+    for (const t of state.settlements) b[t.friend] = (b[t.friend] || 0) + (t.dir === 'in' ? -t.vnd : t.vnd);
+    return b;
+  }
   function calc() {
     const usdEx = state.exchanges.reduce((a,x) => a + x.usd, 0);
     const vndIn = state.exchanges.reduce((a,x) => a + x.vnd, 0);
-    const vndOut = state.entries.reduce((a,e) => a + e.vnd, 0);
-    const spentNpr = state.entries.reduce((a,e) => a + e.npr, 0);
+    const out = state.entries.reduce((a,e) => a + outOfWallet(e), 0);
+    const setIn = state.settlements.filter(t => t.dir === 'in').reduce((a,t) => a + t.vnd, 0);
+    const setOut = state.settlements.filter(t => t.dir === 'out').reduce((a,t) => a + t.vnd, 0);
+    const spentNpr = state.entries.reduce((a,e) => a + myNpr(e), 0);
     const vndPerUsd = usdEx > 0 ? vndIn / usdEx : state.marketVndPerUsd;
     const nprPerVnd = state.nprPerUsd / vndPerUsd;
     const usdLeft = state.startUsd - usdEx;
-    const vndLeft = vndIn - vndOut;
+    const vndLeft = vndIn - out + setIn - setOut;
+    const bal = balances();
+    const net = Object.values(bal).reduce((a,v) => a + v, 0);
     const cashLeftNpr = usdLeft * state.nprPerUsd + vndLeft * nprPerVnd;
-    return { usdEx, vndIn, vndOut, spentNpr, vndPerUsd, nprPerVnd, usdLeft, vndLeft, cashLeftNpr, real: usdEx > 0 };
+    return { usdEx, vndIn, spentNpr, vndPerUsd, nprPerVnd, usdLeft, vndLeft, cashLeftNpr, bal, net, real: usdEx > 0 };
   }
   function daysLeft() {
     const today = dayKey(new Date());
@@ -493,33 +718,75 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     const n = Math.round((new Date(state.tripEnd+'T00:00') - new Date(from+'T00:00')) / 864e5) + 1;
     return n > 0 ? n : 0;
   }
+  function tripDays() {
+    if (!state.tripStart || !state.tripEnd || state.tripEnd < state.tripStart) return [];
+    const out = []; const d = new Date(state.tripStart + 'T00:00');
+    while (out.length < 45) { const k = dayKey(d); out.push(k); if (k >= state.tripEnd) break; d.setDate(d.getDate() + 1); }
+    return out;
+  }
 
   // ---------- sheets (Android back closes them) ----------
-  let openId = null;
+  let openId = null, wakeLock = null, afterClose = null;
   function openSheet(id) {
-    if (openId) hideSheet();
+    if (openId) { hideSheet(); history.replaceState({ sheet:id }, ''); }
+    else history.pushState({ sheet:id }, '');
     openId = id; $('scrim').classList.add('on'); $(id).classList.add('open');
-    history.pushState({ sheet:id }, '');
   }
   function hideSheet() {
     if (!openId) return;
-    $(openId).classList.remove('open'); $('scrim').classList.remove('on'); openId = null;
-    document.activeElement && document.activeElement.blur();
+    $(openId).classList.remove('open'); $('scrim').classList.remove('on');
+    if (openId === 'sheet-show' && wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    openId = null;
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
-  function closeSheet() { if (openId) history.back(); }
-  window.addEventListener('popstate', hideSheet);
-  $('scrim').onclick = closeSheet;
+  function closeSheet(then) { if (openId) { afterClose = then || null; history.back(); } else if (then) then(); }
+  window.addEventListener('popstate', () => { hideSheet(); const f = afterClose; afterClose = null; if (f) f(); });
+  $('scrim').onclick = () => closeSheet();
+
+  // drag a sheet down by its handle or title to close it
+  document.querySelectorAll('.sheet:not(.full)').forEach(sh => {
+    let y0 = null, dy = 0, t0 = 0, dragging = false, pid = null;
+    sh.addEventListener('pointerdown', e => {
+      if (!sh.classList.contains('open') || !e.target.closest('.grab, .sheet > h2')) return;
+      y0 = e.clientY; dy = 0; t0 = performance.now(); dragging = false; pid = e.pointerId;
+    });
+    sh.addEventListener('pointermove', e => {
+      if (y0 === null || e.pointerId !== pid) return;
+      dy = Math.max(0, e.clientY - y0);
+      if (!dragging && dy > 6) { dragging = true; sh.classList.add('dragging'); try { sh.setPointerCapture(pid); } catch (x) {} }
+      if (dragging) { sh.style.transform = 'translateY(' + dy + 'px)'; $('scrim').style.opacity = String(Math.max(0, 1 - dy / sh.offsetHeight)); }
+    });
+    const end = () => {
+      if (y0 === null) return;
+      const v = dy / Math.max(1, performance.now() - t0);
+      y0 = null;
+      if (!dragging) return;
+      dragging = false; sh.classList.remove('dragging'); sh.style.transform = ''; $('scrim').style.opacity = '';
+      if (dy > sh.offsetHeight * 0.25 || (v > 0.5 && dy > 40)) closeSheet();
+    };
+    sh.addEventListener('pointerup', end); sh.addEventListener('pointercancel', end);
+  });
 
   // ---------- tabs ----------
-  const TITLES = { deal:'Deal', spent:'Spent', cash:'Cash' };
+  const TITLES = { deal:'Deal', spent:'Spent', cash:'Cash', group:'Group' };
+  let tab = 'deal';
   function showTab(t) {
-    document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + t);
+    tab = t;
+    document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'view-' + t; });
     document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
     $('title').textContent = TITLES[t];
-    document.querySelector('main').scrollTop = 0;
+    $('main').scrollTop = 0;
   }
-  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  document.querySelectorAll('[data-tab]').forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
   $('walletChip').onclick = () => showTab('cash');
+
+  // ---------- feedback ----------
+  function flash(btn, text) {
+    btn.textContent = text; btn.classList.add('done'); btn.dataset.flash = '1';
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { delete btn.dataset.flash; btn.classList.remove('done'); renderDeal(); }, 1400);
+  }
+  function bump() { const c = $('walletChip'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
 
   // ---------- deal: keypad with a movable cursor ----------
   const vals = { ask:'', paid:'' };
@@ -533,16 +800,17 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     document.querySelectorAll('.amt-row').forEach(r => r.classList.toggle('active', r.dataset.field === f));
     renderDeal();
   }
-  function setVal(f, v) { vals[f] = v; caret[f] = v.length; }
+  function setVal(f, v) { vals[f] = String(v || ''); caret[f] = vals[f].length; }
   document.querySelectorAll('.amt-row').forEach(r => {
     r.addEventListener('click', e => {
       const f = r.dataset.field;
       if (e.target.closest('.clr')) { setVal(f, ''); setActive(f, true); return; }
       const d = e.target.closest('.d');
-      if (d) { // tap a digit: cursor goes to the nearer side of it
+      if (d) {
         const i = Number(d.dataset.i), box = d.getBoundingClientRect();
+        if (f !== active) tidy(active);
         caret[f] = e.clientX < box.left + box.width / 2 ? i : i + 1;
-        setActive(f, true); return;
+        active = f; setActive(f, true); return;
       }
       setActive(f, f === active);
     });
@@ -551,11 +819,9 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   function press(k) {
     let v = vals[active], c = Math.min(caret[active], v.length);
     if (k === 'clear') { v = ''; c = 0; }
-    else if (k === 'left') c = Math.max(0, c - 1);
-    else if (k === 'right') c = Math.min(v.length, c + 1);
     else if (k === 'back') { if (c === 0) return; v = v.slice(0, c - 1) + v.slice(c); c--; }
     else {
-      if (c === 0 && k[0] === '0') return;           // no zero as the first digit
+      if (c === 0 && k[0] === '0') return;
       const nv = v.slice(0, c) + k + v.slice(c);
       if (nv.length > 11) return;
       v = nv; c += k.length;
@@ -571,7 +837,6 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       btn.addEventListener('click', () => { if (!held) press('back'); held = false; });
     } else btn.addEventListener('click', () => press(k));
   });
-  // Digits with thousands separators; each digit is tappable, cursor drawn between digits.
   function digitsHTML(v, showCaret, c) {
     const caretEl = '<span class="caret" aria-hidden="true"></span>';
     if (!v) return (showCaret ? caretEl : '') + '<span class="ph">0</span><span class="cur">₫</span>';
@@ -584,7 +849,6 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     if (showCaret && c === v.length) h += caretEl;
     return h + '<span class="cur">₫</span>';
   }
-
   function renderDeal() {
     const c = calc();
     const ask = Number(vals.ask) || 0, paid = Number(vals.paid) || 0;
@@ -607,124 +871,238 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     $('paidLbl').textContent = active === 'paid' && vals.paid ? 'Final price · tap digits to edit' : 'Final price';
     $('offerRow').innerHTML = [50,60,70].map(p => {
       const o = Math.round(ask * p / 100 / 1000) * 1000;
-      return '<button type="button" class="offer num" data-o="' + o + '"' + (ask ? '' : ' disabled') + '><b>' + (ask ? esc(short(o)) + ' ₫' : '—') + '</b><small>' + p + '% · ' + (ask ? esc(npr(o * c.nprPerVnd)) : '') + '</small></button>';
+      return '<button type="button" class="offer num" data-o="' + o + '"' + (ask ? '' : ' disabled') + ' aria-label="Offer ' + p + ' percent">' +
+        '<b>' + (ask ? esc(short(o)) + ' ₫' : '—') + '</b><small>offer ' + p + '%' + (ask ? ' · ' + esc(npr(o * c.nprPerVnd)) : '') + '</small></button>';
     }).join('');
     const amount = paid || ask;
     if (!$('logBtn').dataset.flash) {
       $('logBtn').disabled = !amount;
       $('logBtn').textContent = amount ? 'Log ' + vnd(amount) : 'Log purchase';
     }
+    $('showBtn').disabled = !ask && !paid;
     const ai = $('aiBtn');
     ai.disabled = !ask || !navigator.onLine;
-    ai.textContent = !navigator.onLine ? 'Offline' : (sampleFn || state.ai.key) ? '✨ Check price' : '✨ Price advice';
+    ai.textContent = !navigator.onLine ? 'Price advice offline' : '✨ Price advice';
     $('rateHint').textContent = c.real
       ? 'Converting at your average exchange rate: ' + fmt(c.vndPerUsd) + ' ₫/$'
       : 'Converting at the online rate ' + fmt(c.vndPerUsd) + ' ₫/$ until you log an exchange';
   }
   $('offerRow').addEventListener('click', e => {
     const b = e.target.closest('[data-o]'); if (!b) return;
-    setVal('paid', b.dataset.o); setActive('paid', true);
+    setVal('paid', b.dataset.o); if (active !== 'paid') tidy(active); active = 'paid'; setActive('paid', true);
   });
 
-  // ---------- quiet feedback (no pop-ups) ----------
-  function flash(btn, text) {
-    btn.textContent = text; btn.classList.add('done'); btn.dataset.flash = '1';
-    clearTimeout(btn._t);
-    btn._t = setTimeout(() => { delete btn.dataset.flash; btn.classList.remove('done'); renderDeal(); }, 1400);
+  // ---------- show the seller ----------
+  let showVal = 0, phraseIdx = 0;
+  let peeking = false;
+  function peekText() {
+    const c = calc();
+    return npr(showVal * c.nprPerVnd) + ' · ' + usd(Math.round(showVal / c.vndPerUsd * 100) / 100);
   }
-  function bump() { const c = $('walletChip'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
+  function peek(on) {
+    peeking = on; const b = $('shPeek');
+    b.classList.toggle('on', on); b.textContent = on ? peekText() : 'Hold for NPR · $';
+  }
+  $('shPeek').addEventListener('pointerdown', e => { e.preventDefault(); peek(true); });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev => $('shPeek').addEventListener(ev, () => peek(false)));
+  $('shPeek').addEventListener('contextmenu', e => e.preventDefault());
+  $('shPeek').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); peek(true); } });
+  $('shPeek').addEventListener('keyup', () => peek(false));
+  function renderShow() {
+    if (peeking) $('shPeek').textContent = peekText();
+    const p = PHRASES[phraseIdx];
+    $('shPhrase').textContent = p.vi; $('shEn').textContent = p.en;
+    $('shVal').textContent = vnDots(showVal);
+    $('shK').textContent = short(showVal) + ' ₫';
+    $('shPhrases').innerHTML = PHRASES.map((q, i) => '<button type="button" class="' + (i === phraseIdx ? 'sel' : '') + '" data-ph="' + i + '"><b lang="vi">' + esc(q.vi) + '</b><small>' + esc(q.en) + '</small></button>').join('');
+  }
+  $('showBtn').onclick = async () => {
+    const ask = Number(vals.ask) || 0, paid = Number(vals.paid) || 0;
+    showVal = paid || Math.round(ask * 0.6 / 1000) * 1000;
+    if (!paid && showVal) { setVal('paid', String(showVal)); setActive('paid', true); }
+    phraseIdx = 0; peek(false); renderShow(); openSheet('sheet-show');
+    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { wakeLock = null; }
+  };
+  $('shClose').onclick = () => closeSheet();
+  document.querySelectorAll('[data-adj]').forEach(b => { b.onclick = () => {
+    showVal = Math.max(0, showVal + Number(b.dataset.adj));
+    setVal('paid', showVal ? String(showVal) : ''); active = 'paid'; setActive('paid', true); renderShow();
+  }; });
+  $('shPhrases').addEventListener('click', e => { const b = e.target.closest('[data-ph]'); if (!b) return; phraseIdx = Number(b.dataset.ph); renderShow(); });
 
-  // ---------- log sheet ----------
+  // ---------- log / edit purchase form ----------
+  let F = null; // { mode, id, vnd, cat, paidBy, among, open }
+  let lastAdviceItem = '';
   function catButtons(sel) {
     return Object.entries(CATS).map(([k, m]) =>
       '<button type="button" class="cat' + (k === sel ? ' sel' : '') + '" data-cat="' + k + '"><span class="e">' + m.e + '</span>' + k + '</button>').join('');
   }
-  $('logBtn').onclick = () => {
+  function splitSummary(total) {
+    const c = calc();
+    if (!F.among.length) return 'Pick at least one person who shares it.';
+    const share = total / F.among.length, me = F.among.includes('me');
+    const others = F.among.filter(p => p !== 'me');
+    if (F.paidBy === 'me') {
+      if (!others.length) return '';
+      return (me ? 'Your share ' + vnd(share) + ' (' + npr(share * c.nprPerVnd) + '). ' : 'Not for you. ') +
+        others.map(friendName).join(', ') + (others.length === 1 ? ' owes' : ' each owe') + ' you ' + vnd(share) + '.';
+    }
+    return 'You owe ' + friendName(F.paidBy) + ' ' + vnd(share) + ' (' + npr(share * c.nprPerVnd) + '). Nothing leaves your wallet.';
+  }
+  function splitTitle() {
+    if (F.paidBy === 'me' && F.among.length === 1 && F.among[0] === 'me') return 'Just for me, I paid';
+    const n = F.among.length;
+    return (F.paidBy === 'me' ? 'I paid' : friendName(F.paidBy) + ' paid') + ' · split ' + n + ' way' + (n === 1 ? '' : 's');
+  }
+  function formAmount() { return F.mode === 'edit' ? Number($('fAmount').value) || 0 : F.vnd; }
+  function renderForm() {
+    const c = calc(), amt = formAmount(), hasFriends = state.friends.length > 0;
+    $('fTitle').textContent = F.mode === 'edit' ? 'Edit purchase' : 'Log ' + vnd(F.vnd);
+    $('fLead').textContent = amt ? '≈ ' + npr(amt * (F.mode === 'edit' ? F.rate : c.nprPerVnd)) + (F.asked && F.asked !== amt ? ' · asked ' + vnd(F.asked) : '') : '';
+    $('fAmountWrap').hidden = F.mode !== 'edit';
+    $('fSplitBox').hidden = !hasFriends; $('fNoFriends').hidden = hasFriends || F.mode === 'edit';
+    if (hasFriends) {
+      $('fSplitTitle').textContent = splitTitle();
+      $('fSplitToggle').textContent = F.open ? 'Done' : 'Change';
+      $('fSplitBody').hidden = !F.open;
+      const people = [{ id:'me', name:'Me' }].concat(state.friends);
+      $('fPaidBy').innerHTML = people.map(p => '<button type="button" class="' + (F.paidBy === p.id ? 'sel' : '') + '" data-pay="' + esc(p.id) + '">' + esc(p.name) + '</button>').join('');
+      $('fAmong').innerHTML = people.map(p => '<button type="button" class="' + (F.among.includes(p.id) ? 'sel' : '') + '" data-share="' + esc(p.id) + '" aria-pressed="' + F.among.includes(p.id) + '">' + esc(p.name) + '</button>').join('');
+      $('fSplitSum').textContent = amt ? splitSummary(amt) : '';
+    }
+    $('fCats').innerHTML = catButtons(F.cat);
+    $('fDelete').hidden = F.mode !== 'edit';
+    $('fConfirm').textContent = F.mode === 'edit' ? 'Save changes' : 'Log ' + short(F.vnd) + ' ₫ · ' + F.cat;
+    $('fErr').textContent = '';
+  }
+  function validSplit() {
+    if (!F.among.length) return 'Pick at least one person who shares it.';
+    if (F.paidBy !== 'me' && !F.among.includes('me')) return 'If a friend paid, include yourself in “Shared by”, or don’t log it.';
+    return '';
+  }
+  function openLog() {
     tidy('ask'); tidy('paid');
     const amount = Number(vals.paid) || Number(vals.ask); if (!amount) return;
-    const c = calc();
-    $('logTitle').textContent = 'Log ' + vnd(amount);
-    $('logLead').textContent = '≈ ' + npr(amount * c.nprPerVnd) + (vals.paid && vals.ask ? ' · asked ' + vnd(Number(vals.ask)) : '');
-    $('logItem').value = lastAdviceItem || '';
-    $('logCats').innerHTML = catButtons(state.lastCat);
-    openSheet('sheet-log');
-  };
-  $('logCats').addEventListener('click', e => {
+    F = { mode:'log', vnd:amount, cat:state.lastCat, paidBy:'me', among:['me'], open:false, asked:Number(vals.ask) || null };
+    $('fItem').value = lastAdviceItem || '';
+    renderForm(); openSheet('sheet-form');
+  }
+  function openEdit(id) {
+    const e = state.entries.find(x => x.id === id); if (!e) return;
+    F = { mode:'edit', id, vnd:e.vnd, cat:e.cat, paidBy:e.paidBy, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate };
+    $('fAmount').value = e.vnd; $('fItem').value = e.item;
+    renderForm(); openSheet('sheet-form');
+  }
+  $('logBtn').onclick = openLog;
+  $('fAmount').addEventListener('input', renderForm);
+  $('fSplitToggle').onclick = () => { F.open = !F.open; renderForm(); };
+  $('fAll').onclick = () => { F.among = ['me'].concat(state.friends.map(f => f.id)); renderForm(); };
+  $('fPaidBy').addEventListener('click', e => { const b = e.target.closest('[data-pay]'); if (!b) return;
+    F.paidBy = b.dataset.pay; if (F.paidBy !== 'me' && !F.among.includes('me')) F.among.push('me'); renderForm(); });
+  $('fAmong').addEventListener('click', e => { const b = e.target.closest('[data-share]'); if (!b) return;
+    const id = b.dataset.share; F.among = F.among.includes(id) ? F.among.filter(x => x !== id) : F.among.concat(id); renderForm(); });
+  $('fCats').addEventListener('click', e => {
     const b = e.target.closest('[data-cat]'); if (!b) return;
-    const amount = Number(vals.paid) || Number(vals.ask); if (!amount) return;
-    const c = calc();
-    const entry = { id:uid(), ts:new Date().toISOString(), item:$('logItem').value.trim() || b.dataset.cat,
-      cat:b.dataset.cat, vnd:amount, npr:Math.round(amount * c.nprPerVnd), vndPerUsd:Math.round(c.vndPerUsd),
-      asked:Number(vals.ask) || null };
-    state.entries.push(entry); state.lastCat = entry.cat; save(); lastAdviceItem = '';
-    setVal('ask', ''); setVal('paid', ''); setActive('ask', true);
-    closeSheet(); renderAll();
-    flash($('logBtn'), '✓ Logged ' + vnd(entry.vnd));
-    bump();
+    F.cat = b.dataset.cat; renderForm();
   });
-
-  // ---------- spent view ----------
-  function renderSpent() {
+  $('fCancel').onclick = () => closeSheet();
+  $('fItem').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('fConfirm').click(); } });
+  $('fConfirm').onclick = () => { if (F.mode === 'edit') saveEdit(); else saveLog(); };
+  function saveLog() {
+    const err = validSplit(); if (err) { $('fErr').textContent = err; return; }
     const c = calc();
-    const today = dayKey(new Date());
-    const spentToday = state.entries.filter(e => dayKey(e.ts) === today).reduce((a,e) => a + e.npr, 0);
-    const target = Number(state.targetNpr) > 0 ? Number(state.targetNpr) : null;
-    const total = target || (c.cashLeftNpr + c.spentNpr);
-    const left = target ? target - c.spentNpr : c.cashLeftNpr;
-    $('heroLbl').textContent = target ? 'Left of your target' : 'Cash left (dollars + dong)';
-    $('heroVal').textContent = left < 0 ? '−' + npr(-left) : npr(left);
-    $('heroVal').classList.toggle('over', left < 0);
-    $('heroSub').textContent = npr(c.spentNpr) + ' spent of ' + npr(total);
-    const byCat = {};
-    state.entries.forEach(e => byCat[e.cat] = (byCat[e.cat] || 0) + e.npr);
-    const cats = Object.entries(byCat).sort((a,b) => b[1] - a[1]);
-    const denom = Math.max(total, c.spentNpr) || 1;
-    $('segbar').innerHTML = cats.map(([k,v]) => '<i style="width:' + (v/denom*100) + '%;background:' + (CATS[k]||CATS.Other).c + '"></i>').join('');
-    $('legend').innerHTML = cats.map(([k,v]) => '<span class="num"><i style="background:' + (CATS[k]||CATS.Other).c + '"></i>' + esc(k) + ' ' + esc(npr(v)) + '</span>').join('');
+    const entry = { id:uid(), ts:new Date().toISOString(), item:$('fItem').value.trim() || F.cat, cat:F.cat, vnd:F.vnd,
+      rate:c.nprPerVnd, paidBy:F.paidBy, among:F.among.slice(), asked:F.asked, city:state.city };
+    state.entries.push(entry); state.lastCat = entry.cat; save(); lastAdviceItem = '';
+    setVal('ask', ''); setVal('paid', ''); active = 'ask'; setActive('ask', true);
+    closeSheet(); renderAll(); flash($('logBtn'), '✓ Logged ' + vnd(entry.vnd)); bump();
+  }
+  function saveEdit() {
+    const e = state.entries.find(x => x.id === F.id); if (!e) { closeSheet(); return; }
+    const amt = Number($('fAmount').value);
+    if (!(amt > 0)) { $('fErr').textContent = 'Enter an amount above zero.'; return; }
+    const err = validSplit(); if (err) { $('fErr').textContent = err; return; }
+    Object.assign(e, { vnd:amt, item:$('fItem').value.trim() || F.cat, cat:F.cat, paidBy:F.paidBy, among:F.among.slice() });
+    save(); closeSheet(); renderAll();
+  }
+  $('fDelete').onclick = () => {
+    const e = state.entries.find(x => x.id === F.id); if (!e) { closeSheet(); return; }
+    if (!confirm('Delete “' + e.item + '” (' + vnd(e.vnd) + ')?')) return;
+    state.entries = state.entries.filter(x => x.id !== F.id); save(); closeSheet(); renderAll();
+  };
 
-    const dl = daysLeft();
-    const leftAtDayStart = left + spentToday;
+  // ---------- spent ----------
+  let filterCat = null;
+  function budgetNumbers(c) {
+    const target = Number(state.targetNpr) > 0 ? Number(state.targetNpr) : null;
+    const netNpr = c.net * c.nprPerVnd;
+    const total = target || (c.cashLeftNpr + netNpr + c.spentNpr);
+    const left = target ? target - c.spentNpr : c.cashLeftNpr + netNpr;
+    return { target, total, left, netNpr };
+  }
+  function renderSpent() {
+    const c = calc(), b = budgetNumbers(c);
+    const today = dayKey(new Date());
+    const spentToday = state.entries.filter(e => dayKey(e.ts) === today).reduce((a,e) => a + myNpr(e), 0);
+    $('heroLbl').textContent = b.target ? 'Left of your target' : (Math.abs(c.net) >= 1000 ? 'Money left (cash + what friends owe)' : 'Money left (dollars + dong)');
+    $('heroVal').textContent = b.left < 0 ? '−' + npr(-b.left) : npr(b.left);
+    $('heroVal').classList.toggle('over', b.left < 0);
+    $('heroSub').textContent = npr(c.spentNpr) + ' spent of ' + npr(b.total) + (c.real ? '' : ' · log an exchange for exact rupee values');
+    const byCat = {};
+    state.entries.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + myNpr(e); });
+    const cats = Object.entries(byCat).filter(([,v]) => v > 0).sort((a,b2) => b2[1] - a[1]);
+    const denom = Math.max(b.total, c.spentNpr) || 1;
+    $('segbar').innerHTML = cats.map(([k,v]) => '<i style="width:' + (v/denom*100) + '%;background:' + CATS[k].c + '"></i>').join('');
+    if (filterCat && !byCat[filterCat]) filterCat = null;
+    $('legend').innerHTML = cats.map(([k,v]) => '<button type="button" class="num' + (filterCat === k ? ' sel' : '') + '" data-filter="' + k + '" aria-pressed="' + (filterCat === k) + '"><i style="background:' + CATS[k].c + '"></i>' + esc(k) + ' ' + esc(npr(v)) + '</button>').join('');
+
+    const dl = daysLeft(), leftAtDayStart = b.left + spentToday;
     const allowance = dl ? leftAtDayStart / dl : NaN;
     $('todayAmt').textContent = npr(spentToday);
     $('todayAmt').classList.toggle('over', Number.isFinite(allowance) && spentToday > allowance);
     $('todayOf').textContent = Number.isFinite(allowance) && allowance > 0 ? 'of ' + npr(allowance) + ' allowed' : '\u00a0';
     $('perDay').textContent = Number.isFinite(allowance) ? (allowance > 0 ? npr(allowance) : 'None left') : '—';
-    $('perDaySub').textContent = Number.isFinite(allowance) && allowance > 0 ? '≈ ' + short(allowance / c.nprPerVnd) + ' ₫ · ' + dl + ' day' + (dl === 1 ? '' : 's') : (dl === 0 ? 'Trip has ended' : 'Set trip dates in Settings');
+    $('perDaySub').textContent = Number.isFinite(allowance) && allowance > 0 ? '≈ ' + short(allowance / c.nprPerVnd) + ' ₫ · ' + dl + ' day' + (dl === 1 ? '' : 's') + ' left' : (dl === 0 ? 'Trip has ended' : 'Set trip dates in Settings');
 
-    const groups = {};
-    [...state.entries].sort((a,b) => b.ts.localeCompare(a.ts)).forEach(e => (groups[dayKey(e.ts)] ||= []).push(e));
-    $('spentList').innerHTML = Object.entries(groups).map(([d, list]) => {
+    // per-day bars
+    const days = tripDays();
+    $('daysCard').hidden = !days.length;
+    if (days.length) {
+      const per = {}; state.entries.forEach(e => { const k = dayKey(e.ts); per[k] = (per[k] || 0) + myNpr(e); });
+      const plan = b.total / days.length;
+      const max = Math.max(plan * 1.25, ...days.map(d => per[d] || 0)) || 1;
+      $('days').innerHTML = '<div class="plan" style="bottom:' + (plan / max * 100) + '%"></div>' + days.map(d => {
+        const v = per[d] || 0;
+        return '<div class="day-b' + (v > plan ? ' over' : '') + (v ? '' : ' empty') + '" title="' + esc(d + ': ' + npr(v)) + '"><i style="height:' + Math.max(2, v / max * 100) + '%"></i></div>';
+      }).join('');
+      $('daysL').innerHTML = days.map(d => '<span class="' + (d === today ? 'today' : '') + '">' + Number(d.slice(8)) + '</span>').join('');
+    }
+
+    // backup nudge
+    const since = state.lastBackup ? (Date.now() - state.lastBackup) / 864e5 : Infinity;
+    $('backupNudge').hidden = !(state.entries.length + state.exchanges.length) || since < 2;
+    $('backupText').textContent = state.lastBackup ? 'Last backup ' + Math.floor(since) + ' days ago' : 'No backup saved yet';
+
+    // list
+    const list = state.entries.filter(e => !filterCat || e.cat === filterCat).sort((a,b2) => b2.ts.localeCompare(a.ts));
+    const groups = {}; list.forEach(e => (groups[dayKey(e.ts)] ||= []).push(e));
+    $('spentList').innerHTML = Object.entries(groups).map(([d, items]) => {
       const label = d === today ? 'Today' : new Date(d+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-      return '<div class="day num"><span>' + esc(label) + '</span><span>' + esc(npr(list.reduce((a,e) => a + e.npr, 0))) + '</span></div><div class="list">' +
-        list.map(e => { const m = CATS[e.cat] || CATS.Other;
+      return '<div class="day num"><span>' + esc(label) + '</span><span>' + esc(npr(items.reduce((a,e) => a + myNpr(e), 0))) + '</span></div><div class="list">' +
+        items.map(e => { const m = CATS[e.cat], shared = isShared(e);
+          const sub = esc(e.cat) + ' · ' + esc(timeOf(e.ts)) + (e.city ? ' · ' + esc(e.city) : '');
+          const mine = myShare(e);
           return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
-            '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(e.cat) + ' · ' + esc(timeOf(e.ts)) + '</small></span>' +
-            '<span class="amt num"><b>' + esc(vnd(e.vnd)) + '</b><small>' + esc(npr(e.npr)) + '</small></span></button>'; }).join('') + '</div>';
+            '<span class="mid"><b>' + esc(e.item) + (shared ? '<span class="tag">split</span>' : '') + '</b><small>' + sub + '</small></span>' +
+            '<span class="amt num"><b>' + esc(vnd(shared ? mine : e.vnd)) + '</b><small>' + (shared ? 'of ' + esc(short(e.vnd)) + ' ₫' : esc(npr(myNpr(e)))) + '</small></span></button>'; }).join('') + '</div>';
     }).join('');
-    $('spentEmpty').hidden = state.entries.length > 0;
+    $('spentEmpty').hidden = list.length > 0;
+    $('spentEmpty').textContent = filterCat ? 'Nothing in ' + filterCat + '.' : 'Nothing logged yet. Price something on the Deal tab and tap Log purchase.';
   }
-  let editing = null;
-  $('spentList').addEventListener('click', e => {
-    const b = e.target.closest('[data-entry]'); if (!b) return;
-    editing = state.entries.find(x => x.id === b.dataset.entry); if (!editing) return;
-    $('entryTitle').textContent = editing.item;
-    $('entryLead').textContent = vnd(editing.vnd) + ' · ' + npr(editing.npr) + ' · ' +
-      new Date(editing.ts).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) +
-      (editing.asked && editing.asked !== editing.vnd ? ' · asked ' + vnd(editing.asked) : '');
-    $('entryCats').innerHTML = catButtons(editing.cat);
-    openSheet('sheet-entry');
-  });
-  $('entryCats').addEventListener('click', e => {
-    const b = e.target.closest('[data-cat]'); if (!b || !editing) return;
-    if (editing.item === editing.cat) editing.item = b.dataset.cat;
-    editing.cat = b.dataset.cat; save(); closeSheet(); renderAll();
-  });
-  $('entryDelete').onclick = () => {
-    if (!editing) return; const gone = editing;
-    state.entries = state.entries.filter(x => x.id !== gone.id); save(); closeSheet(); renderAll();
-  };
+  $('legend').addEventListener('click', e => { const b = e.target.closest('[data-filter]'); if (!b) return; filterCat = filterCat === b.dataset.filter ? null : b.dataset.filter; renderSpent(); });
+  $('spentList').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
 
-  // ---------- cash view ----------
+  // ---------- cash ----------
   function renderCash() {
     const c = calc();
     $('usdLeft').textContent = usd(c.usdLeft);
@@ -734,14 +1112,17 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     $('vndSub').textContent = c.real ? '≈ ' + npr(c.vndLeft * c.nprPerVnd) : 'Log an exchange to start';
     $('rateLine').textContent = c.real
       ? 'Changed ' + usd(c.usdEx) + ' for ' + vnd(c.vndIn) + '. Your average: ' + fmt(c.vndPerUsd) + ' ₫/$ (' + fmt(c.vndPerUsd / state.nprPerUsd, 1) + ' ₫ per rupee).'
-      : 'Reference rate: ' + fmt(state.marketVndPerUsd) + ' ₫/$. Change it in Settings if the boards show something different.';
+      : 'No exchanges yet. Prices convert at the online rate until you log one.';
     const xs = [...state.exchanges].sort((a,b) => b.ts.localeCompare(a.ts));
     $('xList').innerHTML = xs.length ? '<div class="list">' + xs.map(x =>
-      '<button type="button" class="row" data-x="' + esc(x.id) + '"><span class="emo" style="background:#f2c14e33">💵</span>' +
-      '<span class="mid"><b>' + esc(usd(x.usd)) + ' → ' + esc(short(x.vnd)) + ' ₫</b><small>' + esc(x.where ? x.where + ' · ' : '') +
-      esc(new Date(x.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'})) + '</small></span>' +
+      '<button type="button" class="row" data-x="' + esc(x.id) + '"><span class="emo" style="background:#2e9fbf22">💵</span>' +
+      '<span class="mid"><b>' + esc(usd(x.usd)) + ' → ' + esc(short(x.vnd)) + ' ₫</b><small>' + esc(x.where ? x.where + ' · ' : '') + esc(dateOf(x.ts)) + '</small></span>' +
       '<span class="amt num"><b>' + esc(fmt(x.vnd / x.usd)) + '</b><small>₫ per $</small></span></button>').join('') + '</div>' : '';
     $('xEmpty').hidden = xs.length > 0;
+    $('notesList').innerHTML = NOTES.map(n =>
+      '<div class="row"><span class="bill' + (n.v === 500000 ? ' long' : '') + '" style="background:' + n.c + '">' + short(n.v) + '</span>' +
+      '<span class="mid"><b>' + esc(vnd(n.v)) + (n.warn ? '<span class="tag" style="color:var(--warn);border-color:var(--warn)">check</span>' : '') + '</b><small>' + esc(n.name) + '</small></span>' +
+      '<span class="amt num"><b>' + esc(npr(n.v * c.nprPerVnd)) + '</b><small>' + esc(usd(Math.round(n.v / c.vndPerUsd * 100) / 100)) + '</small></span></div>').join('');
     const chip = $('walletChip');
     chip.textContent = c.real ? short(c.vndLeft) + ' ₫ · ' + usd(c.usdLeft) : usd(c.usdLeft) + ' cash';
     chip.classList.toggle('low', c.real && c.vndLeft < 0);
@@ -753,8 +1134,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     state.exchanges = state.exchanges.filter(y => y.id !== x.id); save(); renderAll();
   });
 
-  // exchange sheet: dollars in, dong worked out from this place's rate
-  function refRate() { return state.marketVndPerUsd; }
+  // exchange sheet
+  const refRate = () => state.marketVndPerUsd;
   function defaultPlaceRate() {
     const last = [...state.exchanges].sort((a,b) => b.ts.localeCompare(a.ts))[0];
     if (last && Date.now() - new Date(last.ts) < 2 * 864e5) return { rate: Math.round(last.vnd / last.usd), why: 'Your last exchange' + (last.where ? ' (' + last.where + ')' : '') };
@@ -762,12 +1143,9 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   }
   function xUpdate(from) {
     const u = Number($('xUsd').value), r = Number($('xRate').value);
-    if (from === 'vnd') {
-      const v = Number($('xVnd').value);
-      if (u > 0 && v > 0) $('xRate').value = Math.round(v / u);
-    } else if (u > 0 && r > 0) {
-      $('xVnd').value = Math.round(u * r);
-    } else if (from !== 'vnd') $('xVnd').value = '';
+    if (from === 'vnd') { const v = Number($('xVnd').value); if (u > 0 && v > 0) $('xRate').value = Math.round(v / u); }
+    else if (u > 0 && r > 0) $('xVnd').value = Math.round(u * r);
+    else $('xVnd').value = '';
     const v = Number($('xVnd').value), rate = u > 0 && v > 0 ? v / u : NaN, p = $('xPreview');
     p.classList.remove('warn');
     if (!Number.isFinite(rate)) { p.textContent = 'Enter the dollars to see what you’ll get.'; return; }
@@ -795,7 +1173,130 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     save(); closeSheet(); renderAll(); bump();
   };
 
-  // online reference rate: fetched when online, cached for offline
+  // count sheet
+  function cPreview() {
+    const c = calc(), raw = $('cVnd').value, have = raw === '' ? NaN : Number(raw), p = $('cPreview'), fix = $('cFix');
+    p.classList.remove('warn'); fix.hidden = true;
+    if (!Number.isFinite(have)) { p.textContent = 'Count your notes and enter the total.'; return; }
+    const gap = c.vndLeft - have;
+    if (Math.abs(gap) < 1000) { p.textContent = 'Matches. Every dong is accounted for.'; return; }
+    if (gap > 0) {
+      p.textContent = vnd(gap) + ' (≈ ' + npr(gap * c.nprPerVnd) + ') is missing from your log.';
+      p.classList.add('warn'); fix.hidden = false; fix.textContent = 'Log ' + short(gap) + ' ₫ as unlogged spending'; fix.dataset.gap = Math.round(gap);
+    } else p.textContent = 'You have ' + vnd(-gap) + ' more than expected. An exchange or a payback may be missing, or a purchase was logged twice.';
+  }
+  $('cVnd').addEventListener('input', cPreview);
+  $('openCount').onclick = () => {
+    const c = calc();
+    $('cLead').textContent = 'The app expects ' + (c.vndLeft < 0 ? '−' + vnd(-c.vndLeft) : vnd(c.vndLeft)) + ' in your wallet.';
+    $('cVnd').value = ''; cPreview(); openSheet('sheet-count');
+  };
+  $('cFix').onclick = () => {
+    const gap = Number($('cFix').dataset.gap); if (!(gap > 0)) return;
+    const c = calc();
+    state.entries.push({ id:uid(), ts:new Date().toISOString(), item:'Unlogged cash', cat:'Other', vnd:gap, rate:c.nprPerVnd, paidBy:'me', among:['me'], asked:null, city:state.city });
+    save(); closeSheet(); renderAll(); bump();
+  };
+
+  // ---------- group ----------
+  function usedIds() {
+    const s = new Set();
+    state.entries.forEach(e => { s.add(e.paidBy); e.among.forEach(p => s.add(p)); });
+    state.settlements.forEach(t => s.add(t.friend));
+    return s;
+  }
+  function renderGroup() {
+    const c = calc();
+    const owed = Object.values(c.bal).filter(v => v > 0).reduce((a,v) => a + v, 0);
+    const owe = Math.abs(Object.values(c.bal).filter(v => v < 0).reduce((a,v) => a + v, 0));
+    $('owedToMe').textContent = vnd(owed); $('owedToMeNpr').textContent = npr(owed * c.nprPerVnd);
+    $('iOwe').textContent = vnd(owe); $('iOweNpr').textContent = npr(owe * c.nprPerVnd);
+    $('iOwe').classList.toggle('over', owe >= 1000);
+    $('friendEmpty').hidden = state.friends.length > 0;
+    $('friendList').innerHTML = state.friends.length ? '<div class="list">' + state.friends.map(f => {
+      const v = Math.round(c.bal[f.id] || 0);
+      const txt = Math.abs(v) < 1000 ? 'Settled' : v > 0 ? 'owes you' : 'you owe';
+      return '<button type="button" class="row" data-friend="' + esc(f.id) + '"><span class="emo" style="background:var(--accent-soft)">' + esc((f.name.trim()[0] || '?').toUpperCase()) + '</span>' +
+        '<span class="mid"><b>' + esc(f.name) + '</b><small>' + txt + '</small></span>' +
+        '<span class="amt num"><b class="' + (Math.abs(v) < 1000 ? '' : v > 0 ? 'good' : 'over') + '">' + (Math.abs(v) < 1000 ? '—' : esc(vnd(Math.abs(v)))) + '</b>' +
+        (Math.abs(v) < 1000 ? '' : '<small>' + esc(npr(Math.abs(v) * c.nprPerVnd)) + '</small>') + '</span></button>';
+    }).join('') + '</div>' : '';
+    const shared = state.entries.filter(isShared).sort((a,b) => b.ts.localeCompare(a.ts));
+    $('sharedEmpty').hidden = shared.length > 0;
+    $('sharedList').innerHTML = shared.length ? '<div class="list">' + shared.slice(0, 40).map(e => {
+      const m = CATS[e.cat];
+      return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
+        '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(friendName(e.paidBy)) + ' paid · ' + e.among.length + ' people · ' + esc(dateOf(e.ts)) + '</small></span>' +
+        '<span class="amt num"><b>' + esc(vnd(e.vnd)) + '</b><small>you ' + esc(short(myShare(e))) + ' ₫</small></span></button>';
+    }).join('') + '</div>' : '';
+  }
+  $('sharedList').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
+
+  // people sheet
+  function renderPeople() {
+    const used = usedIds();
+    $('pList').innerHTML = state.friends.map(f => '<div class="person-edit"><input type="text" value="' + esc(f.name) + '" data-rename="' + esc(f.id) + '" aria-label="Name" autocomplete="off">' +
+      '<button type="button" data-remove="' + esc(f.id) + '" aria-label="Remove ' + esc(f.name) + '"' + (used.has(f.id) ? ' disabled' : '') + '>✕</button></div>').join('');
+  }
+  $('openPeople').onclick = () => { $('pNew').value = ''; renderPeople(); openSheet('sheet-people'); };
+  function addPerson() {
+    const names = $('pNew').value.split(',').map(s => s.trim()).filter(Boolean);
+    names.forEach(n => { if (!state.friends.some(f => f.name.toLowerCase() === n.toLowerCase())) state.friends.push({ id:uid(), name:n.slice(0,40) }); });
+    $('pNew').value = ''; save(); renderPeople(); renderAll(); $('pNew').focus();
+  }
+  $('pAdd').onclick = addPerson;
+  $('pNew').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addPerson(); } });
+  $('pList').addEventListener('input', e => { const i = e.target.closest('[data-rename]'); if (!i) return;
+    const f = state.friends.find(x => x.id === i.dataset.rename); if (f && i.value.trim()) { f.name = i.value.trim().slice(0,40); save(); renderAll(); } });
+  $('pList').addEventListener('click', e => { const b = e.target.closest('[data-remove]'); if (!b || b.disabled) return;
+    state.friends = state.friends.filter(f => f.id !== b.dataset.remove); save(); renderPeople(); renderAll(); });
+
+  // friend sheet
+  let friendId = null;
+  function renderFriend() {
+    const c = calc(), f = state.friends.find(x => x.id === friendId); if (!f) return;
+    const v = Math.round(c.bal[f.id] || 0);
+    $('frName').textContent = f.name;
+    $('frLead').textContent = Math.abs(v) < 1000 ? 'All settled.' : v > 0 ? f.name + ' owes you ' + vnd(v) + ' (' + npr(v * c.nprPerVnd) + ').' : 'You owe ' + f.name + ' ' + vnd(-v) + ' (' + npr(-v * c.nprPerVnd) + ').';
+    $('frIn').textContent = 'Got cash from ' + f.name; $('frOut').textContent = 'Gave cash to ' + f.name;
+    const hist = [];
+    state.entries.filter(e => isShared(e) && (e.paidBy === f.id || e.among.includes(f.id))).forEach(e => {
+      const share = e.vnd / e.among.length;
+      let eff = 0;
+      if (e.paidBy === 'me' && e.among.includes(f.id)) eff = share;
+      else if (e.paidBy === f.id && e.among.includes('me')) eff = -share;
+      hist.push({ ts:e.ts, title:e.item, sub:friendName(e.paidBy) + ' paid ' + vnd(e.vnd), eff, entry:e.id });
+    });
+    state.settlements.filter(t => t.friend === f.id).forEach(t => hist.push({ ts:t.ts, title: t.dir === 'in' ? 'Paid you back' : 'You paid back', sub:'Cash', eff: t.dir === 'in' ? -t.vnd : t.vnd, settle:t.id }));
+    hist.sort((a,b) => b.ts.localeCompare(a.ts));
+    $('frHist').innerHTML = hist.length ? '<div class="list">' + hist.map(h =>
+      '<button type="button" class="row" ' + (h.entry ? 'data-entry="' + esc(h.entry) + '"' : 'data-settle="' + esc(h.settle) + '"') + '>' +
+      '<span class="mid"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + ' · ' + esc(dateOf(h.ts)) + '</small></span>' +
+      '<span class="amt num"><b class="' + (h.eff > 0 ? 'good' : h.eff < 0 ? 'over' : '') + '">' + (h.eff > 0 ? '+' : h.eff < 0 ? '−' : '') + esc(short(Math.abs(h.eff))) + ' ₫</b></span></button>').join('') + '</div>'
+      : '<p class="empty-msg">Nothing shared with ' + esc(f.name) + ' yet.</p>';
+    return v;
+  }
+  $('friendList').addEventListener('click', e => {
+    const b = e.target.closest('[data-friend]'); if (!b) return;
+    friendId = b.dataset.friend; const v = renderFriend();
+    $('frAmt').value = Math.abs(v) >= 1000 ? Math.abs(v) : '';
+    openSheet('sheet-friend');
+  });
+  function settle(dir) {
+    const amt = Math.round(Number($('frAmt').value));
+    if (!(amt > 0)) { $('frAmt').focus(); return; }
+    state.settlements.push({ id:uid(), ts:new Date().toISOString(), friend:friendId, vnd:amt, dir });
+    save(); renderAll(); const v = renderFriend(); $('frAmt').value = Math.abs(v) >= 1000 ? Math.abs(v) : ''; bump();
+  }
+  $('frIn').onclick = () => settle('in');
+  $('frOut').onclick = () => settle('out');
+  $('frHist').addEventListener('click', e => {
+    const s = e.target.closest('[data-settle]');
+    if (s) { const t = state.settlements.find(x => x.id === s.dataset.settle); if (t && confirm('Delete this payback of ' + vnd(t.vnd) + '?')) { state.settlements = state.settlements.filter(x => x.id !== t.id); save(); renderAll(); renderFriend(); } return; }
+    const en = e.target.closest('[data-entry]'); if (en) openEdit(en.dataset.entry);
+  });
+
+  // ---------- online reference rate (cached for offline) ----------
   let rateState = 'idle';
   const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
   async function fetchRate(force) {
@@ -806,7 +1307,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       async () => { const j = await (await fetch('https://open.er-api.com/v6/latest/USD', { cache:'no-store' })).json();
         if (j.result !== 'success') throw new Error('bad'); return { vnd:j.rates.VND, src:'ExchangeRate-API' }; },
       async () => { const j = await (await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json', { cache:'no-store' })).json();
-        return { vnd:j.usd.vnd, src:'fawazahmed0 currency-api' }; }
+        return { vnd:j.usd.vnd, src:'currency-api' }; }
     ];
     for (const src of sources) {
       try {
@@ -823,21 +1324,18 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     const m = Math.round((Date.now() - t) / 60000);
     if (m < 1) return 'just now'; if (m < 60) return m + ' min ago';
     const h = Math.round(m / 60); if (h < 36) return h + ' h ago';
-    return new Date(t).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    return dateOf(new Date(t).toISOString());
   }
   function renderRateStatus() {
-    const el = $('rateStatus'); if (!el) return;
     const when = state.rateFetchedAt ? 'updated ' + ago(state.rateFetchedAt) : state.rateSource === 'manual' ? 'set by you' : 'built-in Oct 21 value';
     const attr = state.rateSource === 'ExchangeRate-API' ? ' · <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">Rates by Exchange Rate API</a>' : '';
-    const msg = { loading:'Updating…', offline:'Offline, using saved rate', failed:'Couldn’t update, using saved rate' }[rateState];
-    el.innerHTML = 'Online rate ' + esc(fmt(state.marketVndPerUsd)) + ' ₫/$, ' + esc(when) + (msg ? ' · ' + esc(msg) : '') + attr;
+    const msg = { loading:'Updating…', offline:'offline, using saved rate', failed:'couldn’t update, using saved rate' }[rateState];
+    $('rateStatus').innerHTML = 'Online rate ' + esc(fmt(state.marketVndPerUsd)) + ' ₫/$, ' + esc(when) + (msg ? ' · ' + esc(msg) : '') + attr;
   }
   window.addEventListener('online', () => { fetchRate(); renderDeal(); });
   window.addEventListener('offline', () => { rateState = 'offline'; renderRateStatus(); renderDeal(); });
 
   // ---------- price advice ----------
-  // Inside Claude (published artifact) the page can ask Claude on the viewer's own account: no key.
-  const ARTIFACT_URL = 'https://claude.ai/artifact/9QYn1kZcDn5FWXV1HBNkFf';
   let sampleFn = null, sampleImages = false;
   if (window.claude && typeof window.claude.use === 'function') {
     window.claude.use('sample').then(async f => {
@@ -848,31 +1346,34 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     }).catch(() => {});
   }
   const adviceMode = () => sampleFn ? 'claude' : state.ai.key ? 'key' : 'none';
-  const handoffUrl = () => ARTIFACT_URL.startsWith('https://') ? ARTIFACT_URL + '#a' + (Number(vals.ask) || 0) + 'p' + (Number(vals.paid) || 0) : '';
-  const PLACES = ['Market stall','Street vendor','Shop','Tourist area'];
-  let lastAdviceItem = '', photo = null, photoBlob = null;
+  const handoffUrl = () => ARTIFACT_URL + '#a' + (Number(vals.ask) || 0) + 'p' + (Number(vals.paid) || 0);
+  let photo = null, photoBlob = null;
+  $('aCity').innerHTML = CITIES.map(c => '<option>' + esc(c) + '</option>').join('');
   function renderPlaces() {
     $('aPlace').innerHTML = PLACES.map(p => '<button type="button" class="' + (p === state.ai.place ? 'sel' : '') + '" data-place="' + p + '">' + p + '</button>').join('');
   }
   $('aPlace').addEventListener('click', e => { const b = e.target.closest('[data-place]'); if (!b) return; state.ai.place = b.dataset.place; save(); renderPlaces(); });
-  $('aCity').addEventListener('change', () => { state.ai.city = $('aCity').value; save(); });
+  $('aCity').addEventListener('change', () => { state.city = $('aCity').value; save(); });
   $('aPhotoBtn').onclick = () => $('aPhoto').click();
   $('aPhoto').onchange = async () => {
     const f = $('aPhoto').files[0]; if (!f) return;
-    const img = new Image(); img.src = URL.createObjectURL(f); await img.decode();
-    const k = Math.min(1, 768 / Math.max(img.width, img.height));
-    const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-    const url = cv.toDataURL('image/jpeg', 0.7); photo = url.split(',')[1];
-    photoBlob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.7));
-    $('aThumb').src = url; $('aThumb').hidden = false; $('aPhotoBtn').textContent = '📷 Change photo';
-    URL.revokeObjectURL(img.src);
+    try {
+      const img = new Image(); img.src = URL.createObjectURL(f); await img.decode();
+      const k = Math.min(1, 768 / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      const url = cv.toDataURL('image/jpeg', 0.7); photo = url.split(',')[1];
+      photoBlob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.7));
+      $('aThumb').src = url; $('aThumb').hidden = false; $('aPhotoBtn').textContent = '📷 Change photo';
+      URL.revokeObjectURL(img.src);
+    } catch (e) { $('aResult').innerHTML = '<div class="note warn">That photo couldn’t be opened. Try another.</div>'; }
+    $('aPhoto').value = '';
   };
   $('aiBtn').onclick = () => {
-    if (adviceMode() === 'none') { $('suKey').value = ''; $('suOpenClaude').hidden = !handoffUrl(); openSheet('sheet-aisetup'); return; }
+    if (adviceMode() === 'none') { $('suKey').value = ''; $('suOpenClaude').hidden = !navigator.onLine; openSheet('sheet-aisetup'); return; }
     openAdvice();
   };
-  $('suOpenClaude').onclick = () => { const u = handoffUrl(); if (u) { closeSheet(); window.open(u, '_blank', 'noopener'); } };
+  $('suOpenClaude').onclick = () => { const u = handoffUrl(); closeSheet(); window.open(u, '_blank', 'noopener'); };
   $('suSave').onclick = () => {
     const k = $('suKey').value.trim();
     if (!k.startsWith('sk-')) { $('suKey').focus(); $('suKey').placeholder = 'Paste a key starting with sk-ant-'; return; }
@@ -881,7 +1382,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   function openAdvice() {
     const c = calc(), ask = Number(vals.ask), paid = Number(vals.paid);
     $('aLead').textContent = 'Asking ' + vnd(ask) + ' (≈ ' + npr(ask * c.nprPerVnd) + ')' + (paid ? ' · you agreed ' + vnd(paid) : '');
-    $('aItem').value = lastAdviceItem; $('aCity').value = state.ai.city; renderPlaces();
+    $('aItem').value = lastAdviceItem; $('aCity').value = state.city; renderPlaces();
     $('aResult').innerHTML = ''; photo = null; photoBlob = null; $('aThumb').hidden = true; $('aPhotoBtn').textContent = '📷 Add photo';
     $('aPhotoBtn').hidden = adviceMode() === 'claude' && !sampleImages;
     $('aGo').disabled = false; $('aGo').textContent = paid ? 'Was it worth it?' : 'Get advice';
@@ -893,43 +1394,36 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     if (!item && !photo) { $('aResult').innerHTML = '<div class="note warn">Say what the item is, or add a photo.</div>'; return; }
     lastAdviceItem = item;
     const ask = Number(vals.ask), paid = Number(vals.paid);
-    const text = 'City: ' + state.ai.city + '\nPlace: ' + state.ai.place + '\nItem: ' + (item || '(see photo)') +
-      '\nAsking price: ' + ask + ' VND' + (paid ? '\nAgreed price: ' + paid + ' VND' : '\nNo price agreed yet.') +
-      '\nToday: ' + new Date().toDateString();
-    if (adviceMode() === 'claude') return askViaClaude(text, ask, paid);
-    const content = []; if (photo) content.push({ type:'image', source:{ type:'base64', media_type:'image/jpeg', data:photo } });
-    content.push({ type:'text', text });
-    const body = { model:'claude-haiku-5-5', max_tokens:700, system:SYS, messages:[{ role:'user', content }] };
-    if (state.ai.search) body.tools = [{ type:'web_search_20250305', name:'web_search', max_uses:2 }];
-    $('aGo').disabled = true; $('aGo').textContent = 'Checking…';
-    $('aResult').innerHTML = '<p class="status">Usually takes a few seconds' + (state.ai.search ? ', longer with web search' : '') + '.</p>';
-    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 45000);
+    const text = 'City: ' + state.city + '\nPlace: ' + state.ai.place + '\nItem: ' + (item || '(see photo)') +
+      '\nAsking price: ' + ask + ' VND' + (paid ? '\nAgreed price: ' + paid + ' VND' : '\nNo price agreed yet.') + '\nToday: ' + new Date().toDateString();
+    const btn = $('aGo'); btn.disabled = true; btn.textContent = 'Checking…';
+    $('aResult').innerHTML = '<p class="status">' + (adviceMode() === 'claude' ? 'Asking Claude. The first time, Claude asks you to allow this page.' : 'Usually takes a few seconds' + (state.ai.search ? ', longer with web search' : '') + '.') + '</p>';
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', signal:ctl.signal,
-        headers:{ 'content-type':'application/json', 'x-api-key':state.ai.key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify(body) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(res.status === 401 ? 'The API key was rejected. Check it in Settings.' : (data.error && data.error.message) || ('Request failed (' + res.status + ').'));
-      const out = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-      const j = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
-      renderAdvice(j, ask, paid);
-    } catch (e) {
-      $('aResult').innerHTML = '<div class="note warn">' + esc(e.name === 'AbortError' ? 'No answer after 45 seconds. The connection may be weak.' : e instanceof SyntaxError ? 'Got an answer that couldn’t be read. Try again.' : e.message) + '</div>';
-    } finally {
-      clearTimeout(timer); $('aGo').disabled = false; $('aGo').textContent = paid ? 'Check again' : 'Get advice';
-    }
-  };
-  async function askViaClaude(text, ask, paid) {
-    const btn = $('aGo');
-    btn.disabled = true; btn.textContent = 'Checking…';
-    $('aResult').innerHTML = '<p class="status">Asking Claude. The first time, Claude asks you to allow this page.</p>';
-    const opts = { modelTier:'quick' };
-    if (photoBlob && sampleImages) opts.images = [photoBlob];
-    try {
-      const j = await sampleFn.json(SYS + '\n\n' + text + (photoBlob && sampleImages ? '\nA photo of the item is attached.' : ''), opts);
+      let j;
+      if (adviceMode() === 'claude') {
+        const opts = { modelTier:'quick' };
+        if (photoBlob && sampleImages) opts.images = [photoBlob];
+        j = await sampleFn.json(SYS + '\n\n' + text + (opts.images ? '\nA photo of the item is attached.' : ''), opts);
+      } else {
+        const content = []; if (photo) content.push({ type:'image', source:{ type:'base64', media_type:'image/jpeg', data:photo } });
+        content.push({ type:'text', text });
+        const body = { model:'claude-haiku-5-5', max_tokens:700, system:SYS, messages:[{ role:'user', content }] };
+        if (state.ai.search) body.tools = [{ type:'web_search_20250305', name:'web_search', max_uses:2 }];
+        const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 45000);
+        try {
+          const res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', signal:ctl.signal,
+            headers:{ 'content-type':'application/json', 'x-api-key':state.ai.key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+            body: JSON.stringify(body) });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw { code: res.status === 401 ? 'bad_key' : 'api', message: (data.error && data.error.message) || ('Request failed (' + res.status + ').') };
+          const out = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+          j = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+        } finally { clearTimeout(timer); }
+      }
       if (!j || typeof j !== 'object') throw { code:'invalid_json' };
       renderAdvice(j, ask, paid);
     } catch (e) {
+      const code = e && (e.code || (e.name === 'AbortError' ? 'timeout' : e instanceof SyntaxError ? 'invalid_json' : ''));
       const msg = {
         not_granted:'Claude access was declined for this page. Reload it to be asked again.',
         sampling_disabled:'Claude isn’t available on this account.',
@@ -937,52 +1431,32 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
         session_expired:'Sign in to Claude again, then retry.',
         invalid_json:'Got an answer that couldn’t be read. Try again.',
         refused:'Claude didn’t answer this one. Try describing the item differently.',
-        image_rejected:'That photo couldn’t be used. Try another or remove it.'
-      }[e && e.code] || 'Couldn’t reach Claude. Check your connection and try again.';
+        image_rejected:'That photo couldn’t be used. Try another or remove it.',
+        bad_key:'The API key was rejected. Check it in Settings.',
+        timeout:'No answer after 45 seconds. The connection may be weak.',
+        api: e && e.message
+      }[code] || 'Couldn’t get advice. Check your connection and try again.';
       $('aResult').innerHTML = '<div class="note warn">' + esc(msg) + '</div>';
     } finally {
       btn.disabled = false; btn.textContent = paid ? 'Check again' : 'Get advice';
     }
-  }
+  };
   function renderAdvice(j, ask, paid) {
     const n = v => Number.isFinite(Number(v)) && Number(v) > 0 ? short(Number(v)) + ' ₫' : '—';
     const V = { great:'Great deal', fair:'Fair price', overpaid:'You overpaid' };
     const conf = { low:'Low confidence: treat this as a rough guess.', medium:'Medium confidence.', high:'High confidence.' }[j.confidence] || '';
     const over = ask && Number(j.walk_away) > 0 && ask > Number(j.walk_away) * 1.5 ? '<div class="note">The asking price is well above the fair range. Expect to bargain hard or walk.</div>' : '';
+    const openBtn = Number(j.open_at) > 0 && !paid ? '<button type="button" class="secondary" id="useOpen" style="margin-top:10px">Show seller ' + esc(n(j.open_at)) + '</button>' : '';
     $('aResult').innerHTML =
       (paid && V[j.verdict] ? '<div class="verdict ' + esc(j.verdict) + '">' + V[j.verdict] + ' at ' + esc(short(paid)) + ' ₫</div>' : '') +
       '<div class="adv-grid num"><div><span>Fair range</span><b>' + esc(n(j.fair_low)) + '–' + esc(n(j.fair_high)) + '</b></div>' +
       '<div><span>Open at</span><b>' + esc(n(j.open_at)) + '</b></div><div><span>Walk away above</span><b>' + esc(n(j.walk_away)) + '</b></div></div>' +
       over + (j.reason ? '<p style="margin:12px 0 0">' + esc(j.reason) + '</p>' : '') +
       (j.tip ? '<p class="small" style="margin:6px 0 0">Tip: ' + esc(j.tip) + '</p>' : '') +
-      '<p class="conf">' + esc(conf) + ' This is an AI estimate, not a market survey.</p>';
+      '<p class="conf">' + esc(conf) + ' This is an AI estimate, not a market survey.</p>' + openBtn;
+    const ub = $('useOpen');
+    if (ub) ub.onclick = () => closeSheet(() => { setVal('paid', String(Math.round(Number(j.open_at)))); if (active !== 'paid') tidy(active); active = 'paid'; setActive('paid', true); $('showBtn').click(); });
   }
-
-  // count sheet
-  function cPreview() {
-    const c = calc(), have = $('cVnd').value === '' ? NaN : Number($('cVnd').value), p = $('cPreview'), fix = $('cFix');
-    p.classList.remove('warn'); fix.hidden = true;
-    if (!Number.isFinite(have)) { p.textContent = 'Count your notes and enter the total.'; return; }
-    const gap = c.vndLeft - have;
-    if (Math.abs(gap) < 1000) { p.textContent = 'Matches. Every dong is accounted for.'; return; }
-    if (gap > 0) {
-      p.textContent = vnd(gap) + ' (≈ ' + npr(gap * c.nprPerVnd) + ') is missing from your log.';
-      p.classList.add('warn'); fix.hidden = false; fix.textContent = 'Log ' + short(gap) + ' ₫ as unlogged spending'; fix.dataset.gap = gap;
-    } else {
-      p.textContent = 'You have ' + vnd(-gap) + ' more than expected. An exchange may be missing, or a purchase was logged twice.';
-    }
-  }
-  $('cVnd').addEventListener('input', cPreview);
-  $('openCount').onclick = () => {
-    const c = calc();
-    $('cLead').textContent = 'The app expects ' + (c.vndLeft < 0 ? '−' + vnd(-c.vndLeft) : vnd(c.vndLeft)) + ' in your wallet.';
-    $('cVnd').value = ''; cPreview(); openSheet('sheet-count');
-  };
-  $('cFix').onclick = () => {
-    const gap = Number($('cFix').dataset.gap), c = calc();
-    const e = { id:uid(), ts:new Date().toISOString(), item:'Unlogged cash', cat:'Other', vnd:gap, npr:Math.round(gap * c.nprPerVnd), vndPerUsd:Math.round(c.vndPerUsd), asked:null };
-    state.entries.push(e); save(); closeSheet(); renderAll(); bump();
-  };
 
   // ---------- settings ----------
   function fillSettings() {
@@ -990,21 +1464,36 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     $('sStart').value = state.tripStart || ''; $('sEnd').value = state.tripEnd || '';
     $('sNpr').value = state.nprPerUsd; $('sMarket').value = state.marketVndPerUsd;
     $('sKey').value = state.ai.key || ''; $('sSearch').checked = !!state.ai.search;
+    $('sCity').innerHTML = CITIES.map(c => '<button type="button" class="' + (c === state.city ? 'sel' : '') + '" data-city="' + esc(c) + '">' + esc(c) + '</button>').join('');
+    $('lastBackupText').textContent = state.lastBackup ? 'Last backup: ' + new Date(state.lastBackup).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '.' : 'No backup saved yet. Save one every day or two; it’s your only copy if the phone is lost or Chrome’s data is cleared.';
+    applyTheme();
   }
-  $('openSettings').onclick = () => { fillSettings(); openSheet('sheet-settings'); };
-  const bindNum = (id, key, allowEmpty) => $(id).addEventListener('input', () => {
-    const v = Number($(id).value);
-    if ($(id).value === '' && allowEmpty) state[key] = null; else if (v > 0 || (key === 'startUsd' && v >= 0)) state[key] = v; else return;
+  $('openSettings').onclick = () => { fillSettings(); $('importNote').textContent = ''; openSheet('sheet-settings'); };
+  $('sCity').addEventListener('click', e => { const b = e.target.closest('[data-city]'); if (!b) return; state.city = b.dataset.city; save(); fillSettings(); });
+  const bindNum = (id, key, allowEmpty, min) => $(id).addEventListener('input', () => {
+    const raw = $(id).value, v = Number(raw);
+    if (raw === '' && allowEmpty) state[key] = null; else if (Number.isFinite(v) && v >= min && raw !== '') state[key] = v; else return;
     save(); renderAll();
   });
-  bindNum('sStartUsd','startUsd'); bindNum('sTarget','targetNpr',true); bindNum('sNpr','nprPerUsd'); bindNum('sMarket','marketVndPerUsd');
-  $('sMarket').addEventListener('input', () => { state.rateFetchedAt = null; state.rateSource = 'manual'; save(); });
+  bindNum('sStartUsd','startUsd',false,0); bindNum('sTarget','targetNpr',true,1); bindNum('sNpr','nprPerUsd',false,1); bindNum('sMarket','marketVndPerUsd',false,1000);
+  $('sMarket').addEventListener('input', () => { state.rateFetchedAt = null; state.rateSource = 'manual'; save(); renderRateStatus(); });
   $('sStart').onchange = () => { state.tripStart = $('sStart').value || null; save(); renderAll(); };
   $('sEnd').onchange = () => { state.tripEnd = $('sEnd').value || null; save(); renderAll(); };
-  $('sReset').onclick = () => { state.nprPerUsd = DEF.nprPerUsd; state.marketVndPerUsd = DEF.marketVndPerUsd; state.rateFetchedAt = null; save(); fillSettings(); renderAll(); $('sReset').textContent = 'Rates reset'; setTimeout(() => $('sReset').textContent = 'Reset rates to Oct 21 values', 1400); };
   $('sRefresh').onclick = () => fetchRate(true);
   $('sKey').addEventListener('input', () => { state.ai.key = $('sKey').value.trim(); save(); renderDeal(); });
   $('sSearch').addEventListener('change', () => { state.ai.search = $('sSearch').checked; save(); });
+
+  // theme
+  function applyTheme() {
+    const t = state.theme || 'auto', root = document.documentElement;
+    if (t === 'auto') { if (root.dataset.themeOwner) { delete root.dataset.theme; delete root.dataset.themeOwner; } }
+    else { root.dataset.theme = t; root.dataset.themeOwner = '1'; }
+    const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.querySelector('meta[name=theme-color]').content = dark ? '#1a1d1c' : '#f2f3f0';
+    document.querySelectorAll('[data-theme-opt]').forEach(b => b.classList.toggle('sel', b.dataset.themeOpt === t));
+  }
+  $('sTheme').addEventListener('click', e => { const b = e.target.closest('[data-theme-opt]'); if (!b) return; state.theme = b.dataset.themeOpt; save(); applyTheme(); });
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {}
 
   // backup
   function share(name, text, type) {
@@ -1016,27 +1505,33 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
-  $('exportJson').onclick = () => share('vietnam-wallet-' + dayKey(new Date()) + '.json', JSON.stringify(state, null, 2), 'application/json');
+  function backup() {
+    state.lastBackup = Date.now(); save();
+    share('vietnam-wallet-' + dayKey(new Date()) + '.json', JSON.stringify(state, null, 2), 'application/json');
+    renderAll(); if (openId === 'sheet-settings') fillSettings();
+  }
+  $('exportJson').onclick = backup;
+  $('nudgeBackup').onclick = backup;
   $('exportCsv').onclick = () => {
     const q = s => '"' + String(s ?? '').replace(/"/g,'""') + '"';
-    const rows = [['Type','Date','Time','Item / Where','Category','VND','NPR','USD','Asking VND','Rate VND/USD']];
-    state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', x.usd, '', Math.round(x.vnd/x.usd)]));
-    state.entries.forEach(e => rows.push(['Purchase', dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, e.npr, '', e.asked ?? '', e.vndPerUsd ?? '']));
-    const body = [rows[0]].concat(rows.slice(1).sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2])));
-    share('vietnam-wallet-' + dayKey(new Date()) + '.csv', body.map(r => r.map(q).join(',')).join('\n'), 'text/csv');
+    const rows = [];
+    state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', '', x.usd, '', '', Math.round(x.vnd/x.usd)]));
+    state.entries.forEach(e => rows.push(['Purchase', dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', friendName(e.paidBy), e.among.map(friendName).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
+    state.settlements.forEach(t => rows.push([t.dir === 'in' ? 'Payback received' : 'Payback given', dayKey(t.ts), timeOf(t.ts), friendName(t.friend), '', t.vnd, '', '', '', '', '', '']));
+    rows.sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
+    const head = ['Type','Date','Time','Item / where / who','Category','VND total','VND my share','NPR my share','USD','Paid by','Shared by','Rate VND/USD'];
+    share('vietnam-wallet-' + dayKey(new Date()) + '.csv', [head].concat(rows).map(r => r.map(q).join(',')).join('\n'), 'text/csv');
   };
   $('importBtn').onclick = () => $('importFile').click();
   $('importFile').onchange = async () => {
     const f = $('importFile').files[0]; if (!f) return;
     try {
       const d = migrate(JSON.parse(await f.text()));
-      const haveE = new Set(state.entries.map(e => e.id)), haveX = new Set(state.exchanges.map(x => x.id));
-      const ne = d.entries.filter(e => e && e.id && !haveE.has(e.id) && Number.isFinite(e.vnd) && Number.isFinite(e.npr));
-      const nx = d.exchanges.filter(x => x && x.id && !haveX.has(x.id) && x.usd > 0 && x.vnd > 0);
-      state.entries = state.entries.concat(ne); state.exchanges = state.exchanges.concat(nx);
+      const merge = (key) => { const have = new Set(state[key].map(x => x.id)); const add = d[key].filter(x => !have.has(x.id)); state[key] = state[key].concat(add); return add.length; };
+      const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements');
       save(); fillSettings(); renderAll();
-      $('persistNote').textContent = 'Restored ' + ne.length + ' purchases and ' + nx.length + ' exchanges.';
-    } catch (e) { $('persistNote').textContent = 'That file isn’t a backup from this app.'; }
+      $('importNote').textContent = 'Restored ' + ne + ' purchases, ' + nx + ' exchanges, ' + ns + ' paybacks and ' + nf + ' people. Nothing already here was changed.';
+    } catch (e) { $('importNote').textContent = 'That file isn’t a backup from this app.'; }
     $('importFile').value = '';
   };
   if (navigator.storage && navigator.storage.persist) {
@@ -1044,25 +1539,14 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       $('persistNote').textContent = ok ? 'Storage is marked persistent, so Chrome won’t clear it to free space.' : 'Storage isn’t marked persistent yet. Installing the app usually fixes that.';
     }).catch(() => {});
   }
-
-  // ---------- go ----------
-  function applyTheme() {
-    const t = state.theme || 'auto';
-    const root = document.documentElement;
-    if (t === 'auto') { if (root.dataset.themeOwner) { delete root.dataset.theme; delete root.dataset.themeOwner; } }
-    else { root.dataset.theme = t; root.dataset.themeOwner = '1'; }
-    const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-    document.querySelector('meta[name=theme-color]').content = dark ? '#1a1d1c' : '#f2f3f0';
-    document.querySelectorAll('[data-theme-opt]').forEach(b => b.classList.toggle('sel', b.dataset.themeOpt === t));
-  }
-  $('sTheme').addEventListener('click', e => { const b = e.target.closest('[data-theme-opt]'); if (!b) return; state.theme = b.dataset.themeOpt; save(); applyTheme(); });
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   if (!location.protocol.startsWith('http')) $('fileNote').hidden = false;
 
-  function renderAll() { renderDeal(); renderSpent(); renderCash(); renderRateStatus(); }
+  // ---------- go ----------
+  function renderAll() { renderDeal(); renderSpent(); renderCash(); renderGroup(); renderRateStatus(); }
   applyTheme();
   renderAll();
   fetchRate();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { renderAll(); fetchRate(); } });
   const hand = /^#a(\d{1,11})p(\d{0,11})$/.exec(location.hash || '');
   if (hand && Number(hand[1]) > 0) {
     setVal('ask', hand[1]); if (Number(hand[2]) > 0) setVal('paid', hand[2]);
