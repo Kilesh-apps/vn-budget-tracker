@@ -89,8 +89,8 @@ main{flex:1;overflow-y:auto;padding:4px 16px 24px;overscroll-behavior:contain}
 .conv .saved{color:var(--good)}
 .conv .above{color:var(--warn)}
 
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 8px}
-.act{min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:14px;font-size:.9rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 8px}
+.act{min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:14px;font-size:.84rem;font-weight:600;padding:0 4px;line-height:1.15;display:flex;align-items:center;justify-content:center;gap:6px}
 .act:active{background:var(--raised)}
 .act:disabled{color:var(--muted);opacity:.7}
 .act.accent{border-color:var(--accent);color:var(--accent)}
@@ -192,7 +192,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .person-edit button:disabled{opacity:.35}
 
 /* tabs */
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 .tabs button{border:0;background:transparent;padding:8px 0 10px;display:grid;justify-items:center;gap:2px;font-size:.78rem;font-weight:600;color:var(--muted)}
 .tabs svg{width:24px;height:24px}
 .tabs button[aria-selected=true]{color:var(--accent)}
@@ -295,6 +295,52 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .add-box label{display:block;font-size:.84rem;font-weight:600;margin:10px 0 6px}
 
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* pay & change */
+#sheet-pay>*{flex-shrink:0}
+#sheet-pay .seller-view{position:fixed}
+.pay-price{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 0 2px}
+.pay-price b{font-size:1.6rem;font-weight:700;color:var(--num)}
+.notes-tray{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.nchip{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:6px 4px 8px;display:grid;justify-items:center;gap:4px;font-weight:700;font-size:.9rem}
+.nchip:active{background:var(--raised)}
+.nchip i{display:block;width:44px;height:20px;border-radius:4px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.given{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:34px;align-items:center}
+.given button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 10px;font-size:.84rem;font-weight:600}
+.given .hint{font-size:.84rem;color:var(--muted)}
+.result{border-radius:18px;padding:14px 16px;margin-top:12px;background:var(--accent-soft)}
+.result span{display:block;font-size:.84rem;color:var(--muted);font-weight:600}
+.result b{display:block;font-size:2rem;font-weight:700;color:var(--num);line-height:1.15}
+.result.short{background:var(--warnbg)}
+.result.short b{color:var(--warn)}
+.result.ok b{color:var(--good)}
+.suggest{border:1px dashed var(--line);background:transparent;border-radius:14px;padding:10px 12px;text-align:left;width:100%;margin-top:8px;font-size:.88rem}
+.suggest b{font-weight:700}
+.seller-view{position:absolute;inset:0;background:var(--show-bg);z-index:4;display:flex;flex-direction:column;padding:calc(8px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.seller-view .lines{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:4px}
+.seller-view .l1{font-size:clamp(1.3rem,6.5vw,1.8rem);font-weight:700;color:var(--show-ink);margin:0}
+.seller-view .v{font-size:clamp(2.2rem,12vw,4rem);font-weight:700;color:var(--show-ink);margin:0 0 14px;white-space:nowrap}
+.seller-view .en{font-size:.86rem;color:var(--muted);margin:0}
+/* packing checklist */
+.pack-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pack-top .mini{min-height:36px}
+.ck-cat{margin-top:16px}
+.ck-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 6px}
+.ck-head b{font-size:.92rem}
+.ck-head small{color:var(--muted);font-size:.8rem;font-weight:600}
+.ck-head.done b{color:var(--good)}
+.ck-row{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left;font-size:.98rem}
+.ck-row:first-child{border-top:0}
+button.ck-row:active{background:var(--raised)}
+.ck-box{width:24px;height:24px;border-radius:7px;border:2px solid var(--muted);flex:none;display:grid;place-items:center;color:var(--accent-ink);font-size:.9rem;font-weight:800}
+.ck-row.on .ck-box{background:var(--accent);border-color:var(--accent)}
+.ck-row.on .ck-t{color:var(--muted);text-decoration:line-through}
+.ck-t{flex:1;min-width:0;overflow-wrap:anywhere}
+.ck-edit{display:flex;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--line)}
+.ck-edit:first-child{border-top:0}
+.ck-edit input{flex:1;min-width:0;min-height:42px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit}
+.ck-edit button{flex:none;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted)}
+.ck-cat-name{flex:1;min-width:0;min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-weight:700}
+.seg-sm button{padding:6px 11px;font-size:.82rem}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 @media (max-height:720px){ .key{height:46px} .big{font-size:1.65rem} .actions{margin:8px 0 6px} .act{min-height:40px} }
 </style>
@@ -329,6 +375,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       </div>
       <div class="actions">
         <button type="button" class="act" id="showBtn">🗣️ Show seller</button>
+        <button type="button" class="act" id="payBtn">💵 Pay &amp; change</button>
         <button type="button" class="act accent" id="aiBtn">✨ Price advice</button>
       </div>
       <div class="offer-row" id="offerRow"></div>
@@ -393,6 +440,32 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <input type="file" id="notePhoto" accept="image/*" capture="environment" hidden>
     </section>
 
+    <!-- PACK -->
+    <section class="view" id="view-pack" hidden>
+      <div class="hero" style="padding:16px">
+        <div class="pack-top"><span class="lbl" id="ckLbl"></span><button type="button" class="mini" id="ckEditBtn">Edit list</button></div>
+        <p class="val num" id="ckVal" style="margin:2px 0 10px;font-size:1.8rem"></p>
+        <div class="segbar"><i id="ckBar" style="background:var(--accent);width:0"></i></div>
+        <div class="seg seg-sm" style="margin-top:12px">
+          <button type="button" id="ckOnlyLeft" aria-pressed="false">Show only unpacked</button>
+          <button type="button" id="ckReset">Untick all for next move</button>
+        </div>
+        <p class="small" style="margin:10px 0 0">Only on this phone. Untick everything before each hotel checkout; chargers and adapters are what usually get left behind.</p>
+      </div>
+      <div id="ckList"></div>
+      <div class="card" id="ckPasteBox" style="margin-top:14px" hidden>
+        <b>Paste your list</b>
+        <p class="small" style="margin:4px 0 8px">One item per line. A line like “Category 1: Backpack” or “Backpack:” starts a new category. It’s saved only on this phone.</p>
+        <textarea id="ckPaste" rows="8" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;resize:vertical" placeholder="Category 1: Duffle bag&#10;2 T-shirts&#10;Shorts&#10;Category 2: Fanny pack&#10;Passport"></textarea>
+        <button type="button" class="primary" id="ckPasteGo">Add to my list</button>
+      </div>
+      <div id="ckEditTools" hidden>
+        <button type="button" class="secondary" id="ckPasteMore" style="margin-top:14px">Paste more items</button>
+        <button type="button" class="secondary" id="ckAddCat" style="margin-top:14px">＋ Add a category</button>
+        <button type="button" class="primary" id="ckDone">Done editing</button>
+      </div>
+    </section>
+
     <!-- GROUP -->
     <section class="view" id="view-group" hidden>
       <div class="stats" style="margin-top:0">
@@ -419,6 +492,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>Cash</button>
     <button type="button" role="tab" data-tab="group" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.7c2 .7 3.2 2.5 3.5 5.3"/></svg>Group</button>
+    <button type="button" role="tab" data-tab="pack" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8.5 9 1.5 1.5 3-3M8.5 15.5l1.5 1.5 3-3M15.5 10h1M15.5 16.5h1"/></svg>Pack</button>
   </nav>
 </div>
 
@@ -498,6 +573,45 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <p class="status" id="shAddStatus" style="margin-bottom:0"></p>
     </div>
     <div id="shList"></div>
+  </div>
+</div>
+
+<!-- pay & check change -->
+<div class="sheet full" id="sheet-pay" role="dialog" aria-modal="true" aria-labelledby="payTitle" style="overflow-y:auto">
+  <div class="show-top">
+    <button type="button" class="icon-btn" id="payClose" aria-label="Close">✕</button>
+    <b id="payTitle">Pay &amp; check change</b>
+    <span style="width:40px"></span>
+  </div>
+  <div class="pay-price"><span class="lbl">Price</span><b class="num" id="payPrice"></b></div>
+  <p class="small num" id="payPriceSub" style="margin:0;text-align:right"></p>
+  <button type="button" class="suggest num" id="paySuggest"></button>
+
+  <span class="flabel">1. Notes you hand over <small class="small">(tap to add)</small></span>
+  <div class="notes-tray" id="payTray"></div>
+  <div class="given num" id="payGiven"></div>
+  <div class="result num" id="payResult"><span>Change you should get</span><b>—</b></div>
+  <p class="note warn" id="payWarn" hidden></p>
+
+  <span class="flabel">2. Count the change you got <small class="small">(optional)</small></span>
+  <div class="notes-tray" id="backTray"></div>
+  <div class="given num" id="backGiven"></div>
+  <div class="result num" id="backResult" hidden><span></span><b></b></div>
+
+  <div class="btn-pair" style="margin-top:14px">
+    <button type="button" class="secondary" id="paySeller">🗣️ Show seller</button>
+    <button type="button" class="secondary" id="paySay">🔊 Say it</button>
+  </div>
+  <button type="button" class="primary num" id="payLog">Log this purchase</button>
+
+  <div class="seller-view" id="paySellerView" hidden>
+    <div class="show-top"><button type="button" class="icon-btn" id="paySellerClose" aria-label="Back">✕</button><span></span></div>
+    <div class="lines">
+      <p class="l1" lang="vi">Giá</p><p class="v num" id="svPrice"></p>
+      <p class="l1" lang="vi">Tôi đưa</p><p class="v num" id="svGiven"></p>
+      <p class="l1" lang="vi">Tiền thối lại</p><p class="v num" id="svChange"></p>
+      <p class="en">Price · I’m giving you · Change back to me</p>
+    </div>
   </div>
 </div>
 
@@ -725,11 +839,22 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   $('errClose').onclick = () => { $('errBar').hidden = true; };
 
   // ---------- state ----------
+  // Parses a pasted list: "Category 1: Name" (or a line ending in ':') starts a category; other lines are items.
+  function parseList(text) {
+    const cats = []; let cur = null;
+    text.split(/\r?\n/).map(l => l.replace(/^[\s•\-*\u2022]+|\s+$/g, '')).filter(Boolean).forEach(line => {
+      const m = /^(?:category\s*\d*\s*[:.\-–—]\s*)(.+)$/i.exec(line) || /^(.+):$/.exec(line);
+      if (m) { cur = { id:uid(), name:m[1].trim().slice(0,60), items:[] }; cats.push(cur); return; }
+      if (!cur) { cur = { id:uid(), name:'My list', items:[] }; cats.push(cur); }
+      cur.items.push({ id:uid(), text:line.slice(0,120), done:false });
+    });
+    return cats;
+  }
   function fresh() {
     return { v:3, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
       nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, rateFetchedAt:null, rateSource:null,
       exchanges:[], entries:[], settlements:[], friends:[], lastCat:'Shopping', city:'Ho Chi Minh City',
-      theme:'auto', lastBackup:null, ttsSlow:false, phrases:[], ai:{ key:'', place:'Market stall', search:false } };
+      theme:'auto', lastBackup:null, ttsSlow:false, phrases:[], checklist:[], ai:{ key:'', place:'Market stall', search:false } };
   }
   function validTs(t) { const d = new Date(t); return t && !isNaN(d) ? d.toISOString() : new Date().toISOString(); }
   function uniqById(arr) { const seen = new Set(); return arr.filter(x => !seen.has(x.id) && seen.add(x.id)); }
@@ -769,6 +894,11 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     b.settlements = (raw.settlements || []).filter(t => t && t.id && t.friend && Number(t.vnd) > 0 && (t.dir === 'in' || t.dir === 'out'))
       .map(t => ({ id:String(t.id), ts:validTs(t.ts), friend:String(t.friend), vnd:Number(t.vnd), dir:t.dir }));
     b.phrases = uniqById(b.phrases);
+    if (Array.isArray(raw.checklist)) {
+      b.checklist = uniqById(raw.checklist.filter(c => c && c.id).map(c => ({ id:String(c.id), name:String(c.name || 'List').slice(0,60),
+        items: uniqById((Array.isArray(c.items) ? c.items : []).filter(i => i && i.id && String(i.text || '').trim())
+          .map(i => ({ id:String(i.id), text:String(i.text).slice(0,120), done:!!i.done }))) })));
+    }
     b.friends = uniqById(b.friends); b.exchanges = uniqById(b.exchanges); b.entries = uniqById(b.entries); b.settlements = uniqById(b.settlements);
     // anyone referenced but missing from the people list gets a placeholder, so no debt is ever hidden
     const known = new Set(b.friends.map(f => f.id)); let n = 0;
@@ -877,7 +1007,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   });
 
   // ---------- tabs ----------
-  const TITLES = { deal:'Deal', spent:'Spent', cash:'Cash', group:'Group' };
+  const TITLES = { deal:'Deal', spent:'Spent', cash:'Cash', group:'Group', pack:'Packing' };
   let tab = 'deal';
   function showTab(t) {
     tab = t;
@@ -989,6 +1119,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       $('logBtn').textContent = amount ? 'Log ' + vnd(amount) : 'Log purchase';
     }
     $('showBtn').disabled = !ask && !paid;
+    $('payBtn').disabled = !ask && !paid;
     const ai = $('aiBtn');
     ai.disabled = !ask || !navigator.onLine;
     ai.textContent = !navigator.onLine ? 'Price advice offline' : '✨ Price advice';
@@ -1150,6 +1281,141 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     state.phrases.unshift(x); save();
     $('shEnIn').value = ''; $('shViOut').value = ''; $('shAddResult').hidden = true; $('shAddStatus').textContent = '';
     pickPhrase('c' + x.id);
+  };
+
+  // ---------- pay & check change ----------
+  const DENOMS = [500000, 200000, 100000, 50000, 20000, 10000, 5000, 2000];
+  let payPrice = 0, given = [], back = [];
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  function exactNotes(amount) { const out = []; let r = Math.round(amount); for (const d of DENOMS.concat(1000)) while (r >= d) { out.push(d); r -= d; } return out; }
+  function noteChip(v) {
+    const n = NOTES.find(x => x.v === v), photo = notePhotos[v];
+    const sw = photo ? 'background-image:url(' + photo + ')' : 'background:' + (n ? n.c : 'var(--raised)');
+    return '<button type="button" class="nchip num" data-n="' + v + '"><i style="' + sw + '"></i>' + short(v) + '</button>';
+  }
+  function pills(arr, attr) {
+    if (!arr.length) return '<span class="hint">Nothing yet</span>';
+    const counts = {}; arr.forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+    return Object.keys(counts).map(Number).sort((a, b) => b - a).map(v => '<button type="button" ' + attr + '="' + v + '" aria-label="Remove one ' + short(v) + '">' + (counts[v] > 1 ? counts[v] + ' × ' : '') + short(v) + ' ✕</button>').join('') +
+      '<span class="hint">= ' + vnd(sum(arr)) + '</span>';
+  }
+  function renderPay() {
+    const c = calc(), g = sum(given), due = g - payPrice;
+    $('payPrice').textContent = vnd(payPrice);
+    $('payPriceSub').textContent = npr(payPrice * c.nprPerVnd);
+    const ex = exactNotes(payPrice);
+    $('paySuggest').innerHTML = 'Exact amount: <b>' + ex.map(short).join(' + ') + '</b> <span class="small">(tap to use)</span>';
+    $('payTray').innerHTML = DENOMS.map(noteChip).join('');
+    $('backTray').innerHTML = DENOMS.map(noteChip).join('');
+    $('payGiven').innerHTML = pills(given, 'data-rg');
+    $('backGiven').innerHTML = pills(back, 'data-rb');
+    const r = $('payResult');
+    r.classList.toggle('short', given.length > 0 && due < 0);
+    r.querySelector('span').textContent = !given.length ? 'Change you should get' : due < 0 ? 'Not enough yet: add' : 'Change you should get';
+    r.querySelector('b').textContent = !given.length ? '—' : vnd(Math.abs(due));
+    const big = given.includes(500000);
+    $('payWarn').hidden = !big;
+    if (big) $('payWarn').textContent = 'You’re handing over a 500,000 note (cyan-blue, the longer one), not a 20,000. Say “năm trăm nghìn” as you hand it over and watch it until the change comes back.';
+    const br = $('backResult');
+    br.hidden = !back.length || !given.length || due < 0;
+    if (!br.hidden) {
+      const diff = sum(back) - due;
+      br.classList.toggle('short', diff < 0); br.classList.toggle('ok', diff === 0);
+      br.querySelector('span').textContent = diff === 0 ? 'Change is correct' : diff < 0 ? 'You’re short by' : 'They gave you too much, by';
+      br.querySelector('b').textContent = diff === 0 ? '✓ ' + vnd(sum(back)) : vnd(Math.abs(diff));
+    }
+    $('paySeller').disabled = $('paySay').disabled = !given.length || due < 0;
+    $('payLog').textContent = 'Log ' + vnd(payPrice);
+  }
+  $('payBtn').onclick = () => {
+    tidy('ask'); tidy('paid');
+    payPrice = Number(vals.paid) || Number(vals.ask) || 0; if (!payPrice) return;
+    given = []; back = []; $('paySellerView').hidden = true;
+    renderPay(); openSheet('sheet-pay'); $('sheet-pay').scrollTop = 0;
+  };
+  $('payClose').onclick = () => closeSheet();
+  $('paySuggest').onclick = () => { given = exactNotes(payPrice); back = []; renderPay(); };
+  $('payTray').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (!b) return; given.push(Number(b.dataset.n)); renderPay(); });
+  $('backTray').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (!b) return; back.push(Number(b.dataset.n)); renderPay(); });
+  $('payGiven').addEventListener('click', e => { const b = e.target.closest('[data-rg]'); if (!b) return; given.splice(given.indexOf(Number(b.dataset.rg)), 1); renderPay(); });
+  $('backGiven').addEventListener('click', e => { const b = e.target.closest('[data-rb]'); if (!b) return; back.splice(back.indexOf(Number(b.dataset.rb)), 1); renderPay(); });
+  $('paySeller').onclick = () => {
+    $('svPrice').textContent = vnDots(payPrice); $('svGiven').textContent = vnDots(sum(given)); $('svChange').textContent = vnDots(sum(given) - payPrice);
+    $('paySellerView').hidden = false;
+  };
+  $('paySellerClose').onclick = () => { $('paySellerView').hidden = true; };
+  $('paySay').onclick = () => speak('Tôi đưa ' + sum(given) + ' đồng. Thối lại ' + (sum(given) - payPrice) + ' đồng.');
+  $('payLog').onclick = () => closeSheet(() => openLog());
+
+  // ---------- packing checklist (stays on this phone) ----------
+  let ckEdit = false, ckOnlyLeft = false, ckPasteOpen = false;
+  function renderPack() {
+    const all = state.checklist.flatMap(c => c.items), done = all.filter(i => i.done).length;
+    $('ckLbl').textContent = all.length ? (done === all.length ? 'All packed' : 'Packed') : 'Your list is empty';
+    $('ckVal').textContent = done + ' of ' + all.length;
+    $('ckBar').style.width = (all.length ? done / all.length * 100 : 0) + '%';
+    $('ckEditBtn').textContent = ckEdit ? 'Done' : 'Edit list';
+    $('ckOnlyLeft').classList.toggle('sel', ckOnlyLeft); $('ckOnlyLeft').setAttribute('aria-pressed', String(ckOnlyLeft));
+    $('ckEditTools').hidden = !ckEdit;
+    $('ckPasteBox').hidden = !(state.checklist.length === 0 || ckPasteOpen);
+    document.querySelector('#view-pack .hero').hidden = state.checklist.length === 0;
+    $('ckList').innerHTML = state.checklist.map(c => {
+      const d = c.items.filter(i => i.done).length, items = ckOnlyLeft && !ckEdit ? c.items.filter(i => !i.done) : c.items;
+      if (!ckEdit && ckOnlyLeft && !items.length) return '';
+      const head = ckEdit
+        ? '<div class="ck-head"><input class="ck-cat-name" data-cname="' + esc(c.id) + '" value="' + esc(c.name) + '" maxlength="60" aria-label="Category name"><button type="button" class="mini" data-cdel="' + esc(c.id) + '">Delete</button></div>'
+        : '<div class="ck-head' + (c.items.length && d === c.items.length ? ' done' : '') + '"><b>' + esc(c.name) + '</b><small class="num">' + d + '/' + c.items.length + (c.items.length && d === c.items.length ? ' ✓' : '') + '</small></div>';
+      const rows = ckEdit
+        ? c.items.map(i => '<div class="ck-edit"><input value="' + esc(i.text) + '" data-iname="' + esc(c.id) + '|' + esc(i.id) + '" maxlength="120" aria-label="Item"><button type="button" data-idel="' + esc(c.id) + '|' + esc(i.id) + '" aria-label="Delete item">✕</button></div>').join('') +
+          '<div class="ck-edit"><input placeholder="Add an item" data-inew="' + esc(c.id) + '" maxlength="120" enterkeyhint="done" aria-label="New item"><button type="button" data-iadd="' + esc(c.id) + '" aria-label="Add item" style="color:var(--accent);font-weight:800">＋</button></div>'
+        : items.map(i => '<button type="button" class="ck-row' + (i.done ? ' on' : '') + '" data-tick="' + esc(c.id) + '|' + esc(i.id) + '" role="checkbox" aria-checked="' + i.done + '"><span class="ck-box">' + (i.done ? '✓' : '') + '</span><span class="ck-t">' + esc(i.text) + '</span></button>').join('');
+      return '<div class="ck-cat">' + head + '<div class="list">' + (rows || '<p class="empty-msg" style="padding:14px">No items</p>') + '</div></div>';
+    }).join('') || (ckOnlyLeft && state.checklist.length ? '<p class="empty-msg">Everything is packed. 🎒</p>' : '');
+  }
+  const findItem = key => { const [ci, ii] = key.split('|'); const c = state.checklist.find(x => x.id === ci); return { c, i: c && c.items.find(x => x.id === ii) }; };
+  $('ckList').addEventListener('click', e => {
+    const t = e.target.closest('[data-tick]');
+    if (t) { const { i } = findItem(t.dataset.tick); if (i) { i.done = !i.done; save(); renderPack(); if (navigator.vibrate) navigator.vibrate(8); } return; }
+    const del = e.target.closest('[data-idel]');
+    if (del) { const { c, i } = findItem(del.dataset.idel); if (c && i) { c.items = c.items.filter(x => x !== i); save(); renderPack(); } return; }
+    const add = e.target.closest('[data-iadd]');
+    if (add) { addItem(add.dataset.iadd); return; }
+    const cdel = e.target.closest('[data-cdel]');
+    if (cdel) { const c = state.checklist.find(x => x.id === cdel.dataset.cdel);
+      if (c && (!c.items.length || confirm('Delete “' + c.name + '” and its ' + c.items.length + ' items?'))) { state.checklist = state.checklist.filter(x => x !== c); save(); renderPack(); } }
+  });
+  function addItem(cid) {
+    const inp = document.querySelector('[data-inew="' + CSS.escape(cid) + '"]'), c = state.checklist.find(x => x.id === cid);
+    if (!inp || !c) return;
+    const lines = [inp.value.trim()].filter(Boolean);
+    if (!lines.length) { inp.focus(); return; }
+    lines.forEach(t => c.items.push({ id:uid(), text:t.slice(0,120), done:false }));
+    save(); renderPack();
+    const again = document.querySelector('[data-inew="' + CSS.escape(cid) + '"]'); if (again) again.focus();
+  }
+  $('ckList').addEventListener('keydown', e => { const n = e.target.closest('[data-inew]'); if (n && e.key === 'Enter') { e.preventDefault(); addItem(n.dataset.inew); } });
+  $('ckList').addEventListener('input', e => {
+    const i = e.target.closest('[data-iname]');
+    if (i) { const r = findItem(i.dataset.iname); if (r.i && i.value.trim()) { r.i.text = i.value.trim().slice(0,120); save(); } return; }
+    const n = e.target.closest('[data-cname]');
+    if (n) { const c = state.checklist.find(x => x.id === n.dataset.cname); if (c && n.value.trim()) { c.name = n.value.trim().slice(0,60); save(); } }
+  });
+  $('ckEditBtn').onclick = () => { ckEdit = !ckEdit; ckPasteOpen = false; renderPack(); };
+  $('ckPasteMore').onclick = () => { ckPasteOpen = true; renderPack(); $('ckPaste').focus(); };
+  $('ckPasteGo').onclick = () => {
+    const cats = parseList($('ckPaste').value); if (!cats.length) { $('ckPaste').focus(); return; }
+    cats.forEach(nc => { const ex = state.checklist.find(c => c.name.toLowerCase() === nc.name.toLowerCase());
+      if (ex) nc.items.forEach(i => { if (!ex.items.some(x => x.text.toLowerCase() === i.text.toLowerCase())) ex.items.push(i); }); else state.checklist.push(nc); });
+    $('ckPaste').value = ''; ckPasteOpen = false; ckEdit = false; save(); renderPack(); $('main').scrollTop = 0;
+  };
+  $('ckDone').onclick = () => { ckEdit = false; renderPack(); $('main').scrollTop = 0; };
+  $('ckAddCat').onclick = () => { state.checklist.push({ id:uid(), name:'New category', items:[] }); save(); renderPack();
+    const ins = document.querySelectorAll('[data-cname]'); const last = ins[ins.length - 1]; if (last) { last.focus(); last.select(); } };
+  $('ckOnlyLeft').onclick = () => { ckOnlyLeft = !ckOnlyLeft; renderPack(); };
+  $('ckReset').onclick = () => {
+    const n = state.checklist.flatMap(c => c.items).filter(i => i.done).length; if (!n) return;
+    if (!confirm('Untick all ' + n + ' items so you can pack again?')) return;
+    state.checklist.forEach(c => c.items.forEach(i => { i.done = false; })); save(); renderPack();
   };
 
   // ---------- log / edit purchase form ----------
@@ -1919,6 +2185,9 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       }
       const merge = (key) => { const have = new Set(state[key].map(x => x.id)); const add = d[key].filter(x => !have.has(x.id)); state[key] = state[key].concat(add); return add.length; };
       const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements'); merge('phrases');
+      // packing list: add categories and items this phone doesn't have yet
+      d.checklist.forEach(dc => { const mc = state.checklist.find(c => c.id === dc.id);
+        if (!mc) state.checklist.push(dc); else dc.items.forEach(i => { if (!mc.items.some(x => x.id === i.id)) mc.items.push(i); }); });
       save(); fillSettings(); renderAll();
       $('importNote').textContent = 'Restored ' + ne + ' purchases, ' + nx + ' exchanges, ' + ns + ' paybacks and ' + nf + ' people. ' + (fresh ? 'Budget, trip dates and rates were restored too.' : 'Nothing already here was changed.');
     } catch (e) { $('importNote').textContent = 'That file isn’t a backup from this app.'; }
@@ -1932,7 +2201,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   if (!location.protocol.startsWith('http')) $('fileNote').hidden = false;
 
   // ---------- go ----------
-  function renderAll() { renderDeal(); renderSpent(); renderCash(); renderGroup(); renderRateStatus(); }
+  function renderAll() { renderDeal(); renderSpent(); renderCash(); renderGroup(); renderPack(); renderRateStatus(); }
   applyTheme();
   renderAll();
   fetchRate();
