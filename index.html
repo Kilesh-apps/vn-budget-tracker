@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f2f3f0">
+<meta name="description" content="Offline Vietnam deal calculator, cash wallet and trip budget tracker.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&display=swap" rel="stylesheet">
+<title>Deal Calc</title>
+<script>try{var t=JSON.parse(localStorage.getItem("vdc.v1")||"{}").theme;if(t&&t!=="auto"){document.documentElement.dataset.theme=t;document.documentElement.dataset.themeOwner="1"}}catch(e){}</script>
+<style>
+/* Light: soft paper, ink not pure black. Dark: charcoal, off-white text. No neon, no pure black/white. */
+:root{
+  --bg:#f2f3f0; --surface:#fbfbf9; --raised:#e8ebe6; --press:#dadfd8;
+  --ink:#252a27; --muted:#636d67; --line:#dce0da;
+  --accent:#2f6f5e; --accent-ink:#ffffff; --accent-soft:#e2ede7; --sel:#2f6f5e;
+  --num:#1e2320; --good:#2b7449; --warn:#a4473a; --warnbg:#f6e5e1; --caret:#2f6f5e;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme=light]){
+    --bg:#1a1d1c; --surface:#222625; --raised:#2c312f; --press:#363c3a;
+    --ink:#dde2de; --muted:#9aa39e; --line:#323836;
+    --accent:#86bea8; --accent-ink:#13201b; --accent-soft:#263430; --sel:#86bea8;
+    --num:#eceeeb; --good:#90cfa7; --warn:#e39a8a; --warnbg:#382622; --caret:#86bea8;
+    color-scheme:dark;
+  }
+}
+:root[data-theme=dark]{
+  --bg:#1a1d1c; --surface:#222625; --raised:#2c312f; --press:#363c3a;
+  --ink:#dde2de; --muted:#9aa39e; --line:#323836;
+  --accent:#86bea8; --accent-ink:#13201b; --accent-soft:#263430; --sel:#86bea8;
+  --num:#eceeeb; --good:#90cfa7; --warn:#e39a8a; --warnbg:#382622; --caret:#86bea8;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Be Vietnam Pro",system-ui,-apple-system,Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit}
+.num{font-variant-numeric:tabular-nums}
+.app{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto}
+
+.top{display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 8px}
+.top h1{margin:0;flex:1;font-size:1.3rem;font-weight:700}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.84rem;font-weight:600;white-space:nowrap}
+.chip.low{border-color:var(--warn);color:var(--warn)}
+@keyframes bump{50%{transform:scale(1.08)}}
+.chip.bump{animation:bump .35s ease}
+.icon-btn{border:0;background:transparent;width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+.icon-btn:active{background:var(--raised)}
+.icon-btn svg{width:22px;height:22px}
+#installBtn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+main{flex:1;overflow-y:auto;padding:4px 16px 20px;overscroll-behavior:contain}
+.view[hidden]{display:none}
+
+/* deal display */
+.display{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:6px;display:grid;gap:4px}
+.amt-row{display:grid;grid-template-columns:1fr auto;align-items:end;gap:0 10px;width:100%;text-align:left;border:2px solid transparent;border-radius:15px;padding:8px 12px 10px;cursor:pointer;outline:none}
+.amt-row.active{background:var(--accent-soft);border-color:var(--sel)}
+.amt-row:focus-visible{border-color:var(--sel)}
+.lbl-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;min-height:28px}
+.lbl{font-size:.82rem;color:var(--muted);font-weight:600}
+.clr{border:0;background:var(--raised);color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:1rem;line-height:1;display:grid;place-items:center;padding:0}
+.clr[hidden]{display:none}
+.big{font-size:1.95rem;font-weight:700;line-height:1.15;color:var(--num);letter-spacing:-.01em;overflow-wrap:anywhere;min-height:2.25rem}
+.amt-row:not(.active) .big{font-size:1.35rem;min-height:0}
+.big .ph{color:var(--muted);font-weight:500}
+.big .cur{color:var(--muted);font-weight:500;margin-left:.15em}
+.big .d,.big .sep{display:inline-block}
+.big .lz{color:var(--muted)}
+.caret{display:inline-block;width:2px;height:1em;margin:0 -1px;vertical-align:-.12em;background:var(--caret);border-radius:1px;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.conv{text-align:right;font-size:.95rem;font-weight:600;line-height:1.35}
+.conv small{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
+.conv .saved{color:var(--good)}
+.conv .above{color:var(--warn)}
+
+.offers{margin:12px 0 10px}
+.offers-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+.offers-head p{margin:0;font-size:.84rem;color:var(--muted)}
+.ai-pill{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:5px 12px;font-size:.82rem;font-weight:700;white-space:nowrap}
+.ai-pill:disabled{border-color:var(--line);color:var(--muted)}
+.offer-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.offer{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 6px;text-align:center;line-height:1.25}
+.offer b{display:block;font-size:1.05rem;font-weight:700}
+.offer small{color:var(--muted);font-size:.76rem}
+.offer:active{background:var(--raised)}
+
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.key{height:54px;border:0;border-radius:14px;background:var(--raised);font-size:1.45rem;font-weight:500}
+.key:active{background:var(--press)}
+.key.alt{font-size:1.1rem;color:var(--muted)}
+.primary{width:100%;min-height:54px;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:1.05rem;margin-top:10px}
+.primary:disabled{opacity:.45}
+.primary.done{opacity:1;background:var(--good);color:var(--accent-ink)}
+.secondary{width:100%;min-height:50px;border:1px solid var(--line);border-radius:16px;background:var(--surface);font-weight:600}
+.rate-hint{text-align:center;font-size:.8rem;color:var(--muted);margin:8px 0 0}
+
+/* spent */
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px}
+.hero .lbl{margin:0}
+.hero .val{margin:2px 0 12px;font-size:2.2rem;font-weight:700;line-height:1.15;color:var(--num)}
+.hero .val.over{color:var(--warn)}
+.segbar{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--raised)}
+.segbar i{display:block;height:100%}
+.hero .sub{margin:8px 0 0;font-size:.86rem;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;min-width:0}
+.stat span{display:block;font-size:.8rem;color:var(--muted);font-weight:600}
+.stat strong{display:block;font-size:1.25rem;font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+.stat strong.over{color:var(--warn)}
+.stat small{display:block;color:var(--muted);font-size:.8rem}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.legend span{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:.82rem}
+.legend i{width:9px;height:9px;border-radius:50%}
+.day{display:flex;justify-content:space-between;margin:18px 2px 6px;font-size:.84rem;font-weight:700;color:var(--muted)}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left}
+.row:first-child{border-top:0}
+.row:active{background:var(--raised)}
+.row .emo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:1.15rem;flex:none}
+.row .mid{flex:1;min-width:0}
+.row .mid b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .mid small,.row .amt small{color:var(--muted);font-size:.8rem}
+.row .amt{text-align:right;flex:none}
+.row .amt b{display:block;font-weight:700}
+.empty-msg{text-align:center;color:var(--muted);font-size:.92rem;padding:28px 12px}
+
+/* cash */
+.cash{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cash .card{border-radius:20px;padding:16px;min-width:0;border:1px solid var(--line)}
+.cash .usd{background:var(--surface)}
+.cash .vnd{background:var(--accent-soft);border-color:transparent}
+.cash span{display:block;font-size:.8rem;font-weight:600;color:var(--muted)}
+.cash strong{display:block;font-size:1.55rem;font-weight:700;overflow-wrap:anywhere;line-height:1.2;margin-top:2px;color:var(--num)}
+.cash strong.neg{color:var(--warn)}
+.cash small{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
+.rate-line{font-size:.88rem;color:var(--muted);margin:12px 2px 0}
+.status{font-size:.8rem;color:var(--muted);margin:6px 2px 12px}
+.status a{color:inherit}
+.btn-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-pair .primary{margin-top:0}
+h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
+
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs button{border:0;background:transparent;padding:8px 0 10px;display:grid;justify-items:center;gap:2px;font-size:.78rem;font-weight:600;color:var(--muted)}
+.tabs svg{width:24px;height:24px}
+.tabs button[aria-selected=true]{color:var(--accent)}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;max-height:88%;overflow-y:auto;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .25s ease;z-index:21}
+.sheet.open{transform:none}
+.grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.sheet h2{margin:0 0 4px;font-size:1.2rem;font-weight:700}
+.sheet .lead{margin:0 0 14px;color:var(--muted);font-size:.92rem}
+.sheet label{display:block;font-size:.86rem;font-weight:600;margin:14px 0 6px}
+.sheet input,.sheet select{width:100%;min-height:50px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);min-width:0}
+.sheet input:focus,.sheet select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two>*{min-width:0}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.cat{border:1px solid var(--line);background:var(--bg);border-radius:16px;padding:12px 4px;display:grid;justify-items:center;gap:4px;font-size:.86rem;font-weight:600}
+.cat .e{font-size:1.5rem}
+.cat.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+.cat:active{background:var(--raised)}
+.note{border-radius:14px;padding:12px 14px;background:var(--accent-soft);font-size:.92rem;margin-top:14px}
+.note.warn{background:var(--warnbg);color:var(--warn)}
+.danger{width:100%;min-height:50px;border:1px solid var(--warn);color:var(--warn);background:transparent;border-radius:16px;font-weight:700;margin-top:10px}
+.sheet h3{margin-top:24px}
+.small{font-size:.82rem;color:var(--muted)}
+.small a,.note a{color:var(--accent)}
+.rate-wrap{display:flex;gap:8px}
+.rate-wrap input{flex:1}
+.mini{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:0 12px;font-size:.82rem;font-weight:600;white-space:nowrap}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 13px;font-size:.88rem;font-weight:600}
+.seg button.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+.thumb{display:block;max-width:100%;max-height:160px;border-radius:14px;margin-top:10px}
+.thumb[hidden]{display:none}
+.advice{margin-top:16px}
+.verdict{border-radius:14px;padding:12px 14px;font-weight:700;font-size:1.05rem}
+.verdict.great,.verdict.fair{background:var(--accent-soft);color:var(--good)}
+.verdict.overpaid{background:var(--warnbg);color:var(--warn)}
+.adv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.adv-grid div{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0}
+.adv-grid span{display:block;font-size:.76rem;color:var(--muted);font-weight:600}
+.adv-grid b{display:block;font-size:1rem;overflow-wrap:anywhere}
+.conf{font-size:.82rem;color:var(--muted);margin:10px 0 0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+@media (max-height:700px){ .key{height:46px} .big{font-size:1.65rem} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 id="title">Deal</h1>
+    <button type="button" class="chip" id="installBtn" hidden>Install</button>
+    <button type="button" class="chip num" id="walletChip"></button>
+    <button type="button" class="icon-btn" id="openSettings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- DEAL -->
+    <section class="view" id="view-deal">
+      <div class="display">
+        <div class="amt-row active" data-field="ask" role="button" tabindex="0" aria-label="Asking price">
+          <div class="lbl-row"><span class="lbl" id="askLbl">Asking price</span><button type="button" class="clr" data-clear="ask" aria-label="Clear asking price">✕</button></div>
+          <span class="big num" id="askBig"></span>
+          <span class="conv num" id="askConv"></span>
+        </div>
+        <div class="amt-row" data-field="paid" role="button" tabindex="0" aria-label="Final price">
+          <div class="lbl-row"><span class="lbl" id="paidLbl">Final price</span><button type="button" class="clr" data-clear="paid" aria-label="Clear final price">✕</button></div>
+          <span class="big num" id="paidBig"></span>
+          <span class="conv num" id="paidConv"></span>
+        </div>
+      </div>
+      <div class="offers">
+        <div class="offers-head"><p>Open at… tap one if the seller takes it</p><button type="button" class="ai-pill" id="aiBtn">✨ Check price</button></div>
+        <div class="offer-row" id="offerRow"></div>
+      </div>
+      <div class="keypad" id="keypad">
+        <button type="button" class="key" data-k="1">1</button><button type="button" class="key" data-k="2">2</button><button type="button" class="key" data-k="3">3</button>
+        <button type="button" class="key" data-k="4">4</button><button type="button" class="key" data-k="5">5</button><button type="button" class="key" data-k="6">6</button>
+        <button type="button" class="key" data-k="7">7</button><button type="button" class="key" data-k="8">8</button><button type="button" class="key" data-k="9">9</button>
+        <button type="button" class="key" data-k="000">000</button><button type="button" class="key" data-k="0">0</button>
+        <button type="button" class="key alt" data-k="back" aria-label="Delete, hold to clear">⌫</button>
+      </div>
+      <button type="button" class="primary num" id="logBtn">Log purchase</button>
+      <p class="rate-hint num" id="rateHint"></p>
+    </section>
+
+    <!-- SPENT -->
+    <section class="view" id="view-spent" hidden>
+      <div class="hero">
+        <p class="lbl" id="heroLbl"></p>
+        <p class="val num" id="heroVal"></p>
+        <div class="segbar" id="segbar"></div>
+        <p class="sub num" id="heroSub"></p>
+      </div>
+      <div class="stats">
+        <div class="stat"><span>Spent today</span><strong class="num" id="todayAmt"></strong><small class="num" id="todayOf"></small></div>
+        <div class="stat"><span>Daily allowance</span><strong class="num" id="perDay"></strong><small class="num" id="perDaySub"></small></div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div id="spentList"></div>
+      <p class="empty-msg" id="spentEmpty">Nothing logged yet. Price something on the Deal tab and tap Log purchase.</p>
+    </section>
+
+    <!-- CASH -->
+    <section class="view" id="view-cash" hidden>
+      <div class="cash">
+        <div class="card usd"><span>Dollars left</span><strong class="num" id="usdLeft"></strong><small class="num" id="usdSub"></small></div>
+        <div class="card vnd"><span>Dong in wallet</span><strong class="num" id="vndLeft"></strong><small class="num" id="vndSub"></small></div>
+      </div>
+      <p class="rate-line num" id="rateLine"></p>
+      <p class="status" id="rateStatus"></p>
+      <div class="btn-pair">
+        <button type="button" class="primary" id="openExchange">Exchange money</button>
+        <button type="button" class="secondary" id="openCount">Count my wallet</button>
+      </div>
+      <h3>Exchanges</h3>
+      <div id="xList"></div>
+      <p class="empty-msg" id="xEmpty">No exchanges yet. Log each one as you change dollars into dong.</p>
+    </section>
+  </main>
+
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="deal" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Deal</button>
+    <button type="button" role="tab" data-tab="spent" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Spent</button>
+    <button type="button" role="tab" data-tab="cash" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>Cash</button>
+  </nav>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- log sheet -->
+<div class="sheet" id="sheet-log" role="dialog" aria-modal="true" aria-labelledby="logTitle">
+  <div class="grab"></div>
+  <h2 class="num" id="logTitle"></h2>
+  <p class="lead num" id="logLead"></p>
+  <label for="logItem">What is it? (optional)</label>
+  <input id="logItem" type="text" placeholder="e.g. Silk scarf" autocomplete="off" enterkeyhint="done">
+  <p class="small" style="margin:14px 0 0">Tap a category to save</p>
+  <div class="cats" id="logCats"></div>
+</div>
+
+<!-- entry sheet -->
+<div class="sheet" id="sheet-entry" role="dialog" aria-modal="true" aria-labelledby="entryTitle">
+  <div class="grab"></div>
+  <h2 id="entryTitle"></h2>
+  <p class="lead num" id="entryLead"></p>
+  <p class="small" style="margin:0">Move to another category</p>
+  <div class="cats" id="entryCats"></div>
+  <button type="button" class="danger" id="entryDelete">Delete purchase</button>
+</div>
+
+<!-- exchange sheet -->
+<div class="sheet" id="sheet-exchange" role="dialog" aria-modal="true" aria-labelledby="xTitle">
+  <div class="grab"></div>
+  <h2 id="xTitle">Exchange money</h2>
+  <label for="xUsd">Dollars you hand over ($)</label>
+  <input id="xUsd" type="number" inputmode="decimal" min="0" step="1" placeholder="200">
+  <label for="xRate">This place’s rate (₫ per $1)</label>
+  <div class="rate-wrap">
+    <input id="xRate" type="number" inputmode="numeric" min="1" step="1">
+    <button type="button" class="mini num" id="xUseRef"></button>
+  </div>
+  <p class="status" id="xRateNote"></p>
+  <label for="xVnd">Dong you get (₫)</label>
+  <input id="xVnd" type="number" inputmode="numeric" min="0" step="1000">
+  <p class="status">Worked out from the rate. If they hand you a different amount, type what you actually got.</p>
+  <label for="xWhere">Where (optional)</label>
+  <input id="xWhere" type="text" placeholder="e.g. Gold shop, District 1" autocomplete="off">
+  <div class="note num" id="xPreview">Enter the dollars to see what you’ll get.</div>
+  <button type="button" class="primary" id="xSave">Save exchange</button>
+</div>
+
+<!-- count sheet -->
+<div class="sheet" id="sheet-count" role="dialog" aria-modal="true" aria-labelledby="cTitle">
+  <div class="grab"></div>
+  <h2 id="cTitle">Count my wallet</h2>
+  <p class="lead num" id="cLead"></p>
+  <label for="cVnd">Dong you actually have (₫)</label>
+  <input id="cVnd" type="number" inputmode="numeric" min="0" step="1000">
+  <div class="note num" id="cPreview">Count your notes and enter the total.</div>
+  <button type="button" class="primary" id="cFix" hidden></button>
+</div>
+
+<!-- advice sheet -->
+<div class="sheet" id="sheet-advice" role="dialog" aria-modal="true" aria-labelledby="aTitle">
+  <div class="grab"></div>
+  <h2 id="aTitle">Check this price</h2>
+  <p class="lead num" id="aLead"></p>
+  <label for="aItem">What is it?</label>
+  <input id="aItem" type="text" placeholder="e.g. Silk scarf, hand-embroidered" autocomplete="off" enterkeyhint="done">
+  <label>Where are you buying?</label>
+  <div class="seg" id="aPlace"></div>
+  <div class="two" style="margin-top:12px">
+    <select id="aCity" aria-label="City">
+      <option>Ho Chi Minh City</option><option>Phu Quoc</option><option>Hanoi</option><option>Ha Long</option><option>Other, Vietnam</option>
+    </select>
+    <button type="button" class="secondary" id="aPhotoBtn">📷 Add photo</button>
+  </div>
+  <input type="file" id="aPhoto" accept="image/*" capture="environment" hidden>
+  <img class="thumb" id="aThumb" alt="Photo of the item" hidden>
+  <button type="button" class="primary" id="aGo">Get advice</button>
+  <div class="advice" id="aResult"></div>
+</div>
+
+<!-- ai setup sheet -->
+<div class="sheet" id="sheet-aisetup" role="dialog" aria-modal="true" aria-labelledby="suTitle">
+  <div class="grab"></div>
+  <h2 id="suTitle">Price advice</h2>
+  <p class="lead">Claude suggests a fair price range, what to open at, when to walk away and, once you enter a final price, whether the deal was worth it. Needs internet.</p>
+  <button type="button" class="primary" id="suOpenClaude" style="margin-top:0">Open in Claude (no key needed)</button>
+  <p class="small">Opens the Claude version of this app with your prices filled in and uses your Claude account. Log the purchase back here afterwards.</p>
+  <h3>Or use an API key here</h3>
+  <ol class="small" style="padding-left:20px;margin:0">
+    <li>Create a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> and add a few dollars of credit.</li>
+    <li>Set a low monthly spending limit on it.</li>
+    <li>Paste it here.</li>
+  </ol>
+  <label for="suKey">Anthropic API key</label>
+  <input id="suKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+  <p class="small">Saved only on this phone and sent only to Anthropic.</p>
+  <button type="button" class="secondary" id="suSave" style="margin-top:10px">Save key and check this price</button>
+</div>
+
+<!-- settings sheet -->
+<div class="sheet" id="sheet-settings" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+  <div class="grab"></div>
+  <h2 id="sTitle">Settings</h2>
+  <label>Theme</label>
+  <div class="seg" id="sTheme">
+    <button type="button" data-theme-opt="auto">Match phone</button><button type="button" data-theme-opt="light">Light</button><button type="button" data-theme-opt="dark">Dark</button>
+  </div>
+  <p class="small">Light is easier to read in bright sun; dark is easier at night.</p>
+  <label for="sStartUsd">Dollars you brought ($)</label>
+  <input id="sStartUsd" type="number" inputmode="decimal" min="0" step="1">
+  <label for="sTarget">Spending target (NPR, optional)</label>
+  <input id="sTarget" type="number" inputmode="numeric" min="0" step="1000" placeholder="Leave empty to budget against your cash">
+  <div class="two">
+    <div><label for="sStart">Trip starts</label><input id="sStart" type="date"></div>
+    <div><label for="sEnd">Trip ends</label><input id="sEnd" type="date"></div>
+  </div>
+  <h3>Rates</h3>
+  <label for="sNpr">What you paid for $1 in Nepal (NPR)</label>
+  <input id="sNpr" type="number" inputmode="decimal" min="1" step="0.01">
+  <label for="sMarket">Online reference rate (₫ per $1)</label>
+  <div class="rate-wrap">
+    <input id="sMarket" type="number" inputmode="numeric" min="1" step="1">
+    <button type="button" class="mini" id="sRefresh">Update now</button>
+  </div>
+  <p class="small">Updates itself when you’re online and is saved for offline use. It’s the mid-market rate; exchange shops pay a bit less. Prices convert at your real average rate once you log an exchange.</p>
+  <button type="button" class="secondary" id="sReset">Reset rates to Oct 21 values</button>
+  <h3>Price advice (needs internet)</h3>
+  <label for="sKey">Anthropic API key</label>
+  <input id="sKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+  <p class="small">Optional. Without a key, price advice opens the Claude version of this app instead. The key is saved only on this phone and sent only to Anthropic. Each check costs a fraction of a cent; use a key with a low spending limit.</p>
+  <label style="display:flex;align-items:center;gap:10px;font-weight:600"><input id="sSearch" type="checkbox" style="width:22px;min-height:22px"> Also search the web (slower, costs more)</label>
+  <h3>Backup</h3>
+  <p class="small" style="margin-top:0">Everything is stored only on this phone. Uninstalling the app or clearing Chrome’s site data deletes it.</p>
+  <div class="btn-pair">
+    <button type="button" class="secondary" id="exportJson">Save backup</button>
+    <button type="button" class="secondary" id="exportCsv">Export CSV</button>
+  </div>
+  <button type="button" class="secondary" id="importBtn" style="margin-top:10px">Restore from backup</button>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <p class="small" id="persistNote"></p>
+  <div class="note warn" id="fileNote" hidden>You’re opening this as a file, not the installed app. It won’t work as an offline app this way, and records saved here stay with this file only. Save a backup now and restore it after you install the hosted version.</div>
+</div>
+
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const KEY = 'vdc.v1';
+  const DEF = { nprPerUsd: 152.55, marketVndPerUsd: 25877 };
+  const CATS = {
+    Shopping:{e:'🛍️',c:'#d9577a'}, Food:{e:'🍜',c:'#e8962e'}, Transport:{e:'🛵',c:'#3b82c4'},
+    Stay:{e:'🏨',c:'#7c5cc4'}, Activities:{e:'🎟️',c:'#1f9e78'}, Other:{e:'✨',c:'#8a9a94'}
+  };
+  const fmt = (n, d=0) => Number.isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:d}) : '—';
+  const npr = n => Number.isFinite(n) ? 'NPR ' + fmt(Math.round(n)) : '—';
+  const vnd = n => fmt(Math.round(n)) + ' ₫';
+  const usd = n => Number.isFinite(n) ? '$' + n.toLocaleString('en-US',{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2}) : '—';
+  const short = n => { const a = Math.abs(n), s = n < 0 ? '−' : '';
+    if (a >= 1e6) return s + (a/1e6).toLocaleString('en-US',{maximumFractionDigits:a>=1e7?1:2}) + 'm';
+    if (a >= 1e3) return s + Math.round(a/1e3).toLocaleString('en-US') + 'k';
+    return s + Math.round(a); };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const dayKey = d => { d = new Date(d); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+  const timeOf = iso => new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  // ---------- state ----------
+  function fresh() {
+    return { v:2, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
+      nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, exchanges:[], entries:[], lastCat:'Shopping',
+      rateFetchedAt:null, rateSource:null, ai:{ key:'', city:'Ho Chi Minh City', place:'Market stall', search:false } };
+  }
+  function migrate(s) {
+    const b = fresh();
+    if (!s || typeof s !== 'object') return b;
+    if (s.v !== 2) { // from the first version
+      if (s.rates) { b.nprPerUsd = s.rates.nprPerUsd || b.nprPerUsd; b.marketVndPerUsd = s.rates.vndPerUsd || b.marketVndPerUsd; }
+      if (s.budgetNpr) b.targetNpr = s.budgetNpr;
+      ['tripStart','tripEnd'].forEach(k => { if (s[k]) b[k] = s[k]; });
+      b.entries = Array.isArray(s.entries) ? s.entries : [];
+      return b;
+    }
+    return Object.assign(b, s, { exchanges: s.exchanges || [], entries: s.entries || [], ai: Object.assign(b.ai, s.ai || {}) });
+  }
+  let state;
+  try { state = migrate(JSON.parse(localStorage.getItem(KEY))); } catch (e) { state = fresh(); }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { if (!save.warned) { save.warned = true; alert('Couldn’t save on this phone. Save a backup from Settings now.'); } }
+  }
+
+  // ---------- derived numbers ----------
+  function calc() {
+    const usdEx = state.exchanges.reduce((a,x) => a + x.usd, 0);
+    const vndIn = state.exchanges.reduce((a,x) => a + x.vnd, 0);
+    const vndOut = state.entries.reduce((a,e) => a + e.vnd, 0);
+    const spentNpr = state.entries.reduce((a,e) => a + e.npr, 0);
+    const vndPerUsd = usdEx > 0 ? vndIn / usdEx : state.marketVndPerUsd;
+    const nprPerVnd = state.nprPerUsd / vndPerUsd;
+    const usdLeft = state.startUsd - usdEx;
+    const vndLeft = vndIn - vndOut;
+    const cashLeftNpr = usdLeft * state.nprPerUsd + vndLeft * nprPerVnd;
+    return { usdEx, vndIn, vndOut, spentNpr, vndPerUsd, nprPerVnd, usdLeft, vndLeft, cashLeftNpr, real: usdEx > 0 };
+  }
+  function daysLeft() {
+    const today = dayKey(new Date());
+    if (!state.tripEnd) return null;
+    const from = state.tripStart && state.tripStart > today ? state.tripStart : today;
+    const n = Math.round((new Date(state.tripEnd+'T00:00') - new Date(from+'T00:00')) / 864e5) + 1;
+    return n > 0 ? n : 0;
+  }
+
+  // ---------- sheets (Android back closes them) ----------
+  let openId = null;
+  function openSheet(id) {
+    if (openId) hideSheet();
+    openId = id; $('scrim').classList.add('on'); $(id).classList.add('open');
+    history.pushState({ sheet:id }, '');
+  }
+  function hideSheet() {
+    if (!openId) return;
+    $(openId).classList.remove('open'); $('scrim').classList.remove('on'); openId = null;
+    document.activeElement && document.activeElement.blur();
+  }
+  function closeSheet() { if (openId) history.back(); }
+  window.addEventListener('popstate', hideSheet);
+  $('scrim').onclick = closeSheet;
+
+  // ---------- tabs ----------
+  const TITLES = { deal:'Deal', spent:'Spent', cash:'Cash' };
+  function showTab(t) {
+    document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + t);
+    document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+    $('title').textContent = TITLES[t];
+    document.querySelector('main').scrollTop = 0;
+  }
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  $('walletChip').onclick = () => showTab('cash');
+
+  // ---------- deal: keypad with a movable cursor ----------
+  const vals = { ask:'', paid:'' };
+  const caret = { ask:0, paid:0 };
+  let active = 'ask';
+  function tidy(f) { const t = vals[f].replace(/^0+/, ''); caret[f] = Math.max(0, caret[f] - (vals[f].length - t.length)); vals[f] = t; }
+  function setActive(f, keepCaret) {
+    if (f !== active) tidy(active);
+    active = f;
+    if (!keepCaret) caret[f] = vals[f].length;
+    document.querySelectorAll('.amt-row').forEach(r => r.classList.toggle('active', r.dataset.field === f));
+    renderDeal();
+  }
+  function setVal(f, v) { vals[f] = v; caret[f] = v.length; }
+  document.querySelectorAll('.amt-row').forEach(r => {
+    r.addEventListener('click', e => {
+      const f = r.dataset.field;
+      if (e.target.closest('.clr')) { setVal(f, ''); setActive(f, true); return; }
+      const d = e.target.closest('.d');
+      if (d) { // tap a digit: cursor goes to the nearer side of it
+        const i = Number(d.dataset.i), box = d.getBoundingClientRect();
+        caret[f] = e.clientX < box.left + box.width / 2 ? i : i + 1;
+        setActive(f, true); return;
+      }
+      setActive(f, f === active);
+    });
+    r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive(r.dataset.field); } });
+  });
+  function press(k) {
+    let v = vals[active], c = Math.min(caret[active], v.length);
+    if (k === 'clear') { v = ''; c = 0; }
+    else if (k === 'left') c = Math.max(0, c - 1);
+    else if (k === 'right') c = Math.min(v.length, c + 1);
+    else if (k === 'back') { if (c === 0) return; v = v.slice(0, c - 1) + v.slice(c); c--; }
+    else {
+      if (c === 0 && k[0] === '0') return;           // no zero as the first digit
+      const nv = v.slice(0, c) + k + v.slice(c);
+      if (nv.length > 11) return;
+      v = nv; c += k.length;
+    }
+    vals[active] = v; caret[active] = c; renderDeal();
+  }
+  let holdTimer = null, held = false;
+  document.querySelectorAll('.key').forEach(btn => {
+    const k = btn.dataset.k;
+    if (k === 'back') {
+      btn.addEventListener('pointerdown', () => { held = false; holdTimer = setTimeout(() => { held = true; press('clear'); if (navigator.vibrate) navigator.vibrate(15); }, 450); });
+      ['pointerup','pointerleave','pointercancel'].forEach(ev => btn.addEventListener(ev, () => clearTimeout(holdTimer)));
+      btn.addEventListener('click', () => { if (!held) press('back'); held = false; });
+    } else btn.addEventListener('click', () => press(k));
+  });
+  // Digits with thousands separators; each digit is tappable, cursor drawn between digits.
+  function digitsHTML(v, showCaret, c) {
+    const caretEl = '<span class="caret" aria-hidden="true"></span>';
+    if (!v) return (showCaret ? caretEl : '') + '<span class="ph">0</span><span class="cur">₫</span>';
+    let h = ''; const lead = v.length - v.replace(/^0+/, '').length;
+    for (let i = 0; i < v.length; i++) {
+      if (i > 0 && (v.length - i) % 3 === 0) h += '<span class="sep">,</span>';
+      if (showCaret && c === i) h += caretEl;
+      h += '<span class="d' + (i < lead ? ' lz' : '') + '" data-i="' + i + '">' + v[i] + '</span>';
+    }
+    if (showCaret && c === v.length) h += caretEl;
+    return h + '<span class="cur">₫</span>';
+  }
+
+  function renderDeal() {
+    const c = calc();
+    const ask = Number(vals.ask) || 0, paid = Number(vals.paid) || 0;
+    $('askBig').innerHTML = digitsHTML(vals.ask, active === 'ask', caret.ask);
+    $('askConv').innerHTML = ask ? esc(npr(ask * c.nprPerVnd)) + '<small>' + esc(usd(ask / c.vndPerUsd)) + '</small>' : '';
+    if (paid || active === 'paid') {
+      $('paidBig').innerHTML = digitsHTML(vals.paid, active === 'paid', caret.paid);
+      let diff = '';
+      if (ask && paid) { const d = ask - paid;
+        diff = d >= 0 ? '<small class="saved">saved ' + esc(short(d)) + ' ₫ (' + Math.round(d/ask*100) + '%)</small>'
+                      : '<small class="above">' + esc(short(-d)) + ' ₫ above asking</small>'; }
+      $('paidConv').innerHTML = paid ? esc(npr(paid * c.nprPerVnd)) + diff : '';
+    } else {
+      $('paidBig').innerHTML = '<span class="ph">Tap to enter</span>';
+      $('paidConv').innerHTML = '';
+    }
+    document.querySelector('[data-clear=ask]').hidden = !vals.ask;
+    document.querySelector('[data-clear=paid]').hidden = !vals.paid;
+    $('askLbl').textContent = active === 'ask' && vals.ask ? 'Asking price · tap digits to edit' : 'Asking price';
+    $('paidLbl').textContent = active === 'paid' && vals.paid ? 'Final price · tap digits to edit' : 'Final price';
+    $('offerRow').innerHTML = [50,60,70].map(p => {
+      const o = Math.round(ask * p / 100 / 1000) * 1000;
+      return '<button type="button" class="offer num" data-o="' + o + '"' + (ask ? '' : ' disabled') + '><b>' + (ask ? esc(short(o)) + ' ₫' : '—') + '</b><small>' + p + '% · ' + (ask ? esc(npr(o * c.nprPerVnd)) : '') + '</small></button>';
+    }).join('');
+    const amount = paid || ask;
+    if (!$('logBtn').dataset.flash) {
+      $('logBtn').disabled = !amount;
+      $('logBtn').textContent = amount ? 'Log ' + vnd(amount) : 'Log purchase';
+    }
+    const ai = $('aiBtn');
+    ai.disabled = !ask || !navigator.onLine;
+    ai.textContent = !navigator.onLine ? 'Offline' : (sampleFn || state.ai.key) ? '✨ Check price' : '✨ Price advice';
+    $('rateHint').textContent = c.real
+      ? 'Converting at your average exchange rate: ' + fmt(c.vndPerUsd) + ' ₫/$'
+      : 'Converting at the online rate ' + fmt(c.vndPerUsd) + ' ₫/$ until you log an exchange';
+  }
+  $('offerRow').addEventListener('click', e => {
+    const b = e.target.closest('[data-o]'); if (!b) return;
+    setVal('paid', b.dataset.o); setActive('paid', true);
+  });
+
+  // ---------- quiet feedback (no pop-ups) ----------
+  function flash(btn, text) {
+    btn.textContent = text; btn.classList.add('done'); btn.dataset.flash = '1';
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { delete btn.dataset.flash; btn.classList.remove('done'); renderDeal(); }, 1400);
+  }
+  function bump() { const c = $('walletChip'); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
+
+  // ---------- log sheet ----------
+  function catButtons(sel) {
+    return Object.entries(CATS).map(([k, m]) =>
+      '<button type="button" class="cat' + (k === sel ? ' sel' : '') + '" data-cat="' + k + '"><span class="e">' + m.e + '</span>' + k + '</button>').join('');
+  }
+  $('logBtn').onclick = () => {
+    tidy('ask'); tidy('paid');
+    const amount = Number(vals.paid) || Number(vals.ask); if (!amount) return;
+    const c = calc();
+    $('logTitle').textContent = 'Log ' + vnd(amount);
+    $('logLead').textContent = '≈ ' + npr(amount * c.nprPerVnd) + (vals.paid && vals.ask ? ' · asked ' + vnd(Number(vals.ask)) : '');
+    $('logItem').value = lastAdviceItem || '';
+    $('logCats').innerHTML = catButtons(state.lastCat);
+    openSheet('sheet-log');
+  };
+  $('logCats').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]'); if (!b) return;
+    const amount = Number(vals.paid) || Number(vals.ask); if (!amount) return;
+    const c = calc();
+    const entry = { id:uid(), ts:new Date().toISOString(), item:$('logItem').value.trim() || b.dataset.cat,
+      cat:b.dataset.cat, vnd:amount, npr:Math.round(amount * c.nprPerVnd), vndPerUsd:Math.round(c.vndPerUsd),
+      asked:Number(vals.ask) || null };
+    state.entries.push(entry); state.lastCat = entry.cat; save(); lastAdviceItem = '';
+    setVal('ask', ''); setVal('paid', ''); setActive('ask', true);
+    closeSheet(); renderAll();
+    flash($('logBtn'), '✓ Logged ' + vnd(entry.vnd));
+    bump();
+  });
+
+  // ---------- spent view ----------
+  function renderSpent() {
+    const c = calc();
+    const today = dayKey(new Date());
+    const spentToday = state.entries.filter(e => dayKey(e.ts) === today).reduce((a,e) => a + e.npr, 0);
+    const target = Number(state.targetNpr) > 0 ? Number(state.targetNpr) : null;
+    const total = target || (c.cashLeftNpr + c.spentNpr);
+    const left = target ? target - c.spentNpr : c.cashLeftNpr;
+    $('heroLbl').textContent = target ? 'Left of your target' : 'Cash left (dollars + dong)';
+    $('heroVal').textContent = left < 0 ? '−' + npr(-left) : npr(left);
+    $('heroVal').classList.toggle('over', left < 0);
+    $('heroSub').textContent = npr(c.spentNpr) + ' spent of ' + npr(total);
+    const byCat = {};
+    state.entries.forEach(e => byCat[e.cat] = (byCat[e.cat] || 0) + e.npr);
+    const cats = Object.entries(byCat).sort((a,b) => b[1] - a[1]);
+    const denom = Math.max(total, c.spentNpr) || 1;
+    $('segbar').innerHTML = cats.map(([k,v]) => '<i style="width:' + (v/denom*100) + '%;background:' + (CATS[k]||CATS.Other).c + '"></i>').join('');
+    $('legend').innerHTML = cats.map(([k,v]) => '<span class="num"><i style="background:' + (CATS[k]||CATS.Other).c + '"></i>' + esc(k) + ' ' + esc(npr(v)) + '</span>').join('');
+
+    const dl = daysLeft();
+    const leftAtDayStart = left + spentToday;
+    const allowance = dl ? leftAtDayStart / dl : NaN;
+    $('todayAmt').textContent = npr(spentToday);
+    $('todayAmt').classList.toggle('over', Number.isFinite(allowance) && spentToday > allowance);
+    $('todayOf').textContent = Number.isFinite(allowance) && allowance > 0 ? 'of ' + npr(allowance) + ' allowed' : '\u00a0';
+    $('perDay').textContent = Number.isFinite(allowance) ? (allowance > 0 ? npr(allowance) : 'None left') : '—';
+    $('perDaySub').textContent = Number.isFinite(allowance) && allowance > 0 ? '≈ ' + short(allowance / c.nprPerVnd) + ' ₫ · ' + dl + ' day' + (dl === 1 ? '' : 's') : (dl === 0 ? 'Trip has ended' : 'Set trip dates in Settings');
+
+    const groups = {};
+    [...state.entries].sort((a,b) => b.ts.localeCompare(a.ts)).forEach(e => (groups[dayKey(e.ts)] ||= []).push(e));
+    $('spentList').innerHTML = Object.entries(groups).map(([d, list]) => {
+      const label = d === today ? 'Today' : new Date(d+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+      return '<div class="day num"><span>' + esc(label) + '</span><span>' + esc(npr(list.reduce((a,e) => a + e.npr, 0))) + '</span></div><div class="list">' +
+        list.map(e => { const m = CATS[e.cat] || CATS.Other;
+          return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
+            '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(e.cat) + ' · ' + esc(timeOf(e.ts)) + '</small></span>' +
+            '<span class="amt num"><b>' + esc(vnd(e.vnd)) + '</b><small>' + esc(npr(e.npr)) + '</small></span></button>'; }).join('') + '</div>';
+    }).join('');
+    $('spentEmpty').hidden = state.entries.length > 0;
+  }
+  let editing = null;
+  $('spentList').addEventListener('click', e => {
+    const b = e.target.closest('[data-entry]'); if (!b) return;
+    editing = state.entries.find(x => x.id === b.dataset.entry); if (!editing) return;
+    $('entryTitle').textContent = editing.item;
+    $('entryLead').textContent = vnd(editing.vnd) + ' · ' + npr(editing.npr) + ' · ' +
+      new Date(editing.ts).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) +
+      (editing.asked && editing.asked !== editing.vnd ? ' · asked ' + vnd(editing.asked) : '');
+    $('entryCats').innerHTML = catButtons(editing.cat);
+    openSheet('sheet-entry');
+  });
+  $('entryCats').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]'); if (!b || !editing) return;
+    if (editing.item === editing.cat) editing.item = b.dataset.cat;
+    editing.cat = b.dataset.cat; save(); closeSheet(); renderAll();
+  });
+  $('entryDelete').onclick = () => {
+    if (!editing) return; const gone = editing;
+    state.entries = state.entries.filter(x => x.id !== gone.id); save(); closeSheet(); renderAll();
+  };
+
+  // ---------- cash view ----------
+  function renderCash() {
+    const c = calc();
+    $('usdLeft').textContent = usd(c.usdLeft);
+    $('usdSub').textContent = 'of ' + usd(state.startUsd) + ' · ' + npr(c.usdLeft * state.nprPerUsd);
+    $('vndLeft').textContent = c.vndLeft < 0 ? '−' + vnd(-c.vndLeft) : vnd(c.vndLeft);
+    $('vndLeft').classList.toggle('neg', c.vndLeft < 0);
+    $('vndSub').textContent = c.real ? '≈ ' + npr(c.vndLeft * c.nprPerVnd) : 'Log an exchange to start';
+    $('rateLine').textContent = c.real
+      ? 'Changed ' + usd(c.usdEx) + ' for ' + vnd(c.vndIn) + '. Your average: ' + fmt(c.vndPerUsd) + ' ₫/$ (' + fmt(c.vndPerUsd / state.nprPerUsd, 1) + ' ₫ per rupee).'
+      : 'Reference rate: ' + fmt(state.marketVndPerUsd) + ' ₫/$. Change it in Settings if the boards show something different.';
+    const xs = [...state.exchanges].sort((a,b) => b.ts.localeCompare(a.ts));
+    $('xList').innerHTML = xs.length ? '<div class="list">' + xs.map(x =>
+      '<button type="button" class="row" data-x="' + esc(x.id) + '"><span class="emo" style="background:#f2c14e33">💵</span>' +
+      '<span class="mid"><b>' + esc(usd(x.usd)) + ' → ' + esc(short(x.vnd)) + ' ₫</b><small>' + esc(x.where ? x.where + ' · ' : '') +
+      esc(new Date(x.ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'})) + '</small></span>' +
+      '<span class="amt num"><b>' + esc(fmt(x.vnd / x.usd)) + '</b><small>₫ per $</small></span></button>').join('') + '</div>' : '';
+    $('xEmpty').hidden = xs.length > 0;
+    const chip = $('walletChip');
+    chip.textContent = c.real ? short(c.vndLeft) + ' ₫ · ' + usd(c.usdLeft) : usd(c.usdLeft) + ' cash';
+    chip.classList.toggle('low', c.real && c.vndLeft < 0);
+  }
+  $('xList').addEventListener('click', e => {
+    const b = e.target.closest('[data-x]'); if (!b) return;
+    const x = state.exchanges.find(y => y.id === b.dataset.x); if (!x) return;
+    if (!confirm('Delete this exchange: ' + usd(x.usd) + ' → ' + vnd(x.vnd) + '?')) return;
+    state.exchanges = state.exchanges.filter(y => y.id !== x.id); save(); renderAll();
+  });
+
+  // exchange sheet: dollars in, dong worked out from this place's rate
+  function refRate() { return state.marketVndPerUsd; }
+  function defaultPlaceRate() {
+    const last = [...state.exchanges].sort((a,b) => b.ts.localeCompare(a.ts))[0];
+    if (last && Date.now() - new Date(last.ts) < 2 * 864e5) return { rate: Math.round(last.vnd / last.usd), why: 'Your last exchange' + (last.where ? ' (' + last.where + ')' : '') };
+    return { rate: refRate(), why: 'Online reference rate' };
+  }
+  function xUpdate(from) {
+    const u = Number($('xUsd').value), r = Number($('xRate').value);
+    if (from === 'vnd') {
+      const v = Number($('xVnd').value);
+      if (u > 0 && v > 0) $('xRate').value = Math.round(v / u);
+    } else if (u > 0 && r > 0) {
+      $('xVnd').value = Math.round(u * r);
+    } else if (from !== 'vnd') $('xVnd').value = '';
+    const v = Number($('xVnd').value), rate = u > 0 && v > 0 ? v / u : NaN, p = $('xPreview');
+    p.classList.remove('warn');
+    if (!Number.isFinite(rate)) { p.textContent = 'Enter the dollars to see what you’ll get.'; return; }
+    const diff = (rate / refRate() - 1) * 100;
+    const d = Math.abs(diff) < 0.05 ? 'same as the online rate' : Math.abs(diff).toFixed(1) + '% ' + (diff > 0 ? 'above' : 'below') + ' the online rate';
+    p.textContent = usd(u) + ' → ' + vnd(v) + ' (' + d + '). 1 rupee ≈ ' + fmt(rate / state.nprPerUsd, 1) + ' ₫.';
+    if (diff < -3) { p.textContent += ' That’s a weak rate. Worth checking another shop.'; p.classList.add('warn'); }
+    if (u > calc().usdLeft + 0.001) { p.textContent += ' That’s more dollars than you have left.'; p.classList.add('warn'); }
+  }
+  $('xUsd').addEventListener('input', () => xUpdate('usd'));
+  $('xRate').addEventListener('input', () => xUpdate('rate'));
+  $('xVnd').addEventListener('input', () => xUpdate('vnd'));
+  $('xUseRef').onclick = () => { $('xRate').value = refRate(); $('xRateNote').textContent = 'Online reference rate. Shops usually pay a little less.'; xUpdate('rate'); };
+  $('openExchange').onclick = () => {
+    const d = defaultPlaceRate();
+    $('xUsd').value = ''; $('xVnd').value = ''; $('xWhere').value = '';
+    $('xRate').value = d.rate; $('xRateNote').textContent = d.why + '. Change it to the rate on this shop’s board.';
+    $('xUseRef').textContent = 'Online ' + fmt(refRate());
+    xUpdate('usd'); openSheet('sheet-exchange');
+  };
+  $('xSave').onclick = () => {
+    const u = Number($('xUsd').value), v = Number($('xVnd').value);
+    if (!(u > 0 && v > 0)) { $('xPreview').textContent = 'Enter the dollars and the rate (or the dong you got) first.'; $('xPreview').classList.add('warn'); return; }
+    state.exchanges.push({ id:uid(), ts:new Date().toISOString(), usd:u, vnd:v, where:$('xWhere').value.trim() });
+    save(); closeSheet(); renderAll(); bump();
+  };
+
+  // online reference rate: fetched when online, cached for offline
+  let rateState = 'idle';
+  const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  async function fetchRate(force) {
+    if (!navigator.onLine) { rateState = 'offline'; renderRateStatus(); return; }
+    if (!force && state.rateFetchedAt && Date.now() - state.rateFetchedAt < 6 * 3600e3) return;
+    rateState = 'loading'; renderRateStatus();
+    const sources = [
+      async () => { const j = await (await fetch('https://open.er-api.com/v6/latest/USD', { cache:'no-store' })).json();
+        if (j.result !== 'success') throw new Error('bad'); return { vnd:j.rates.VND, src:'ExchangeRate-API' }; },
+      async () => { const j = await (await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json', { cache:'no-store' })).json();
+        return { vnd:j.usd.vnd, src:'fawazahmed0 currency-api' }; }
+    ];
+    for (const src of sources) {
+      try {
+        const r = await withTimeout(src(), 8000);
+        if (r.vnd > 10000 && r.vnd < 100000) {
+          state.marketVndPerUsd = Math.round(r.vnd); state.rateFetchedAt = Date.now(); state.rateSource = r.src;
+          save(); rateState = 'ok'; renderAll(); if (openId === 'sheet-settings') fillSettings(); return;
+        }
+      } catch (e) {}
+    }
+    rateState = 'failed'; renderRateStatus();
+  }
+  function ago(t) {
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return 'just now'; if (m < 60) return m + ' min ago';
+    const h = Math.round(m / 60); if (h < 36) return h + ' h ago';
+    return new Date(t).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+  }
+  function renderRateStatus() {
+    const el = $('rateStatus'); if (!el) return;
+    const when = state.rateFetchedAt ? 'updated ' + ago(state.rateFetchedAt) : state.rateSource === 'manual' ? 'set by you' : 'built-in Oct 21 value';
+    const attr = state.rateSource === 'ExchangeRate-API' ? ' · <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">Rates by Exchange Rate API</a>' : '';
+    const msg = { loading:'Updating…', offline:'Offline, using saved rate', failed:'Couldn’t update, using saved rate' }[rateState];
+    el.innerHTML = 'Online rate ' + esc(fmt(state.marketVndPerUsd)) + ' ₫/$, ' + esc(when) + (msg ? ' · ' + esc(msg) : '') + attr;
+  }
+  window.addEventListener('online', () => { fetchRate(); renderDeal(); });
+  window.addEventListener('offline', () => { rateState = 'offline'; renderRateStatus(); renderDeal(); });
+
+  // ---------- price advice ----------
+  // Inside Claude (published artifact) the page can ask Claude on the viewer's own account: no key.
+  const ARTIFACT_URL = 'https://claude.ai/artifact/9QYn1kZcDn5FWXV1HBNkFf';
+  let sampleFn = null, sampleImages = false;
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('sample').then(async f => {
+      if (!f) return;
+      sampleFn = f;
+      const lim = await f.limits().catch(() => null); sampleImages = !!(lim && lim.images);
+      renderDeal();
+    }).catch(() => {});
+  }
+  const adviceMode = () => sampleFn ? 'claude' : state.ai.key ? 'key' : 'none';
+  const handoffUrl = () => ARTIFACT_URL.startsWith('https://') ? ARTIFACT_URL + '#a' + (Number(vals.ask) || 0) + 'p' + (Number(vals.paid) || 0) : '';
+  const PLACES = ['Market stall','Street vendor','Shop','Tourist area'];
+  let lastAdviceItem = '', photo = null, photoBlob = null;
+  function renderPlaces() {
+    $('aPlace').innerHTML = PLACES.map(p => '<button type="button" class="' + (p === state.ai.place ? 'sel' : '') + '" data-place="' + p + '">' + p + '</button>').join('');
+  }
+  $('aPlace').addEventListener('click', e => { const b = e.target.closest('[data-place]'); if (!b) return; state.ai.place = b.dataset.place; save(); renderPlaces(); });
+  $('aCity').addEventListener('change', () => { state.ai.city = $('aCity').value; save(); });
+  $('aPhotoBtn').onclick = () => $('aPhoto').click();
+  $('aPhoto').onchange = async () => {
+    const f = $('aPhoto').files[0]; if (!f) return;
+    const img = new Image(); img.src = URL.createObjectURL(f); await img.decode();
+    const k = Math.min(1, 768 / Math.max(img.width, img.height));
+    const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const url = cv.toDataURL('image/jpeg', 0.7); photo = url.split(',')[1];
+    photoBlob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.7));
+    $('aThumb').src = url; $('aThumb').hidden = false; $('aPhotoBtn').textContent = '📷 Change photo';
+    URL.revokeObjectURL(img.src);
+  };
+  $('aiBtn').onclick = () => {
+    if (adviceMode() === 'none') { $('suKey').value = ''; $('suOpenClaude').hidden = !handoffUrl(); openSheet('sheet-aisetup'); return; }
+    openAdvice();
+  };
+  $('suOpenClaude').onclick = () => { const u = handoffUrl(); if (u) { closeSheet(); window.open(u, '_blank', 'noopener'); } };
+  $('suSave').onclick = () => {
+    const k = $('suKey').value.trim();
+    if (!k.startsWith('sk-')) { $('suKey').focus(); $('suKey').placeholder = 'Paste a key starting with sk-ant-'; return; }
+    state.ai.key = k; save(); renderDeal(); openAdvice();
+  };
+  function openAdvice() {
+    const c = calc(), ask = Number(vals.ask), paid = Number(vals.paid);
+    $('aLead').textContent = 'Asking ' + vnd(ask) + ' (≈ ' + npr(ask * c.nprPerVnd) + ')' + (paid ? ' · you agreed ' + vnd(paid) : '');
+    $('aItem').value = lastAdviceItem; $('aCity').value = state.ai.city; renderPlaces();
+    $('aResult').innerHTML = ''; photo = null; photoBlob = null; $('aThumb').hidden = true; $('aPhotoBtn').textContent = '📷 Add photo';
+    $('aPhotoBtn').hidden = adviceMode() === 'claude' && !sampleImages;
+    $('aGo').disabled = false; $('aGo').textContent = paid ? 'Was it worth it?' : 'Get advice';
+    openSheet('sheet-advice');
+  }
+  const SYS = 'You help a tourist from Nepal judge prices while shopping in Vietnam. Estimate what a savvy tourist typically pays for this item at this kind of place in this city, in Vietnamese dong. Be honest about uncertainty: if the item or its quality is unclear, give a wide range and low confidence; never invent precision. Reply with ONLY a JSON object, no markdown, with keys: fair_low (integer VND), fair_high (integer VND), open_at (integer VND, a polite but low first offer), walk_away (integer VND, the most worth paying), verdict ("great", "fair", "overpaid", or null; judge the agreed price only if one is given), confidence ("low", "medium" or "high"), reason (under 30 words), tip (one practical bargaining tip, under 20 words). Round amounts to the nearest 5,000 VND.';
+  $('aGo').onclick = async () => {
+    const item = $('aItem').value.trim();
+    if (!item && !photo) { $('aResult').innerHTML = '<div class="note warn">Say what the item is, or add a photo.</div>'; return; }
+    lastAdviceItem = item;
+    const ask = Number(vals.ask), paid = Number(vals.paid);
+    const text = 'City: ' + state.ai.city + '\nPlace: ' + state.ai.place + '\nItem: ' + (item || '(see photo)') +
+      '\nAsking price: ' + ask + ' VND' + (paid ? '\nAgreed price: ' + paid + ' VND' : '\nNo price agreed yet.') +
+      '\nToday: ' + new Date().toDateString();
+    if (adviceMode() === 'claude') return askViaClaude(text, ask, paid);
+    const content = []; if (photo) content.push({ type:'image', source:{ type:'base64', media_type:'image/jpeg', data:photo } });
+    content.push({ type:'text', text });
+    const body = { model:'claude-haiku-5-5', max_tokens:700, system:SYS, messages:[{ role:'user', content }] };
+    if (state.ai.search) body.tools = [{ type:'web_search_20250305', name:'web_search', max_uses:2 }];
+    $('aGo').disabled = true; $('aGo').textContent = 'Checking…';
+    $('aResult').innerHTML = '<p class="status">Usually takes a few seconds' + (state.ai.search ? ', longer with web search' : '') + '.</p>';
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 45000);
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', signal:ctl.signal,
+        headers:{ 'content-type':'application/json', 'x-api-key':state.ai.key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(res.status === 401 ? 'The API key was rejected. Check it in Settings.' : (data.error && data.error.message) || ('Request failed (' + res.status + ').'));
+      const out = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      const j = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+      renderAdvice(j, ask, paid);
+    } catch (e) {
+      $('aResult').innerHTML = '<div class="note warn">' + esc(e.name === 'AbortError' ? 'No answer after 45 seconds. The connection may be weak.' : e instanceof SyntaxError ? 'Got an answer that couldn’t be read. Try again.' : e.message) + '</div>';
+    } finally {
+      clearTimeout(timer); $('aGo').disabled = false; $('aGo').textContent = paid ? 'Check again' : 'Get advice';
+    }
+  };
+  async function askViaClaude(text, ask, paid) {
+    const btn = $('aGo');
+    btn.disabled = true; btn.textContent = 'Checking…';
+    $('aResult').innerHTML = '<p class="status">Asking Claude. The first time, Claude asks you to allow this page.</p>';
+    const opts = { modelTier:'quick' };
+    if (photoBlob && sampleImages) opts.images = [photoBlob];
+    try {
+      const j = await sampleFn.json(SYS + '\n\n' + text + (photoBlob && sampleImages ? '\nA photo of the item is attached.' : ''), opts);
+      if (!j || typeof j !== 'object') throw { code:'invalid_json' };
+      renderAdvice(j, ask, paid);
+    } catch (e) {
+      const msg = {
+        not_granted:'Claude access was declined for this page. Reload it to be asked again.',
+        sampling_disabled:'Claude isn’t available on this account.',
+        rate_limited:'You’ve hit a Claude usage limit. Try again later.',
+        session_expired:'Sign in to Claude again, then retry.',
+        invalid_json:'Got an answer that couldn’t be read. Try again.',
+        refused:'Claude didn’t answer this one. Try describing the item differently.',
+        image_rejected:'That photo couldn’t be used. Try another or remove it.'
+      }[e && e.code] || 'Couldn’t reach Claude. Check your connection and try again.';
+      $('aResult').innerHTML = '<div class="note warn">' + esc(msg) + '</div>';
+    } finally {
+      btn.disabled = false; btn.textContent = paid ? 'Check again' : 'Get advice';
+    }
+  }
+  function renderAdvice(j, ask, paid) {
+    const n = v => Number.isFinite(Number(v)) && Number(v) > 0 ? short(Number(v)) + ' ₫' : '—';
+    const V = { great:'Great deal', fair:'Fair price', overpaid:'You overpaid' };
+    const conf = { low:'Low confidence: treat this as a rough guess.', medium:'Medium confidence.', high:'High confidence.' }[j.confidence] || '';
+    const over = ask && Number(j.walk_away) > 0 && ask > Number(j.walk_away) * 1.5 ? '<div class="note">The asking price is well above the fair range. Expect to bargain hard or walk.</div>' : '';
+    $('aResult').innerHTML =
+      (paid && V[j.verdict] ? '<div class="verdict ' + esc(j.verdict) + '">' + V[j.verdict] + ' at ' + esc(short(paid)) + ' ₫</div>' : '') +
+      '<div class="adv-grid num"><div><span>Fair range</span><b>' + esc(n(j.fair_low)) + '–' + esc(n(j.fair_high)) + '</b></div>' +
+      '<div><span>Open at</span><b>' + esc(n(j.open_at)) + '</b></div><div><span>Walk away above</span><b>' + esc(n(j.walk_away)) + '</b></div></div>' +
+      over + (j.reason ? '<p style="margin:12px 0 0">' + esc(j.reason) + '</p>' : '') +
+      (j.tip ? '<p class="small" style="margin:6px 0 0">Tip: ' + esc(j.tip) + '</p>' : '') +
+      '<p class="conf">' + esc(conf) + ' This is an AI estimate, not a market survey.</p>';
+  }
+
+  // count sheet
+  function cPreview() {
+    const c = calc(), have = $('cVnd').value === '' ? NaN : Number($('cVnd').value), p = $('cPreview'), fix = $('cFix');
+    p.classList.remove('warn'); fix.hidden = true;
+    if (!Number.isFinite(have)) { p.textContent = 'Count your notes and enter the total.'; return; }
+    const gap = c.vndLeft - have;
+    if (Math.abs(gap) < 1000) { p.textContent = 'Matches. Every dong is accounted for.'; return; }
+    if (gap > 0) {
+      p.textContent = vnd(gap) + ' (≈ ' + npr(gap * c.nprPerVnd) + ') is missing from your log.';
+      p.classList.add('warn'); fix.hidden = false; fix.textContent = 'Log ' + short(gap) + ' ₫ as unlogged spending'; fix.dataset.gap = gap;
+    } else {
+      p.textContent = 'You have ' + vnd(-gap) + ' more than expected. An exchange may be missing, or a purchase was logged twice.';
+    }
+  }
+  $('cVnd').addEventListener('input', cPreview);
+  $('openCount').onclick = () => {
+    const c = calc();
+    $('cLead').textContent = 'The app expects ' + (c.vndLeft < 0 ? '−' + vnd(-c.vndLeft) : vnd(c.vndLeft)) + ' in your wallet.';
+    $('cVnd').value = ''; cPreview(); openSheet('sheet-count');
+  };
+  $('cFix').onclick = () => {
+    const gap = Number($('cFix').dataset.gap), c = calc();
+    const e = { id:uid(), ts:new Date().toISOString(), item:'Unlogged cash', cat:'Other', vnd:gap, npr:Math.round(gap * c.nprPerVnd), vndPerUsd:Math.round(c.vndPerUsd), asked:null };
+    state.entries.push(e); save(); closeSheet(); renderAll(); bump();
+  };
+
+  // ---------- settings ----------
+  function fillSettings() {
+    $('sStartUsd').value = state.startUsd; $('sTarget').value = state.targetNpr || '';
+    $('sStart').value = state.tripStart || ''; $('sEnd').value = state.tripEnd || '';
+    $('sNpr').value = state.nprPerUsd; $('sMarket').value = state.marketVndPerUsd;
+    $('sKey').value = state.ai.key || ''; $('sSearch').checked = !!state.ai.search;
+  }
+  $('openSettings').onclick = () => { fillSettings(); openSheet('sheet-settings'); };
+  const bindNum = (id, key, allowEmpty) => $(id).addEventListener('input', () => {
+    const v = Number($(id).value);
+    if ($(id).value === '' && allowEmpty) state[key] = null; else if (v > 0 || (key === 'startUsd' && v >= 0)) state[key] = v; else return;
+    save(); renderAll();
+  });
+  bindNum('sStartUsd','startUsd'); bindNum('sTarget','targetNpr',true); bindNum('sNpr','nprPerUsd'); bindNum('sMarket','marketVndPerUsd');
+  $('sMarket').addEventListener('input', () => { state.rateFetchedAt = null; state.rateSource = 'manual'; save(); });
+  $('sStart').onchange = () => { state.tripStart = $('sStart').value || null; save(); renderAll(); };
+  $('sEnd').onchange = () => { state.tripEnd = $('sEnd').value || null; save(); renderAll(); };
+  $('sReset').onclick = () => { state.nprPerUsd = DEF.nprPerUsd; state.marketVndPerUsd = DEF.marketVndPerUsd; state.rateFetchedAt = null; save(); fillSettings(); renderAll(); $('sReset').textContent = 'Rates reset'; setTimeout(() => $('sReset').textContent = 'Reset rates to Oct 21 values', 1400); };
+  $('sRefresh').onclick = () => fetchRate(true);
+  $('sKey').addEventListener('input', () => { state.ai.key = $('sKey').value.trim(); save(); renderDeal(); });
+  $('sSearch').addEventListener('change', () => { state.ai.search = $('sSearch').checked; save(); });
+
+  // backup
+  function share(name, text, type) {
+    const blob = new Blob([text], { type });
+    try {
+      const file = new File([blob], name, { type });
+      if (navigator.canShare && navigator.canShare({ files:[file] })) { navigator.share({ files:[file], title:name }).catch(() => {}); return; }
+    } catch (e) {}
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+  $('exportJson').onclick = () => share('vietnam-wallet-' + dayKey(new Date()) + '.json', JSON.stringify(state, null, 2), 'application/json');
+  $('exportCsv').onclick = () => {
+    const q = s => '"' + String(s ?? '').replace(/"/g,'""') + '"';
+    const rows = [['Type','Date','Time','Item / Where','Category','VND','NPR','USD','Asking VND','Rate VND/USD']];
+    state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', x.usd, '', Math.round(x.vnd/x.usd)]));
+    state.entries.forEach(e => rows.push(['Purchase', dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, e.npr, '', e.asked ?? '', e.vndPerUsd ?? '']));
+    const body = [rows[0]].concat(rows.slice(1).sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2])));
+    share('vietnam-wallet-' + dayKey(new Date()) + '.csv', body.map(r => r.map(q).join(',')).join('\n'), 'text/csv');
+  };
+  $('importBtn').onclick = () => $('importFile').click();
+  $('importFile').onchange = async () => {
+    const f = $('importFile').files[0]; if (!f) return;
+    try {
+      const d = migrate(JSON.parse(await f.text()));
+      const haveE = new Set(state.entries.map(e => e.id)), haveX = new Set(state.exchanges.map(x => x.id));
+      const ne = d.entries.filter(e => e && e.id && !haveE.has(e.id) && Number.isFinite(e.vnd) && Number.isFinite(e.npr));
+      const nx = d.exchanges.filter(x => x && x.id && !haveX.has(x.id) && x.usd > 0 && x.vnd > 0);
+      state.entries = state.entries.concat(ne); state.exchanges = state.exchanges.concat(nx);
+      save(); fillSettings(); renderAll();
+      $('persistNote').textContent = 'Restored ' + ne.length + ' purchases and ' + nx.length + ' exchanges.';
+    } catch (e) { $('persistNote').textContent = 'That file isn’t a backup from this app.'; }
+    $('importFile').value = '';
+  };
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persisted().then(p => p || navigator.storage.persist()).then(ok => {
+      $('persistNote').textContent = ok ? 'Storage is marked persistent, so Chrome won’t clear it to free space.' : 'Storage isn’t marked persistent yet. Installing the app usually fixes that.';
+    }).catch(() => {});
+  }
+
+  // ---------- go ----------
+  function applyTheme() {
+    const t = state.theme || 'auto';
+    const root = document.documentElement;
+    if (t === 'auto') { if (root.dataset.themeOwner) { delete root.dataset.theme; delete root.dataset.themeOwner; } }
+    else { root.dataset.theme = t; root.dataset.themeOwner = '1'; }
+    const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.querySelector('meta[name=theme-color]').content = dark ? '#1a1d1c' : '#f2f3f0';
+    document.querySelectorAll('[data-theme-opt]').forEach(b => b.classList.toggle('sel', b.dataset.themeOpt === t));
+  }
+  $('sTheme').addEventListener('click', e => { const b = e.target.closest('[data-theme-opt]'); if (!b) return; state.theme = b.dataset.themeOpt; save(); applyTheme(); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+  if (!location.protocol.startsWith('http')) $('fileNote').hidden = false;
+
+  function renderAll() { renderDeal(); renderSpent(); renderCash(); renderRateStatus(); }
+  applyTheme();
+  renderAll();
+  fetchRate();
+  const hand = /^#a(\d{1,11})p(\d{0,11})$/.exec(location.hash || '');
+  if (hand && Number(hand[1]) > 0) {
+    setVal('ask', hand[1]); if (Number(hand[2]) > 0) setVal('paid', hand[2]);
+    setActive(Number(hand[2]) > 0 ? 'paid' : 'ask');
+    openAdvice();
+  }
+
+  // install + offline
+  let deferred = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $('installBtn').hidden = false; });
+  $('installBtn').onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $('installBtn').hidden = true; };
+  window.addEventListener('appinstalled', () => { $('installBtn').hidden = true; });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  }
+})();
+</script>
+</body>
+</html>
