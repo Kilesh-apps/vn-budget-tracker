@@ -174,6 +174,12 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .notes .row{align-items:center}
 .bill{width:58px;height:30px;border-radius:5px;flex:none;display:grid;place-items:center;font-size:.78rem;font-weight:700;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .bill.long{width:66px}
+.bill-img{width:66px;height:30px;border-radius:5px;flex:none;object-fit:cover;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.cmp figure{margin:0;text-align:center}
+.cmp img{width:100%;border-radius:8px;display:block;aspect-ratio:2.3/1;object-fit:cover}
+.cmp figcaption{font-size:.8rem;font-weight:700;margin-top:4px}
+.note-big{display:block;width:100%;border-radius:12px;margin-top:6px}
 
 /* group */
 .person-edit{display:flex;gap:8px;margin-top:8px}
@@ -224,6 +230,10 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .seg{display:flex;flex-wrap:wrap;gap:8px}
 .seg button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 13px;font-size:.88rem;font-weight:600}
 .seg button.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel);background:var(--accent-soft)}
+.share-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.share-row span{flex:1;min-width:0;font-weight:600;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet .share-row input{width:150px;flex:none;min-height:44px;text-align:right}
+.when-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
 .split-box{border:1px solid var(--line);border-radius:16px;padding:4px 12px 12px;margin-top:12px}
 .split-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px}
 .split-head b{font-size:.92rem}
@@ -347,9 +357,12 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <div id="xList"></div>
       <p class="empty-msg" id="xEmpty">No exchanges yet. Log each one as you change dollars into dong.</p>
       <h3>Know your notes</h3>
-      <div class="note warn" style="margin:0 0 8px">20,000 and 500,000 are both blue. The 500,000 is longer and has five zeros. Check before you hand one over.</div>
+      <div class="note warn" style="margin:0 0 8px">20,000 and 500,000 are both blue. The 500,000 is longer, has five zeros, and shows a house among trees on the back; the 20,000 shows a covered bridge. Check before you hand one over.
+        <div class="cmp" id="notesCmp" hidden></div>
+      </div>
       <div class="list notes" id="notesList"></div>
-      <p class="small">Colours are approximate. Keep small notes (under 100k) separate from big ones.</p>
+      <p class="small">Tap a note to add a photo of your own. Photograph the back (the picture side): that’s where they differ most. Photos stay on this phone and aren’t included in backups.</p>
+      <input type="file" id="notePhoto" accept="image/*" capture="environment" hidden>
     </section>
 
     <!-- GROUP -->
@@ -390,11 +403,16 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <div id="fAmountWrap"><label for="fAmount">Amount (₫)</label><input id="fAmount" type="number" inputmode="numeric" min="0" step="1000"></div>
   <label for="fItem">What is it?</label>
   <input id="fItem" type="text" placeholder="e.g. Silk scarf, pho, Grab" autocomplete="off" enterkeyhint="done">
+  <div class="when-row"><span class="flabel" style="margin:0">When</span><button type="button" class="mini" id="fWhenBtn">Now · change</button></div>
+  <input id="fWhen" type="datetime-local" aria-label="Date and time of the purchase" style="margin-top:8px" hidden>
   <div class="split-box" id="fSplitBox">
     <div class="split-head"><b id="fSplitTitle">Just for me, I paid</b><button type="button" class="mini" id="fSplitToggle">Split</button></div>
     <div id="fSplitBody" hidden>
       <span class="flabel">Who paid?</span><div class="seg" id="fPaidBy"></div>
       <span class="flabel">Shared by <button type="button" class="mini" id="fAll" style="min-height:30px;margin-left:6px">Everyone</button></span><div class="seg" id="fAmong"></div>
+      <span class="flabel">How to split</span>
+      <div class="seg" id="fMode"><button type="button" data-mode="equal">Equally</button><button type="button" data-mode="custom">Custom amounts</button></div>
+      <div id="fCustom" hidden></div>
     </div>
     <p class="status num" id="fSplitSum" style="margin-bottom:0"></p>
   </div>
@@ -507,6 +525,18 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <div class="advice" id="aResult"></div>
 </div>
 
+<!-- banknote photo -->
+<div class="sheet" id="sheet-note" role="dialog" aria-modal="true" aria-labelledby="nTitle">
+  <div class="grab"></div>
+  <h2 class="num" id="nTitle"></h2>
+  <p class="lead" id="nBack"></p>
+  <img class="note-big" id="nImg" alt="">
+  <div class="btn-pair" style="margin-top:12px">
+    <button type="button" class="secondary" id="nRetake">Retake photo</button>
+    <button type="button" class="danger" id="nRemove" style="margin-top:0">Remove photo</button>
+  </div>
+</div>
+
 <!-- advice setup -->
 <div class="sheet" id="sheet-aisetup" role="dialog" aria-modal="true" aria-labelledby="suTitle">
   <div class="grab"></div>
@@ -564,10 +594,15 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <p class="small" style="margin-top:0" id="lastBackupText"></p>
   <div class="btn-pair">
     <button type="button" class="secondary" id="exportJson">Save backup</button>
-    <button type="button" class="secondary" id="exportCsv">Export CSV</button>
+    <button type="button" class="secondary" id="shareJson">Send backup…</button>
   </div>
-  <button type="button" class="secondary" id="importBtn" style="margin-top:10px">Restore from backup</button>
-  <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <div class="btn-pair" style="margin-top:10px">
+    <button type="button" class="secondary" id="exportCsv">Export CSV</button>
+    <button type="button" class="secondary" id="importBtn">Restore</button>
+  </div>
+  <p class="small" id="backupStatus" role="status" aria-live="polite"></p>
+  <p class="small">Save backup puts a file in your phone’s Downloads. Send backup lets you pick WhatsApp, Gmail or Drive, so a copy lives off the phone too. Backups never include your API key.</p>
+  <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden>
   <p class="small" id="importNote"></p>
   <p class="small" id="persistNote"></p>
   <div class="note warn" id="fileNote" hidden>You’re opening this as a file, not the installed app. It won’t work as an offline app this way, and records saved here stay with this file only.</div>
@@ -600,12 +635,12 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     { vi:'Xin chào', en:'Hello' }
   ];
   const NOTES = [
-    { v:10000, c:'#c5a03c', name:'Yellow-brown' },
-    { v:20000, c:'#3b6db3', name:'Blue', warn:true },
-    { v:50000, c:'#c25b8a', name:'Pink' },
-    { v:100000, c:'#4f9157', name:'Green' },
-    { v:200000, c:'#b25a3c', name:'Brown-red' },
-    { v:500000, c:'#2e9fbf', name:'Cyan-blue, longer note', warn:true }
+    { v:10000, c:'#c5a03c', name:'Yellow-brown', back:'Offshore oil rig' },
+    { v:20000, c:'#3b6db3', name:'Blue', back:'Hội An covered bridge', warn:true },
+    { v:50000, c:'#c25b8a', name:'Pink', back:'Huế' },
+    { v:100000, c:'#4f9157', name:'Green', back:'Temple of Literature, Hanoi' },
+    { v:200000, c:'#b25a3c', name:'Brown-red', back:'Hạ Long Bay' },
+    { v:500000, c:'#2e9fbf', name:'Cyan-blue, longer', back:'Ho Chi Minh’s birthplace, Kim Liên', warn:true }
   ];
 
   // ---------- formatting ----------
@@ -643,7 +678,12 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     let rate = Number(e.rate);
     if (!(rate > 0)) rate = Number(e.npr) > 0 ? Number(e.npr) / v : s.nprPerUsd / (Number(e.vndPerUsd) || s.marketVndPerUsd);
     const among = Array.isArray(e.among) && e.among.length ? e.among.map(String) : ['me'];
-    return { id:String(e.id), ts:e.ts || new Date().toISOString(), item:String(e.item || e.cat || 'Purchase'),
+    let shares = null;
+    if (e.shares && typeof e.shares === 'object') {
+      shares = {}; among.forEach(p => { shares[p] = Math.max(0, Number(e.shares[p]) || 0); });
+      if (Math.abs(Object.values(shares).reduce((a, x) => a + x, 0) - v) > 1) shares = null;
+    }
+    return { shares, id:String(e.id), ts:e.ts || new Date().toISOString(), item:String(e.item || e.cat || 'Purchase'),
       cat: CATS[e.cat] ? e.cat : 'Other', vnd:v, rate, paidBy: e.paidBy ? String(e.paidBy) : 'me', among,
       asked: Number(e.asked) || null, city: e.city || null };
   }
@@ -679,7 +719,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   save(); // writes the migrated shape once
 
   // ---------- money model ----------
-  const myShare = e => e.among.includes('me') ? e.vnd / e.among.length : 0;
+  const shareOf = (e, p) => !e.among.includes(p) ? 0 : (e.shares && Number.isFinite(e.shares[p]) ? e.shares[p] : e.vnd / e.among.length);
+  const myShare = e => shareOf(e, 'me');
   const myNpr = e => myShare(e) * e.rate;
   const outOfWallet = e => e.paidBy === 'me' ? e.vnd : 0;
   const friendName = id => id === 'me' ? 'You' : ((state.friends.find(f => f.id === id) || {}).name || 'Someone');
@@ -688,9 +729,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     const b = {}; state.friends.forEach(f => { b[f.id] = 0; });
     for (const e of state.entries) {
       if (!isShared(e)) continue;
-      const share = e.vnd / e.among.length;
-      if (e.paidBy === 'me') e.among.forEach(p => { if (p !== 'me') b[p] = (b[p] || 0) + share; });
-      else if (e.among.includes('me')) b[e.paidBy] = (b[e.paidBy] || 0) - share;
+      if (e.paidBy === 'me') e.among.forEach(p => { if (p !== 'me') b[p] = (b[p] || 0) + shareOf(e, p); });
+      else if (e.among.includes('me')) b[e.paidBy] = (b[e.paidBy] || 0) - shareOf(e, 'me');
     }
     for (const t of state.settlements) b[t.friend] = (b[t.friend] || 0) + (t.dir === 'in' ? -t.vnd : t.vnd);
     return b;
@@ -937,22 +977,38 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     return Object.entries(CATS).map(([k, m]) =>
       '<button type="button" class="cat' + (k === sel ? ' sel' : '') + '" data-cat="' + k + '"><span class="e">' + m.e + '</span>' + k + '</button>').join('');
   }
+  const toLocalInput = d => { d = new Date(d); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  function formShare(p, total) { return F.custom ? (Number(F.shares[p]) || 0) : total / F.among.length; }
+  function evenShares(total) {
+    const n = F.among.length, each = Math.floor(total / n / 1000) * 1000, sh = {};
+    F.among.forEach(p => { sh[p] = each; });
+    const first = F.among.includes(F.paidBy) ? F.paidBy : F.among[0];
+    if (first) sh[first] += total - each * n;
+    return sh;
+  }
   function splitSummary(total) {
     const c = calc();
     if (!F.among.length) return 'Pick at least one person who shares it.';
-    const share = total / F.among.length, me = F.among.includes('me');
+    if (F.custom) {
+      const sum = F.among.reduce((a, p) => a + formShare(p, total), 0), gap = total - sum;
+      if (Math.abs(gap) > 1) return gap > 0 ? 'Still to assign: ' + vnd(gap) + '.' : 'Over by ' + vnd(-gap) + '. Lower someone’s amount.';
+    }
+    const me = F.among.includes('me'), mine = formShare('me', total);
     const others = F.among.filter(p => p !== 'me');
     if (F.paidBy === 'me') {
       if (!others.length) return '';
-      return (me ? 'Your share ' + vnd(share) + ' (' + npr(share * c.nprPerVnd) + '). ' : 'Not for you. ') +
-        others.map(friendName).join(', ') + (others.length === 1 ? ' owes' : ' each owe') + ' you ' + vnd(share) + '.';
+      const same = !F.custom || others.every(p => Math.abs(formShare(p, total) - formShare(others[0], total)) < 1);
+      const owes = same
+        ? others.map(friendName).join(', ') + (others.length === 1 ? ' owes' : ' each owe') + ' you ' + vnd(formShare(others[0], total)) + '.'
+        : others.map(p => friendName(p) + ' owes you ' + vnd(formShare(p, total))).join(', ') + '.';
+      return (me ? 'Your share ' + vnd(mine) + ' (' + npr(mine * c.nprPerVnd) + '). ' : 'Not for you. ') + owes;
     }
-    return 'You owe ' + friendName(F.paidBy) + ' ' + vnd(share) + ' (' + npr(share * c.nprPerVnd) + '). Nothing leaves your wallet.';
+    return 'You owe ' + friendName(F.paidBy) + ' ' + vnd(mine) + ' (' + npr(mine * c.nprPerVnd) + '). Nothing leaves your wallet.';
   }
   function splitTitle() {
     if (F.paidBy === 'me' && F.among.length === 1 && F.among[0] === 'me') return 'Just for me, I paid';
     const n = F.among.length;
-    return (F.paidBy === 'me' ? 'I paid' : friendName(F.paidBy) + ' paid') + ' · split ' + n + ' way' + (n === 1 ? '' : 's');
+    return (F.paidBy === 'me' ? 'I paid' : friendName(F.paidBy) + ' paid') + (F.custom ? ' · custom split' : ' · split ' + n + ' way' + (n === 1 ? '' : 's'));
   }
   function formAmount() { return F.mode === 'edit' ? Number($('fAmount').value) || 0 : F.vnd; }
   function renderForm() {
@@ -968,39 +1024,85 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       const people = [{ id:'me', name:'Me' }].concat(state.friends);
       $('fPaidBy').innerHTML = people.map(p => '<button type="button" class="' + (F.paidBy === p.id ? 'sel' : '') + '" data-pay="' + esc(p.id) + '">' + esc(p.name) + '</button>').join('');
       $('fAmong').innerHTML = people.map(p => '<button type="button" class="' + (F.among.includes(p.id) ? 'sel' : '') + '" data-share="' + esc(p.id) + '" aria-pressed="' + F.among.includes(p.id) + '">' + esc(p.name) + '</button>').join('');
+      document.querySelectorAll('#fMode [data-mode]').forEach(x => x.classList.toggle('sel', (x.dataset.mode === 'custom') === F.custom));
+      renderCustom(amt);
       $('fSplitSum').textContent = amt ? splitSummary(amt) : '';
     }
+    $('fWhenBtn').hidden = F.mode === 'edit' || F.whenOpen;
+    $('fWhen').hidden = !(F.mode === 'edit' || F.whenOpen);
     $('fCats').innerHTML = catButtons(F.cat);
     $('fDelete').hidden = F.mode !== 'edit';
     $('fConfirm').textContent = F.mode === 'edit' ? 'Save changes' : 'Log ' + short(F.vnd) + ' ₫ · ' + F.cat;
     $('fErr').textContent = '';
   }
+  let customKey = '';
+  function renderCustom(total) {
+    const box = $('fCustom');
+    box.hidden = !F.custom;
+    if (!F.custom) { customKey = ''; return; }
+    const key = F.among.join('|') + '#' + F.id + '#' + F.mode;
+    if (key === customKey) return; // keep focus while typing
+    customKey = key;
+    box.innerHTML = F.among.map(p => '<div class="share-row"><span>' + esc(p === 'me' ? 'Me' : friendName(p)) + '</span>' +
+      '<input type="number" inputmode="numeric" min="0" step="1000" data-amt="' + esc(p) + '" value="' + (Math.round(F.shares[p] || 0) || '') + '" aria-label="Amount for ' + esc(friendName(p)) + '"></div>').join('') +
+      '<button type="button" class="mini" id="fEven" style="margin-top:10px">Reset to equal</button>';
+    $('fEven').onclick = () => { F.shares = evenShares(formAmount()); customKey = ''; renderForm(); };
+  }
+  $('fCustom').addEventListener('input', e => {
+    const i = e.target.closest('[data-amt]'); if (!i) return;
+    F.shares[i.dataset.amt] = Math.max(0, Number(i.value) || 0);
+    $('fSplitTitle').textContent = splitTitle();
+    $('fSplitSum').textContent = splitSummary(formAmount());
+  });
+  $('fMode').addEventListener('click', e => {
+    const b = e.target.closest('[data-mode]'); if (!b) return;
+    const want = b.dataset.mode === 'custom';
+    if (want && !F.custom) F.shares = evenShares(formAmount());
+    F.custom = want; customKey = ''; renderForm();
+  });
+  $('fWhenBtn').onclick = () => { F.whenOpen = true; $('fWhen').value = toLocalInput(new Date()); renderForm(); $('fWhen').focus(); };
+  function readWhen() {
+    if (F.mode === 'log' && !F.whenOpen) return { ts:new Date().toISOString() };
+    const d = new Date($('fWhen').value);
+    if (!$('fWhen').value || isNaN(d)) return { err:'Pick a date and time.' };
+    if (d.getTime() > Date.now() + 5 * 60000) return { err:'That time is in the future.' };
+    return { ts:d.toISOString() };
+  }
   function validSplit() {
     if (!F.among.length) return 'Pick at least one person who shares it.';
+    if (F.custom) {
+      const total = formAmount(), sum = F.among.reduce((a, p) => a + (Number(F.shares[p]) || 0), 0);
+      if (Math.abs(total - sum) > 1) return 'Custom amounts add up to ' + vnd(sum) + ', but the bill is ' + vnd(total) + '.';
+      if (F.paidBy !== 'me' && !(Number(F.shares.me) > 0)) return 'If a friend paid, give yourself an amount above zero.';
+    }
     if (F.paidBy !== 'me' && !F.among.includes('me')) return 'If a friend paid, include yourself in “Shared by”, or don’t log it.';
     return '';
   }
   function openLog() {
     tidy('ask'); tidy('paid');
     const amount = Number(vals.paid) || Number(vals.ask); if (!amount) return;
-    F = { mode:'log', vnd:amount, cat:state.lastCat, paidBy:'me', among:['me'], open:false, asked:Number(vals.ask) || null };
+    F = { mode:'log', vnd:amount, cat:state.lastCat, paidBy:'me', among:['me'], open:false, asked:Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
+    customKey = '';
     $('fItem').value = lastAdviceItem || '';
     renderForm(); openSheet('sheet-form');
   }
   function openEdit(id) {
     const e = state.entries.find(x => x.id === id); if (!e) return;
-    F = { mode:'edit', id, vnd:e.vnd, cat:e.cat, paidBy:e.paidBy, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate };
-    $('fAmount').value = e.vnd; $('fItem').value = e.item;
+    F = { mode:'edit', id, vnd:e.vnd, cat:e.cat, paidBy:e.paidBy, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate,
+      custom:!!e.shares, shares: e.shares ? Object.assign({}, e.shares) : {}, whenOpen:true };
+    customKey = '';
+    $('fAmount').value = e.vnd; $('fItem').value = e.item; $('fWhen').value = toLocalInput(e.ts);
     renderForm(); openSheet('sheet-form');
   }
   $('logBtn').onclick = openLog;
   $('fAmount').addEventListener('input', renderForm);
   $('fSplitToggle').onclick = () => { F.open = !F.open; renderForm(); };
-  $('fAll').onclick = () => { F.among = ['me'].concat(state.friends.map(f => f.id)); renderForm(); };
+  function amongChanged() { if (F.custom) { F.among.forEach(p => { if (!(p in F.shares)) F.shares[p] = 0; }); Object.keys(F.shares).forEach(p => { if (!F.among.includes(p)) delete F.shares[p]; }); } renderForm(); }
+  $('fAll').onclick = () => { F.among = ['me'].concat(state.friends.map(f => f.id)); amongChanged(); };
   $('fPaidBy').addEventListener('click', e => { const b = e.target.closest('[data-pay]'); if (!b) return;
-    F.paidBy = b.dataset.pay; if (F.paidBy !== 'me' && !F.among.includes('me')) F.among.push('me'); renderForm(); });
+    F.paidBy = b.dataset.pay; if (F.paidBy !== 'me' && !F.among.includes('me')) F.among.push('me'); amongChanged(); });
   $('fAmong').addEventListener('click', e => { const b = e.target.closest('[data-share]'); if (!b) return;
-    const id = b.dataset.share; F.among = F.among.includes(id) ? F.among.filter(x => x !== id) : F.among.concat(id); renderForm(); });
+    const id = b.dataset.share; F.among = F.among.includes(id) ? F.among.filter(x => x !== id) : F.among.concat(id); amongChanged(); });
   $('fCats').addEventListener('click', e => {
     const b = e.target.closest('[data-cat]'); if (!b) return;
     F.cat = b.dataset.cat; renderForm();
@@ -1008,10 +1110,12 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   $('fCancel').onclick = () => closeSheet();
   $('fItem').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('fConfirm').click(); } });
   $('fConfirm').onclick = () => { if (F.mode === 'edit') saveEdit(); else saveLog(); };
+  function sharesOut() { if (!F.custom) return null; const o = {}; F.among.forEach(p => { o[p] = Math.round(Number(F.shares[p]) || 0); }); return o; }
   function saveLog() {
     const err = validSplit(); if (err) { $('fErr').textContent = err; return; }
+    const w = readWhen(); if (w.err) { $('fErr').textContent = w.err; return; }
     const c = calc();
-    const entry = { id:uid(), ts:new Date().toISOString(), item:$('fItem').value.trim() || F.cat, cat:F.cat, vnd:F.vnd,
+    const entry = { shares:sharesOut(), id:uid(), ts:w.ts, item:$('fItem').value.trim() || F.cat, cat:F.cat, vnd:F.vnd,
       rate:c.nprPerVnd, paidBy:F.paidBy, among:F.among.slice(), asked:F.asked, city:state.city };
     state.entries.push(entry); state.lastCat = entry.cat; save(); lastAdviceItem = '';
     setVal('ask', ''); setVal('paid', ''); active = 'ask'; setActive('ask', true);
@@ -1022,7 +1126,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     const amt = Number($('fAmount').value);
     if (!(amt > 0)) { $('fErr').textContent = 'Enter an amount above zero.'; return; }
     const err = validSplit(); if (err) { $('fErr').textContent = err; return; }
-    Object.assign(e, { vnd:amt, item:$('fItem').value.trim() || F.cat, cat:F.cat, paidBy:F.paidBy, among:F.among.slice() });
+    const w = readWhen(); if (w.err) { $('fErr').textContent = w.err; return; }
+    Object.assign(e, { ts:w.ts, shares:sharesOut(), vnd:amt, item:$('fItem').value.trim() || F.cat, cat:F.cat, paidBy:F.paidBy, among:F.among.slice() });
     save(); closeSheet(); renderAll();
   }
   $('fDelete').onclick = () => {
@@ -1119,14 +1224,59 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       '<span class="mid"><b>' + esc(usd(x.usd)) + ' → ' + esc(short(x.vnd)) + ' ₫</b><small>' + esc(x.where ? x.where + ' · ' : '') + esc(dateOf(x.ts)) + '</small></span>' +
       '<span class="amt num"><b>' + esc(fmt(x.vnd / x.usd)) + '</b><small>₫ per $</small></span></button>').join('') + '</div>' : '';
     $('xEmpty').hidden = xs.length > 0;
-    $('notesList').innerHTML = NOTES.map(n =>
-      '<div class="row"><span class="bill' + (n.v === 500000 ? ' long' : '') + '" style="background:' + n.c + '">' + short(n.v) + '</span>' +
-      '<span class="mid"><b>' + esc(vnd(n.v)) + (n.warn ? '<span class="tag" style="color:var(--warn);border-color:var(--warn)">check</span>' : '') + '</b><small>' + esc(n.name) + '</small></span>' +
-      '<span class="amt num"><b>' + esc(npr(n.v * c.nprPerVnd)) + '</b><small>' + esc(usd(Math.round(n.v / c.vndPerUsd * 100) / 100)) + '</small></span></div>').join('');
+    $('notesList').innerHTML = NOTES.map(n => {
+      const img = notePhotos[n.v];
+      const pic = img ? '<img class="bill-img" src="' + img + '" alt="Your photo of the ' + short(n.v) + ' note">'
+        : '<span class="bill' + (n.v === 500000 ? ' long' : '') + '" style="background:' + n.c + '">' + short(n.v) + '</span>';
+      return '<button type="button" class="row" data-note="' + n.v + '">' + pic +
+        '<span class="mid"><b>' + esc(vnd(n.v)) + (n.warn ? '<span class="tag" style="color:var(--warn);border-color:var(--warn)">check</span>' : '') + '</b><small>' + esc(n.name) + ' · back: ' + esc(n.back) + (img ? '' : ' · 📷 add photo') + '</small></span>' +
+        '<span class="amt num"><b>' + esc(npr(n.v * c.nprPerVnd)) + '</b><small>' + esc(usd(Math.round(n.v / c.vndPerUsd * 100) / 100)) + '</small></span></button>';
+    }).join('');
+    const both = notePhotos[20000] && notePhotos[500000];
+    $('notesCmp').hidden = !both;
+    if (both) $('notesCmp').innerHTML = [20000, 500000].map(v => '<figure><img src="' + notePhotos[v] + '" alt="Your ' + short(v) + ' note"><figcaption>' + short(v) + ' ₫</figcaption></figure>').join('');
     const chip = $('walletChip');
     chip.textContent = c.real ? short(c.vndLeft) + ' ₫ · ' + usd(c.usdLeft) : usd(c.usdLeft) + ' cash';
     chip.classList.toggle('low', c.real && c.vndLeft < 0);
   }
+  // banknote photos: stored separately so the main data and backups stay small
+  const NOTE_KEY = 'vdc.notes';
+  let notePhotos = {};
+  try { notePhotos = JSON.parse(localStorage.getItem(NOTE_KEY)) || {}; } catch (e) { notePhotos = {}; }
+  let noteTarget = null;
+  function saveNotePhotos() {
+    try { localStorage.setItem(NOTE_KEY, JSON.stringify(notePhotos)); return true; }
+    catch (e) { showError('the photo didn’t fit in storage; try removing another'); return false; }
+  }
+  $('notesList').addEventListener('click', e => {
+    const b = e.target.closest('[data-note]'); if (!b) return;
+    noteTarget = Number(b.dataset.note);
+    if (!notePhotos[noteTarget]) { $('notePhoto').click(); return; }
+    const n = NOTES.find(x => x.v === noteTarget);
+    $('nTitle').textContent = vnd(n.v);
+    $('nBack').textContent = n.name + '. Back: ' + n.back + '.';
+    $('nImg').src = notePhotos[n.v]; $('nImg').alt = 'Your photo of the ' + short(n.v) + ' note';
+    openSheet('sheet-note');
+  });
+  $('nRetake').onclick = () => $('notePhoto').click();
+  $('nRemove').onclick = () => { delete notePhotos[noteTarget]; saveNotePhotos(); closeSheet(); renderCash(); };
+  $('notePhoto').onchange = async () => {
+    const f = $('notePhoto').files[0]; $('notePhoto').value = '';
+    if (!f || !noteTarget) return;
+    try {
+      const img = new Image(); img.src = URL.createObjectURL(f); await img.decode();
+      const k = Math.min(1, 640 / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(img.src);
+      const prev = notePhotos[noteTarget];
+      notePhotos[noteTarget] = cv.toDataURL('image/jpeg', 0.72);
+      if (!saveNotePhotos()) { if (prev) notePhotos[noteTarget] = prev; else delete notePhotos[noteTarget]; }
+      if (openId === 'sheet-note') $('nImg').src = notePhotos[noteTarget] || '';
+      renderCash();
+    } catch (e) { showError('that photo couldn’t be opened'); }
+  };
+
   $('xList').addEventListener('click', e => {
     const b = e.target.closest('[data-x]'); if (!b) return;
     const x = state.exchanges.find(y => y.id === b.dataset.x); if (!x) return;
@@ -1261,10 +1411,9 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     $('frIn').textContent = 'Got cash from ' + f.name; $('frOut').textContent = 'Gave cash to ' + f.name;
     const hist = [];
     state.entries.filter(e => isShared(e) && (e.paidBy === f.id || e.among.includes(f.id))).forEach(e => {
-      const share = e.vnd / e.among.length;
       let eff = 0;
-      if (e.paidBy === 'me' && e.among.includes(f.id)) eff = share;
-      else if (e.paidBy === f.id && e.among.includes('me')) eff = -share;
+      if (e.paidBy === 'me' && e.among.includes(f.id)) eff = shareOf(e, f.id);
+      else if (e.paidBy === f.id && e.among.includes('me')) eff = -shareOf(e, 'me');
       hist.push({ ts:e.ts, title:e.item, sub:friendName(e.paidBy) + ' paid ' + vnd(e.vnd), eff, entry:e.id });
     });
     state.settlements.filter(t => t.friend === f.id).forEach(t => hist.push({ ts:t.ts, title: t.dir === 'in' ? 'Paid you back' : 'You paid back', sub:'Cash', eff: t.dir === 'in' ? -t.vnd : t.vnd, settle:t.id }));
@@ -1468,7 +1617,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     $('lastBackupText').textContent = state.lastBackup ? 'Last backup: ' + new Date(state.lastBackup).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '.' : 'No backup saved yet. Save one every day or two; it’s your only copy if the phone is lost or Chrome’s data is cleared.';
     applyTheme();
   }
-  $('openSettings').onclick = () => { fillSettings(); $('importNote').textContent = ''; openSheet('sheet-settings'); };
+  $('openSettings').onclick = () => { fillSettings(); $('importNote').textContent = ''; $('backupStatus').textContent = ''; openSheet('sheet-settings'); };
   $('sCity').addEventListener('click', e => { const b = e.target.closest('[data-city]'); if (!b) return; state.city = b.dataset.city; save(); fillSettings(); });
   const bindNum = (id, key, allowEmpty, min) => $(id).addEventListener('input', () => {
     const raw = $(id).value, v = Number(raw);
@@ -1496,41 +1645,76 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {}
 
   // backup
-  function share(name, text, type) {
+  // Save a file to Downloads (works offline, no share sheet).
+  function saveFile(name, text, type) {
     const blob = new Blob([text], { type });
-    try {
-      const file = new File([blob], name, { type });
-      if (navigator.canShare && navigator.canShare({ files:[file] })) { navigator.share({ files:[file], title:name }).catch(() => {}); return; }
-    } catch (e) {}
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    return 'saved';
   }
-  function backup() {
+  // Open the phone's share sheet; falls back to Downloads where file sharing isn't supported.
+  async function shareFile(name, text, type) {
+    let file;
+    try { file = new File([text], name, { type }); } catch (e) { return saveFile(name, text, type); }
+    if (!(navigator.canShare && navigator.canShare({ files:[file] }))) return saveFile(name, text, type);
+    try { await navigator.share({ files:[file], title:name }); return 'shared'; }
+    catch (e) { return e && e.name === 'AbortError' ? 'cancelled' : saveFile(name, text, type); }
+  }
+  function backupText() {
+    const out = JSON.parse(JSON.stringify(state));
+    out.ai = Object.assign({}, out.ai, { key:'' });
+    out.exportedAt = new Date().toISOString(); out.app = 'vn-deal-calc';
+    return JSON.stringify(out, null, 2);
+  }
+  function setBackupStatus(msg) {
+    $('backupStatus').textContent = msg;
+    $('backupText').textContent = msg;
+  }
+  function afterBackup(result, name) {
+    if (result === 'cancelled') { setBackupStatus('Not backed up: sharing was cancelled.'); return; }
     state.lastBackup = Date.now(); save();
-    share('vietnam-wallet-' + dayKey(new Date()) + '.json', JSON.stringify(state, null, 2), 'application/json');
     renderAll(); if (openId === 'sheet-settings') fillSettings();
+    setBackupStatus(result === 'shared' ? 'Backup sent (' + name + ').' : 'Backup saved to Downloads as ' + name + '.');
   }
-  $('exportJson').onclick = backup;
-  $('nudgeBackup').onclick = backup;
-  $('exportCsv').onclick = () => {
-    const q = s => '"' + String(s ?? '').replace(/"/g,'""') + '"';
+  function backupSave() {
+    const name = 'vietnam-wallet-' + dayKey(new Date()) + '.json';
+    afterBackup(saveFile(name, backupText(), 'application/json'), name);
+  }
+  async function backupShare() {
+    // Chrome only shares certain file types; .txt is accepted everywhere and Restore reads it.
+    const name = 'vietnam-wallet-' + dayKey(new Date()) + '-backup.txt';
+    afterBackup(await shareFile(name, backupText(), 'text/plain'), name);
+  }
+  $('exportJson').onclick = backupSave;
+  $('shareJson').onclick = backupShare;
+  $('nudgeBackup').onclick = backupSave;
+  function csvText() {
+    const q = s => { const v = String(s ?? ''); return /[",\n\r]/.test(v) || /^[=+\-@]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
     const rows = [];
     state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', '', x.usd, '', '', Math.round(x.vnd/x.usd)]));
-    state.entries.forEach(e => rows.push(['Purchase', dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', friendName(e.paidBy), e.among.map(friendName).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
+    state.entries.forEach(e => rows.push(['Purchase', dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', friendName(e.paidBy), e.among.map(p => friendName(p) + (e.shares ? ' ' + Math.round(shareOf(e, p)) : '')).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
     state.settlements.forEach(t => rows.push([t.dir === 'in' ? 'Payback received' : 'Payback given', dayKey(t.ts), timeOf(t.ts), friendName(t.friend), '', t.vnd, '', '', '', '', '', '']));
     rows.sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
     const head = ['Type','Date','Time','Item / where / who','Category','VND total','VND my share','NPR my share','USD','Paid by','Shared by','Rate VND/USD'];
-    share('vietnam-wallet-' + dayKey(new Date()) + '.csv', [head].concat(rows).map(r => r.map(q).join(',')).join('\n'), 'text/csv');
+    return '\ufeff' + [head].concat(rows).map(r => r.map(q).join(',')).join('\r\n') + '\r\n';
+  }
+  $('exportCsv').onclick = async () => {
+    const name = 'vietnam-wallet-' + dayKey(new Date()) + '.csv';
+    const r = await shareFile(name, csvText(), 'text/csv');
+    $('backupStatus').textContent = r === 'cancelled' ? 'CSV export cancelled.' : r === 'shared' ? 'CSV sent (' + name + ').' : 'CSV saved to Downloads as ' + name + '.';
   };
   $('importBtn').onclick = () => $('importFile').click();
   $('importFile').onchange = async () => {
     const f = $('importFile').files[0]; if (!f) return;
     try {
-      const d = migrate(JSON.parse(await f.text()));
+      const d = migrate(JSON.parse((await f.text()).replace(/^\ufeff/, '')));
+      const fresh = !state.entries.length && !state.exchanges.length && !state.settlements.length;
+      if (fresh) ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','city','lastCat','theme','lastBackup']
+        .forEach(k => { state[k] = d[k]; });
       const merge = (key) => { const have = new Set(state[key].map(x => x.id)); const add = d[key].filter(x => !have.has(x.id)); state[key] = state[key].concat(add); return add.length; };
       const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements');
       save(); fillSettings(); renderAll();
-      $('importNote').textContent = 'Restored ' + ne + ' purchases, ' + nx + ' exchanges, ' + ns + ' paybacks and ' + nf + ' people. Nothing already here was changed.';
+      $('importNote').textContent = 'Restored ' + ne + ' purchases, ' + nx + ' exchanges, ' + ns + ' paybacks and ' + nf + ' people. ' + (fresh ? 'Budget, trip dates and rates were restored too.' : 'Nothing already here was changed.');
     } catch (e) { $('importNote').textContent = 'That file isn’t a backup from this app.'; }
     $('importFile').value = '';
   };
