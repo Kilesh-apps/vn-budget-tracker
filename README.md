@@ -1,4 +1,4 @@
-# Vietnam Deal Calc (PWA) — version 3
+# Vietnam Deal Calc (PWA) — version 14
 
 Files: index.html, sw.js, manifest.webmanifest, 4 icons. Upload all of them to the repo root (replace the old ones).
 
