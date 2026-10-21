@@ -155,6 +155,9 @@ button.row:active{background:var(--raised)}
 .row .amt b.good{color:var(--good)}
 .row .amt b.over{color:var(--warn)}
 .tag{display:inline-block;font-size:.7rem;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:0 5px;margin-left:6px;vertical-align:1px}
+.search{width:100%;min-height:46px;margin:12px 0 0;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit}
+.search:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.more{margin-top:10px}
 .empty-msg{text-align:center;color:var(--muted);font-size:.92rem;padding:24px 12px}
 h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 
@@ -336,8 +339,10 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
         <div class="days-l" id="daysL"></div>
         <p class="small" style="margin:6px 0 0">Dashed line: even daily share of your budget.</p>
       </div>
+      <input class="search" id="spentSearch" type="search" placeholder="Search purchases, places, people" autocomplete="off" aria-label="Search purchases" enterkeyhint="search" maxlength="60" hidden>
       <div class="legend" id="legend"></div>
       <div id="spentList"></div>
+      <button type="button" class="secondary more" id="spentMore" hidden></button>
       <p class="empty-msg" id="spentEmpty">Nothing logged yet. Price something on the Deal tab and tap Log purchase.</p>
     </section>
 
@@ -376,6 +381,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       <button type="button" class="secondary" id="openPeople" style="margin-top:10px">Add or rename people</button>
       <h3>Shared bills</h3>
       <div id="sharedList"></div>
+      <button type="button" class="secondary more" id="sharedMore" hidden></button>
       <p class="empty-msg" id="sharedEmpty">No shared bills yet.</p>
       <p class="small">Tracks only what’s owed between you and each friend. Tap a person to record cash paid back.</p>
     </section>
@@ -402,7 +408,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <p class="lead num" id="fLead"></p>
   <div id="fAmountWrap"><label for="fAmount">Amount (₫)</label><input id="fAmount" type="number" inputmode="numeric" min="0" step="1000"></div>
   <label for="fItem">What is it?</label>
-  <input id="fItem" type="text" placeholder="e.g. Silk scarf, pho, Grab" autocomplete="off" enterkeyhint="done">
+  <input id="fItem" type="text" maxlength="80" placeholder="e.g. Silk scarf, pho, Grab" autocomplete="off" enterkeyhint="done">
   <div class="when-row"><span class="flabel" style="margin:0">When</span><button type="button" class="mini" id="fWhenBtn">Now · change</button></div>
   <input id="fWhen" type="datetime-local" aria-label="Date and time of the purchase" style="margin-top:8px" hidden>
   <div class="split-box" id="fSplitBox">
@@ -462,7 +468,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <input id="xVnd" type="number" inputmode="numeric" min="0" step="1000">
   <p class="status">Worked out from the rate. If they hand you a different amount, type what you actually got.</p>
   <label for="xWhere">Where (optional)</label>
-  <input id="xWhere" type="text" placeholder="e.g. Gold shop, District 1" autocomplete="off">
+  <input id="xWhere" type="text" maxlength="60" placeholder="e.g. Gold shop, District 1" autocomplete="off">
   <div class="note num" id="xPreview"></div>
   <button type="button" class="primary" id="xSave">Save exchange</button>
 </div>
@@ -485,7 +491,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <p class="lead">Names are only stored on this phone.</p>
   <div id="pList"></div>
   <div class="person-edit">
-    <input id="pNew" type="text" placeholder="Add a name" autocomplete="off" enterkeyhint="done" aria-label="New person’s name">
+    <input id="pNew" type="text" maxlength="200" placeholder="Add a name" autocomplete="off" enterkeyhint="done" aria-label="New person’s name">
     <button type="button" id="pAdd" aria-label="Add person" style="color:var(--accent);font-weight:700;font-size:1.3rem">＋</button>
   </div>
   <p class="small">People with shared bills or paybacks can be renamed but not removed.</p>
@@ -512,7 +518,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   <h2 id="aTitle">Check this price</h2>
   <p class="lead num" id="aLead"></p>
   <label for="aItem">What is it?</label>
-  <input id="aItem" type="text" placeholder="e.g. Silk scarf, hand-embroidered" autocomplete="off" enterkeyhint="done">
+  <input id="aItem" type="text" maxlength="80" placeholder="e.g. Silk scarf, hand-embroidered" autocomplete="off" enterkeyhint="done">
   <span class="flabel">Where are you buying?</span>
   <div class="seg" id="aPlace"></div>
   <div class="two" style="margin-top:12px">
@@ -672,6 +678,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       exchanges:[], entries:[], settlements:[], friends:[], lastCat:'Shopping', city:'Ho Chi Minh City',
       theme:'auto', lastBackup:null, ai:{ key:'', place:'Market stall', search:false } };
   }
+  function validTs(t) { const d = new Date(t); return t && !isNaN(d) ? d.toISOString() : new Date().toISOString(); }
+  function uniqById(arr) { const seen = new Set(); return arr.filter(x => !seen.has(x.id) && seen.add(x.id)); }
   function normEntry(e, s) {
     if (!e || !e.id || !(Number(e.vnd) > 0)) return null;
     const v = Number(e.vnd);
@@ -683,7 +691,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       shares = {}; among.forEach(p => { shares[p] = Math.max(0, Number(e.shares[p]) || 0); });
       if (Math.abs(Object.values(shares).reduce((a, x) => a + x, 0) - v) > 1) shares = null;
     }
-    return { shares, id:String(e.id), ts:e.ts || new Date().toISOString(), item:String(e.item || e.cat || 'Purchase'),
+    return { shares, id:String(e.id), ts:validTs(e.ts), item:String(e.item || e.cat || 'Purchase'),
       cat: CATS[e.cat] ? e.cat : 'Other', vnd:v, rate, paidBy: e.paidBy ? String(e.paidBy) : 'me', among,
       asked: Number(e.asked) || null, city: e.city || null };
   }
@@ -702,10 +710,16 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     if (!CATS[b.lastCat]) b.lastCat = 'Shopping';
     b.friends = (raw.friends || []).filter(f => f && f.id && f.name).map(f => ({ id:String(f.id), name:String(f.name).slice(0,40) }));
     b.exchanges = (raw.exchanges || []).filter(x => x && x.id && Number(x.usd) > 0 && Number(x.vnd) > 0)
-      .map(x => ({ id:String(x.id), ts:x.ts || new Date().toISOString(), usd:Number(x.usd), vnd:Number(x.vnd), where:String(x.where || '') }));
+      .map(x => ({ id:String(x.id), ts:validTs(x.ts), usd:Number(x.usd), vnd:Number(x.vnd), where:String(x.where || '') }));
     b.entries = (raw.entries || []).map(e => normEntry(e, b)).filter(Boolean);
     b.settlements = (raw.settlements || []).filter(t => t && t.id && t.friend && Number(t.vnd) > 0 && (t.dir === 'in' || t.dir === 'out'))
-      .map(t => ({ id:String(t.id), ts:t.ts || new Date().toISOString(), friend:String(t.friend), vnd:Number(t.vnd), dir:t.dir }));
+      .map(t => ({ id:String(t.id), ts:validTs(t.ts), friend:String(t.friend), vnd:Number(t.vnd), dir:t.dir }));
+    b.friends = uniqById(b.friends); b.exchanges = uniqById(b.exchanges); b.entries = uniqById(b.entries); b.settlements = uniqById(b.settlements);
+    // anyone referenced but missing from the people list gets a placeholder, so no debt is ever hidden
+    const known = new Set(b.friends.map(f => f.id)); let n = 0;
+    const need = id => { if (id && id !== 'me' && !known.has(id)) { known.add(id); b.friends.push({ id, name:'Person ' + (++n) }); } };
+    b.entries.forEach(e => { need(e.paidBy); e.among.forEach(need); });
+    b.settlements.forEach(t => need(t.friend));
     b.v = 3;
     return b;
   }
@@ -948,11 +962,18 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   $('shPeek').addEventListener('contextmenu', e => e.preventDefault());
   $('shPeek').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); peek(true); } });
   $('shPeek').addEventListener('keyup', () => peek(false));
+  function fitShowVal() {
+    const el = $('shVal'); el.style.fontSize = '';
+    requestAnimationFrame(() => {
+      const max = el.parentElement.clientWidth - 8; let size = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > max && size > 20) { size -= 2; el.style.fontSize = size + 'px'; }
+    });
+  }
   function renderShow() {
     if (peeking) $('shPeek').textContent = peekText();
     const p = PHRASES[phraseIdx];
     $('shPhrase').textContent = p.vi; $('shEn').textContent = p.en;
-    $('shVal').textContent = vnDots(showVal);
+    $('shVal').textContent = vnDots(showVal); fitShowVal();
     $('shK').textContent = short(showVal) + ' ₫';
     $('shPhrases').innerHTML = PHRASES.map((q, i) => '<button type="button" class="' + (i === phraseIdx ? 'sel' : '') + '" data-ph="' + i + '"><b lang="vi">' + esc(q.vi) + '</b><small>' + esc(q.en) + '</small></button>').join('');
   }
@@ -1167,7 +1188,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     $('todayAmt').classList.toggle('over', Number.isFinite(allowance) && spentToday > allowance);
     $('todayOf').textContent = Number.isFinite(allowance) && allowance > 0 ? 'of ' + npr(allowance) + ' allowed' : '\u00a0';
     $('perDay').textContent = Number.isFinite(allowance) ? (allowance > 0 ? npr(allowance) : 'None left') : '—';
-    $('perDaySub').textContent = Number.isFinite(allowance) && allowance > 0 ? '≈ ' + short(allowance / c.nprPerVnd) + ' ₫ · ' + dl + ' day' + (dl === 1 ? '' : 's') + ' left' : (dl === 0 ? 'Trip has ended' : 'Set trip dates in Settings');
+    $('perDaySub').textContent = Number.isFinite(allowance) && allowance > 0 ? '≈ ' + short(allowance / c.nprPerVnd) + ' ₫ · ' + dl + ' day' + (dl === 1 ? '' : 's') + ' left' : (dl === 0 ? 'Trip has ended' : dl === null ? 'Set trip dates in Settings' : (b.left < 0 ? 'Over budget by ' + npr(-b.left) : 'Budget used up'));
 
     // per-day bars
     const days = tripDays();
@@ -1180,7 +1201,8 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
         const v = per[d] || 0;
         return '<div class="day-b' + (v > plan ? ' over' : '') + (v ? '' : ' empty') + '" title="' + esc(d + ': ' + npr(v)) + '"><i style="height:' + Math.max(2, v / max * 100) + '%"></i></div>';
       }).join('');
-      $('daysL').innerHTML = days.map(d => '<span class="' + (d === today ? 'today' : '') + '">' + Number(d.slice(8)) + '</span>').join('');
+      const step = days.length > 28 ? 7 : days.length > 14 ? 3 : 1;
+      $('daysL').innerHTML = days.map((d, i) => '<span class="' + (d === today ? 'today' : '') + '">' + (i % step === 0 || d === today ? Number(d.slice(8)) : '') + '</span>').join('');
     }
 
     // backup nudge
@@ -1189,11 +1211,18 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     $('backupText').textContent = state.lastBackup ? 'Last backup ' + Math.floor(since) + ' days ago' : 'No backup saved yet';
 
     // list
-    const list = state.entries.filter(e => !filterCat || e.cat === filterCat).sort((a,b2) => b2.ts.localeCompare(a.ts));
-    const groups = {}; list.forEach(e => (groups[dayKey(e.ts)] ||= []).push(e));
+    $('spentSearch').hidden = state.entries.length < 8 && !spentQuery;
+    const qq = spentQuery.trim().toLowerCase();
+    const matches = e => !qq || [e.item, e.cat, e.city || '', friendName(e.paidBy), ...e.among.map(friendName)].join(' ').toLowerCase().includes(qq);
+    const list = state.entries.filter(e => (!filterCat || e.cat === filterCat) && matches(e)).sort((a,b2) => b2.ts.localeCompare(a.ts));
+    const shown = list.slice(0, spentLimit);
+    $('spentMore').hidden = list.length <= spentLimit;
+    $('spentMore').textContent = 'Show ' + Math.min(50, list.length - spentLimit) + ' more (' + (list.length - spentLimit) + ' older)';
+    const groups = {}; shown.forEach(e => (groups[dayKey(e.ts)] ||= []).push(e));
+    const dayTotal = {}; list.forEach(e => { const k = dayKey(e.ts); dayTotal[k] = (dayTotal[k] || 0) + myNpr(e); });
     $('spentList').innerHTML = Object.entries(groups).map(([d, items]) => {
       const label = d === today ? 'Today' : new Date(d+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-      return '<div class="day num"><span>' + esc(label) + '</span><span>' + esc(npr(items.reduce((a,e) => a + myNpr(e), 0))) + '</span></div><div class="list">' +
+      return '<div class="day num"><span>' + esc(label) + '</span><span>' + esc(npr(dayTotal[d])) + '</span></div><div class="list">' +
         items.map(e => { const m = CATS[e.cat], shared = isShared(e);
           const sub = esc(e.cat) + ' · ' + esc(timeOf(e.ts)) + (e.city ? ' · ' + esc(e.city) : '');
           const mine = myShare(e);
@@ -1202,9 +1231,12 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
             '<span class="amt num"><b>' + esc(vnd(shared ? mine : e.vnd)) + '</b><small>' + (shared ? 'of ' + esc(short(e.vnd)) + ' ₫' : esc(npr(myNpr(e)))) + '</small></span></button>'; }).join('') + '</div>';
     }).join('');
     $('spentEmpty').hidden = list.length > 0;
-    $('spentEmpty').textContent = filterCat ? 'Nothing in ' + filterCat + '.' : 'Nothing logged yet. Price something on the Deal tab and tap Log purchase.';
+    $('spentEmpty').textContent = qq ? 'No purchases match “' + spentQuery.trim() + '”.' : filterCat ? 'Nothing in ' + filterCat + '.' : 'Nothing logged yet. Price something on the Deal tab and tap Log purchase.';
   }
-  $('legend').addEventListener('click', e => { const b = e.target.closest('[data-filter]'); if (!b) return; filterCat = filterCat === b.dataset.filter ? null : b.dataset.filter; renderSpent(); });
+  let spentQuery = '', spentLimit = 50;
+  $('legend').addEventListener('click', e => { const b = e.target.closest('[data-filter]'); if (!b) return; filterCat = filterCat === b.dataset.filter ? null : b.dataset.filter; spentLimit = 50; renderSpent(); });
+  $('spentSearch').addEventListener('input', () => { spentQuery = $('spentSearch').value; spentLimit = 50; renderSpent(); });
+  $('spentMore').onclick = () => { spentLimit += 50; renderSpent(); };
   $('spentList').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
 
   // ---------- cash ----------
@@ -1373,19 +1405,23 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
     }).join('') + '</div>' : '';
     const shared = state.entries.filter(isShared).sort((a,b) => b.ts.localeCompare(a.ts));
     $('sharedEmpty').hidden = shared.length > 0;
-    $('sharedList').innerHTML = shared.length ? '<div class="list">' + shared.slice(0, 40).map(e => {
+    $('sharedMore').hidden = shared.length <= sharedLimit;
+    $('sharedMore').textContent = 'Show ' + (shared.length - sharedLimit) + ' older shared bills';
+    $('sharedList').innerHTML = shared.length ? '<div class="list">' + shared.slice(0, sharedLimit).map(e => {
       const m = CATS[e.cat];
       return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
         '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(friendName(e.paidBy)) + ' paid · ' + e.among.length + ' people · ' + esc(dateOf(e.ts)) + '</small></span>' +
         '<span class="amt num"><b>' + esc(vnd(e.vnd)) + '</b><small>you ' + esc(short(myShare(e))) + ' ₫</small></span></button>';
     }).join('') + '</div>' : '';
   }
+  let sharedLimit = 30;
+  $('sharedMore').onclick = () => { sharedLimit = Infinity; renderGroup(); };
   $('sharedList').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
 
   // people sheet
   function renderPeople() {
     const used = usedIds();
-    $('pList').innerHTML = state.friends.map(f => '<div class="person-edit"><input type="text" value="' + esc(f.name) + '" data-rename="' + esc(f.id) + '" aria-label="Name" autocomplete="off">' +
+    $('pList').innerHTML = state.friends.map(f => '<div class="person-edit"><input type="text" maxlength="40" value="' + esc(f.name) + '" data-rename="' + esc(f.id) + '" aria-label="Name" autocomplete="off">' +
       '<button type="button" data-remove="' + esc(f.id) + '" aria-label="Remove ' + esc(f.name) + '"' + (used.has(f.id) ? ' disabled' : '') + '>✕</button></div>').join('');
   }
   $('openPeople').onclick = () => { $('pNew').value = ''; renderPeople(); openSheet('sheet-people'); };
@@ -1711,6 +1747,15 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
       const fresh = !state.entries.length && !state.exchanges.length && !state.settlements.length;
       if (fresh) ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','city','lastCat','theme','lastBackup']
         .forEach(k => { state[k] = d[k]; });
+      const byName = {}; state.friends.forEach(f => { byName[f.name.trim().toLowerCase()] = f.id; });
+      const idMap = {}; d.friends.forEach(f => { const ex = byName[f.name.trim().toLowerCase()]; if (ex && ex !== f.id) idMap[f.id] = ex; });
+      if (Object.keys(idMap).length) {
+        const m = id => idMap[id] || id;
+        d.friends = d.friends.filter(f => !idMap[f.id]);
+        d.entries.forEach(e => { e.paidBy = m(e.paidBy); e.among = [...new Set(e.among.map(m))];
+          if (e.shares) { const ns = {}; Object.entries(e.shares).forEach(([k, v]) => { ns[m(k)] = (ns[m(k)] || 0) + v; }); e.shares = ns; } });
+        d.settlements.forEach(t => { t.friend = m(t.friend); });
+      }
       const merge = (key) => { const have = new Set(state[key].map(x => x.id)); const add = d[key].filter(x => !have.has(x.id)); state[key] = state[key].concat(add); return add.length; };
       const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements');
       save(); fillSettings(); renderAll();
@@ -1730,7 +1775,14 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
   applyTheme();
   renderAll();
   fetchRate();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { renderAll(); fetchRate(); } });
+  function reloadFromStorage() {
+    try { const raw = localStorage.getItem(KEY); if (raw) state = migrate(JSON.parse(raw)); } catch (e) {}
+    try { notePhotos = JSON.parse(localStorage.getItem(NOTE_KEY)) || {}; } catch (e) {}
+    if (openId === 'sheet-form' && F && F.mode === 'edit' && !state.entries.some(x => x.id === F.id)) closeSheet();
+    renderAll();
+  }
+  window.addEventListener('storage', e => { if (e.key === KEY || e.key === NOTE_KEY || e.key === null) reloadFromStorage(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { reloadFromStorage(); fetchRate(); } });
   const hand = /^#a(\d{1,11})p(\d{0,11})$/.exec(location.hash || '');
   if (hand && Number(hand[1]) > 0) {
     setVal('ask', hand[1]); if (Number(hand[2]) > 0) setVal('paid', hand[2]);
