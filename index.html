@@ -410,6 +410,7 @@ button.ck-row:active{background:var(--raised)}
         <p class="small" style="margin:6px 0 0">Dashed line: even daily share of your budget.</p>
       </div>
       <input class="search" id="spentSearch" type="search" placeholder="Search purchases, places, people" autocomplete="off" aria-label="Search purchases" enterkeyhint="search" maxlength="60" hidden>
+      <button type="button" class="secondary" id="addExpense" style="margin-top:12px">＋ Add an expense (card, rupees, dollars…)</button>
       <div class="legend" id="legend"></div>
       <div id="spentList"></div>
       <button type="button" class="secondary more" id="spentMore" hidden></button>
@@ -475,6 +476,7 @@ button.ck-row:active{background:var(--raised)}
       <div id="friendList"></div>
       <p class="empty-msg" id="friendEmpty">Add the people you’re travelling with. When you log a purchase you can then split it or mark who paid.</p>
       <button type="button" class="secondary" id="openPeople" style="margin-top:10px">Add or rename people</button>
+      <button type="button" class="secondary" id="addShared" style="margin-top:10px">＋ Add a shared bill</button>
       <h3>Shared bills</h3>
       <div id="sharedList"></div>
       <button type="button" class="secondary more" id="sharedMore" hidden></button>
@@ -504,7 +506,11 @@ button.ck-row:active{background:var(--raised)}
   <div class="grab"></div>
   <h2 class="num" id="fTitle"></h2>
   <p class="lead num" id="fLead"></p>
-  <div id="fAmountWrap"><label for="fAmount">Amount (₫)</label><input id="fAmount" type="number" inputmode="numeric" min="0" step="1000"></div>
+  <div id="fAmountWrap">
+    <label for="fAmount">Amount</label>
+    <div class="rate-wrap"><input id="fAmount" type="number" inputmode="decimal" min="0" step="any" class="num"></div>
+    <div class="seg seg-sm" id="fCur" style="margin-top:8px" aria-label="Currency"></div>
+  </div>
   <label for="fItem">What is it?</label>
   <input id="fItem" type="text" maxlength="80" placeholder="e.g. Silk scarf, pho, Grab" autocomplete="off" enterkeyhint="done">
   <div class="when-row"><span class="flabel" style="margin:0">When</span><button type="button" class="mini" id="fWhenBtn">Now · change</button></div>
@@ -519,6 +525,10 @@ button.ck-row:active{background:var(--raised)}
       <div id="fCustom" hidden></div>
     </div>
     <p class="status num" id="fSplitSum" style="margin-bottom:0"></p>
+  </div>
+  <div id="fMethodWrap"><span class="flabel">You paid with</span>
+    <div class="seg seg-sm" id="fMethod"><button type="button" data-m="cash">💵 Cash</button><button type="button" data-m="card">💳 Card / online</button></div>
+    <p class="status" id="fMethodNote" style="margin-bottom:0"></p>
   </div>
   <p class="small" id="fNoFriends" style="margin:10px 0 0">Splitting with friends? Add them in the Group tab.</p>
   <span class="flabel">Category</span>
@@ -788,6 +798,8 @@ button.ck-row:active{background:var(--raised)}
     Shopping:{e:'🛍️',c:'#d9577a'}, Food:{e:'🍜',c:'#e8962e'}, Transport:{e:'🛵',c:'#3b82c4'},
     Stay:{e:'🏨',c:'#7c5cc4'}, Activities:{e:'🎟️',c:'#1f9e78'}, Other:{e:'✨',c:'#8a9a94'}
   };
+  const CURS = { VND:{ label:'₫ Dong', unit:1000 }, INR:{ label:'₹ Indian rupee', unit:1 }, NPR:{ label:'रू Nepali rupee', unit:1 }, USD:{ label:'$ Dollar', unit:0.01 } };
+  const INR_TO_NPR = 1.6; // fixed peg
   const CITIES = ['Ho Chi Minh City','Phu Quoc','Hanoi','Ha Long','Elsewhere'];
   const PLACES = ['Market stall','Street vendor','Shop','Tourist area'];
   const PHRASE_GROUPS = [
@@ -869,7 +881,8 @@ button.ck-row:active{background:var(--raised)}
       shares = {}; among.forEach(p => { shares[p] = Math.max(0, Number(e.shares[p]) || 0); });
       if (Math.abs(Object.values(shares).reduce((a, x) => a + x, 0) - v) > 1) shares = null;
     }
-    return { shares, id:String(e.id), ts:validTs(e.ts), item:String(e.item || e.cat || 'Purchase'),
+    const cur = CURS[e.cur] && e.cur !== 'VND' && Number(e.amt) > 0 ? e.cur : null;
+    return { cur, amt: cur ? Number(e.amt) : null, method: e.method === 'card' ? 'card' : 'cash', shares, id:String(e.id), ts:validTs(e.ts), item:String(e.item || e.cat || 'Purchase'),
       cat: CATS[e.cat] ? e.cat : 'Other', vnd:v, rate, paidBy: e.paidBy ? String(e.paidBy) : 'me', among,
       asked: Number(e.asked) || null, city: e.city || null };
   }
@@ -908,20 +921,35 @@ button.ck-row:active{background:var(--raised)}
     b.v = 3;
     return b;
   }
-  let state;
-  try { state = migrate(JSON.parse(localStorage.getItem(KEY))); } catch (e) { state = fresh(); }
+  let state, loadFailed = false;
+  const savedRaw = (() => { try { return localStorage.getItem(KEY); } catch (e) { return null; } })();
+  try { state = migrate(JSON.parse(savedRaw)); }
+  catch (e) {
+    state = fresh();
+    if (savedRaw) { // keep an untouched copy so nothing is lost
+      loadFailed = true;
+      try { localStorage.setItem(KEY + '.rescue-' + Date.now(), savedRaw); } catch (err) {}
+    }
+  }
   let saveWarned = false;
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (e) { if (!saveWarned) { saveWarned = true; showError('couldn’t save on this phone; save a backup from Settings now'); } }
   }
-  save(); // writes the migrated shape once
+  if (loadFailed) showError('your saved records couldn’t be read by this version; an untouched copy was kept on this phone. Close and reopen the app; if this stays, restore your latest backup in Settings');
+  else save(); // writes the migrated shape once
 
   // ---------- money model ----------
   const shareOf = (e, p) => !e.among.includes(p) ? 0 : (e.shares && Number.isFinite(e.shares[p]) ? e.shares[p] : e.vnd / e.among.length);
   const myShare = e => shareOf(e, 'me');
   const myNpr = e => myShare(e) * e.rate;
-  const outOfWallet = e => e.paidBy === 'me' ? e.vnd : 0;
+  function vndPer(cur, c) { c = c || calc(); return cur === 'USD' ? c.vndPerUsd : cur === 'NPR' ? c.vndPerUsd / state.nprPerUsd : cur === 'INR' ? INR_TO_NPR * c.vndPerUsd / state.nprPerUsd : 1; }
+  function fmtCur(a, cur) { return cur === 'USD' ? usd(Math.round(a * 100) / 100) : cur === 'INR' ? '₹' + fmt(a, 2) : cur === 'NPR' ? 'NPR ' + fmt(a, 2) : vnd(a); }
+  const curOf = e => e.cur && e.cur !== 'VND' && e.amt > 0 ? e.cur : 'VND';
+  // shows a VND value in the entry's own currency, using the rate it was logged at
+  const inOwn = (e, v) => curOf(e) === 'VND' ? vnd(v) : fmtCur(v * e.amt / e.vnd, e.cur);
+  const outOfWallet = e => e.paidBy === 'me' && e.method !== 'card' && curOf(e) === 'VND' ? e.vnd : 0;
+  const usdCashOut = e => e.paidBy === 'me' && e.method !== 'card' && curOf(e) === 'USD' ? e.amt : 0;
   const friendName = id => id === 'me' ? 'You' : ((state.friends.find(f => f.id === id) || {}).name || 'Someone');
   const isShared = e => e.paidBy !== 'me' || e.among.length !== 1 || e.among[0] !== 'me';
   function balances() {
@@ -943,7 +971,7 @@ button.ck-row:active{background:var(--raised)}
     const spentNpr = state.entries.reduce((a,e) => a + myNpr(e), 0);
     const vndPerUsd = usdEx > 0 ? vndIn / usdEx : state.marketVndPerUsd;
     const nprPerVnd = state.nprPerUsd / vndPerUsd;
-    const usdLeft = state.startUsd - usdEx;
+    const usdLeft = state.startUsd - usdEx - state.entries.reduce((a,e) => a + usdCashOut(e), 0);
     const vndLeft = vndIn - out + setIn - setOut;
     const bal = balances();
     const net = Object.values(bal).reduce((a,v) => a + v, 0);
@@ -1426,44 +1454,53 @@ button.ck-row:active{background:var(--raised)}
       '<button type="button" class="cat' + (k === sel ? ' sel' : '') + '" data-cat="' + k + '"><span class="e">' + m.e + '</span>' + k + '</button>').join('');
   }
   const toLocalInput = d => { d = new Date(d); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  const fc = a => fmtCur(a, F.cur);
   function formShare(p, total) { return F.custom ? (Number(F.shares[p]) || 0) : total / F.among.length; }
   function evenShares(total) {
-    const n = F.among.length, each = Math.floor(total / n / 1000) * 1000, sh = {};
+    const u = CURS[F.cur].unit, n = F.among.length, each = Math.floor(total / n / u) * u, sh = {};
     F.among.forEach(p => { sh[p] = each; });
     const first = F.among.includes(F.paidBy) ? F.paidBy : F.among[0];
-    if (first) sh[first] += total - each * n;
+    if (first) sh[first] = Math.round((sh[first] + total - each * n) * 100) / 100;
     return sh;
   }
   function splitSummary(total) {
-    const c = calc();
+    const c = calc(), toNpr = x => npr(x * formFactor(c) * c.nprPerVnd);
     if (!F.among.length) return 'Pick at least one person who shares it.';
     if (F.custom) {
       const sum = F.among.reduce((a, p) => a + formShare(p, total), 0), gap = total - sum;
-      if (Math.abs(gap) > 1) return gap > 0 ? 'Still to assign: ' + vnd(gap) + '.' : 'Over by ' + vnd(-gap) + '. Lower someone’s amount.';
+      if (Math.abs(gap) > CURS[F.cur].unit / 2 + 1e-9 && Math.abs(gap) > 0.009) return gap > 0 ? 'Still to assign: ' + fc(gap) + '.' : 'Over by ' + fc(-gap) + '. Lower someone’s amount.';
     }
     const me = F.among.includes('me'), mine = formShare('me', total);
     const others = F.among.filter(p => p !== 'me');
     if (F.paidBy === 'me') {
       if (!others.length) return '';
-      const same = !F.custom || others.every(p => Math.abs(formShare(p, total) - formShare(others[0], total)) < 1);
+      const same = !F.custom || others.every(p => Math.abs(formShare(p, total) - formShare(others[0], total)) < 0.01);
       const owes = same
-        ? others.map(friendName).join(', ') + (others.length === 1 ? ' owes' : ' each owe') + ' you ' + vnd(formShare(others[0], total)) + '.'
-        : others.map(p => friendName(p) + ' owes you ' + vnd(formShare(p, total))).join(', ') + '.';
-      return (me ? 'Your share ' + vnd(mine) + ' (' + npr(mine * c.nprPerVnd) + '). ' : 'Not for you. ') + owes;
+        ? others.map(friendName).join(', ') + (others.length === 1 ? ' owes' : ' each owe') + ' you ' + fc(formShare(others[0], total)) + '.'
+        : others.map(p => friendName(p) + ' owes you ' + fc(formShare(p, total))).join(', ') + '.';
+      return (me ? 'Your share ' + fc(mine) + ' (' + toNpr(mine) + '). ' : 'Not for you. ') + owes;
     }
-    return 'You owe ' + friendName(F.paidBy) + ' ' + vnd(mine) + ' (' + npr(mine * c.nprPerVnd) + '). Nothing leaves your wallet.';
+    return 'You owe ' + friendName(F.paidBy) + ' ' + fc(mine) + ' (' + toNpr(mine) + ', ≈ ' + vnd(mine * formFactor(c)) + '). Nothing leaves your wallet.';
   }
   function splitTitle() {
     if (F.paidBy === 'me' && F.among.length === 1 && F.among[0] === 'me') return 'Just for me, I paid';
     const n = F.among.length;
     return (F.paidBy === 'me' ? 'I paid' : friendName(F.paidBy) + ' paid') + (F.custom ? ' · custom split' : ' · split ' + n + ' way' + (n === 1 ? '' : 's'));
   }
-  function formAmount() { return F.mode === 'edit' ? Number($('fAmount').value) || 0 : F.vnd; }
+  function formAmount() { return Math.max(0, Number($('fAmount').value) || 0); }
+  // VND per unit of the form's currency: keep the original rate when editing an entry in its own currency
+  function formFactor(c) { return F.mode === 'edit' && F.cur === F.origCur && F.origFactor ? F.origFactor : vndPer(F.cur, c); }
   function renderForm() {
     const c = calc(), amt = formAmount(), hasFriends = state.friends.length > 0;
-    $('fTitle').textContent = F.mode === 'edit' ? 'Edit purchase' : 'Log ' + vnd(F.vnd);
-    $('fLead').textContent = amt ? '≈ ' + npr(amt * (F.mode === 'edit' ? F.rate : c.nprPerVnd)) + (F.asked && F.asked !== amt ? ' · asked ' + vnd(F.asked) : '') : '';
-    $('fAmountWrap').hidden = F.mode !== 'edit';
+    const factor = formFactor(c), rate = F.mode === 'edit' ? F.rate : c.nprPerVnd;
+    $('fTitle').textContent = F.mode === 'edit' ? 'Edit purchase' : amt ? 'Log ' + fc(amt) : 'Add an expense';
+    $('fLead').textContent = amt ? '≈ ' + npr(amt * factor * rate) + (F.cur !== 'VND' ? ' · ≈ ' + vnd(amt * factor) : '') + (F.asked && F.cur === 'VND' && F.asked !== amt ? ' · asked ' + vnd(F.asked) : '') : 'Enter the amount and pick its currency.';
+    $('fCur').innerHTML = Object.entries(CURS).map(([k, v]) => '<button type="button" class="' + (k === F.cur ? 'sel' : '') + '" data-cur="' + k + '">' + v.label + '</button>').join('');
+    $('fAmount').step = F.cur === 'VND' ? '1000' : 'any';
+    $('fMethodWrap').hidden = F.paidBy !== 'me';
+    document.querySelectorAll('#fMethod [data-m]').forEach(x => x.classList.toggle('sel', x.dataset.m === F.method));
+    $('fMethodNote').textContent = F.paidBy !== 'me' ? '' : F.method === 'card' ? 'Card and online payments don’t touch your cash wallet.'
+      : F.cur === 'VND' ? 'Comes out of the dong in your wallet.' : F.cur === 'USD' ? 'Comes out of your dollars.' : 'Rupee cash isn’t tracked in your wallet; it only counts toward spending.';
     $('fSplitBox').hidden = !hasFriends; $('fNoFriends').hidden = hasFriends || F.mode === 'edit';
     if (hasFriends) {
       $('fSplitTitle').textContent = splitTitle();
@@ -1480,7 +1517,7 @@ button.ck-row:active{background:var(--raised)}
     $('fWhen').hidden = !(F.mode === 'edit' || F.whenOpen);
     $('fCats').innerHTML = catButtons(F.cat);
     $('fDelete').hidden = F.mode !== 'edit';
-    $('fConfirm').textContent = F.mode === 'edit' ? 'Save changes' : 'Log ' + short(F.vnd) + ' ₫ · ' + F.cat;
+    $('fConfirm').textContent = F.mode === 'edit' ? 'Save changes' : 'Log ' + (amt ? (F.cur === 'VND' ? short(amt) + ' ₫' : fc(amt)) + ' · ' : '') + F.cat;
     $('fErr').textContent = '';
   }
   let customKey = '';
@@ -1488,11 +1525,11 @@ button.ck-row:active{background:var(--raised)}
     const box = $('fCustom');
     box.hidden = !F.custom;
     if (!F.custom) { customKey = ''; return; }
-    const key = F.among.join('|') + '#' + F.id + '#' + F.mode;
+    const key = F.among.join('|') + '#' + F.id + '#' + F.mode + '#' + F.cur;
     if (key === customKey) return; // keep focus while typing
     customKey = key;
     box.innerHTML = F.among.map(p => '<div class="share-row"><span>' + esc(p === 'me' ? 'Me' : friendName(p)) + '</span>' +
-      '<input type="number" inputmode="numeric" min="0" step="1000" data-amt="' + esc(p) + '" value="' + (Math.round(F.shares[p] || 0) || '') + '" aria-label="Amount for ' + esc(friendName(p)) + '"></div>').join('') +
+      '<input type="number" inputmode="decimal" min="0" step="any" data-amt="' + esc(p) + '" value="' + (Math.round(F.shares[p] || 0) || '') + '" aria-label="Amount for ' + esc(friendName(p)) + '"></div>').join('') +
       '<button type="button" class="mini" id="fEven" style="margin-top:10px">Reset to equal</button>';
     $('fEven').onclick = () => { F.shares = evenShares(formAmount()); customKey = ''; renderForm(); };
   }
@@ -1520,29 +1557,39 @@ button.ck-row:active{background:var(--raised)}
     if (!F.among.length) return 'Pick at least one person who shares it.';
     if (F.custom) {
       const total = formAmount(), sum = F.among.reduce((a, p) => a + (Number(F.shares[p]) || 0), 0);
-      if (Math.abs(total - sum) > 1) return 'Custom amounts add up to ' + vnd(sum) + ', but the bill is ' + vnd(total) + '.';
+      if (Math.abs(total - sum) > Math.max(0.009, CURS[F.cur].unit / 2)) return 'Custom amounts add up to ' + fc(sum) + ', but the bill is ' + fc(total) + '.';
       if (F.paidBy !== 'me' && !(Number(F.shares.me) > 0)) return 'If a friend paid, give yourself an amount above zero.';
     }
     if (F.paidBy !== 'me' && !F.among.includes('me')) return 'If a friend paid, include yourself in “Shared by”, or don’t log it.';
     return '';
   }
-  function openLog() {
+  function openLog(manual) {
     tidy('ask'); tidy('paid');
-    const amount = Number(vals.paid) || Number(vals.ask); if (!amount) return;
-    F = { mode:'log', vnd:amount, cat:state.lastCat, paidBy:'me', among:['me'], open:false, asked:Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
+    const amount = manual ? 0 : Number(vals.paid) || Number(vals.ask); if (!manual && !amount) return;
+    F = { mode:'log', fromDeal:!manual, cur:'VND', method:'cash', cat:state.lastCat, paidBy:'me', among:['me'], open:manual === 'shared', asked: manual ? null : Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
     customKey = '';
-    $('fItem').value = lastAdviceItem || '';
+    $('fAmount').value = amount || '';
+    $('fItem').value = manual ? '' : lastAdviceItem || '';
     renderForm(); openSheet('sheet-form');
+    if (manual) setTimeout(() => $('fAmount').focus(), 260);
   }
   function openEdit(id) {
     const e = state.entries.find(x => x.id === id); if (!e) return;
-    F = { mode:'edit', id, vnd:e.vnd, cat:e.cat, paidBy:e.paidBy, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate,
-      custom:!!e.shares, shares: e.shares ? Object.assign({}, e.shares) : {}, whenOpen:true };
+    const cur = curOf(e), factor = cur === 'VND' ? 1 : e.vnd / e.amt, sh = {};
+    if (e.shares) Object.keys(e.shares).forEach(p => { sh[p] = Math.round(e.shares[p] / factor * 100) / 100; });
+    F = { mode:'edit', id, cur, origCur:cur, origFactor:factor, method:e.method || 'cash', cat:e.cat, paidBy:e.paidBy, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate,
+      custom:!!e.shares, shares:sh, whenOpen:true };
     customKey = '';
-    $('fAmount').value = e.vnd; $('fItem').value = e.item; $('fWhen').value = toLocalInput(e.ts);
+    $('fAmount').value = cur === 'VND' ? e.vnd : e.amt; $('fItem').value = e.item; $('fWhen').value = toLocalInput(e.ts);
     renderForm(); openSheet('sheet-form');
   }
-  $('logBtn').onclick = openLog;
+  $('logBtn').onclick = () => openLog();
+  $('addExpense').onclick = () => openLog('manual');
+  $('addShared').onclick = () => openLog('shared');
+  $('fCur').addEventListener('click', e => { const b = e.target.closest('[data-cur]'); if (!b || b.dataset.cur === F.cur) return;
+    F.cur = b.dataset.cur; if (F.mode === 'log') F.method = F.cur === 'VND' || F.cur === 'USD' ? 'cash' : 'card';
+    if (F.custom) F.shares = evenShares(formAmount()); customKey = ''; renderForm(); });
+  $('fMethod').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; F.method = b.dataset.m; renderForm(); });
   $('fAmount').addEventListener('input', renderForm);
   $('fSplitToggle').onclick = () => { F.open = !F.open; renderForm(); };
   function amongChanged() { if (F.custom) { F.among.forEach(p => { if (!(p in F.shares)) F.shares[p] = 0; }); Object.keys(F.shares).forEach(p => { if (!F.among.includes(p)) delete F.shares[p]; }); } renderForm(); }
@@ -1558,29 +1605,39 @@ button.ck-row:active{background:var(--raised)}
   $('fCancel').onclick = () => closeSheet();
   $('fItem').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('fConfirm').click(); } });
   $('fConfirm').onclick = () => { if (F.mode === 'edit') saveEdit(); else saveLog(); };
-  function sharesOut() { if (!F.custom) return null; const o = {}; F.among.forEach(p => { o[p] = Math.round(Number(F.shares[p]) || 0); }); return o; }
+  function sharesOut(vndTotal, factor) {
+    if (!F.custom) return null;
+    const o = {}; F.among.forEach(p => { o[p] = Math.round((Number(F.shares[p]) || 0) * factor); });
+    const gap = vndTotal - Object.values(o).reduce((a, x) => a + x, 0), first = F.among.includes(F.paidBy) ? F.paidBy : F.among[0];
+    if (first && gap) o[first] += gap; // absorb rounding so shares always add up exactly
+    return o;
+  }
+  function amountFields(c) {
+    const amt = formAmount(), factor = formFactor(c), v = Math.round(amt * factor);
+    return { vnd:v, cur: F.cur === 'VND' ? null : F.cur, amt: F.cur === 'VND' ? null : amt, method: F.paidBy === 'me' ? F.method : 'cash', shares: sharesOut(v, factor) };
+  }
   function saveLog() {
+    if (!(formAmount() > 0)) { $('fErr').textContent = 'Enter an amount above zero.'; $('fAmount').focus(); return; }
     const err = validSplit(); if (err) { $('fErr').textContent = err; return; }
     const w = readWhen(); if (w.err) { $('fErr').textContent = w.err; return; }
     const c = calc();
-    const entry = { shares:sharesOut(), id:uid(), ts:w.ts, item:$('fItem').value.trim() || F.cat, cat:F.cat, vnd:F.vnd,
-      rate:c.nprPerVnd, paidBy:F.paidBy, among:F.among.slice(), asked:F.asked, city:state.city };
+    const entry = Object.assign({ id:uid(), ts:w.ts, item:$('fItem').value.trim() || F.cat, cat:F.cat,
+      rate:c.nprPerVnd, paidBy:F.paidBy, among:F.among.slice(), asked: F.cur === 'VND' ? F.asked : null, city:state.city }, amountFields(c));
     state.entries.push(entry); state.lastCat = entry.cat; save(); lastAdviceItem = '';
-    setVal('ask', ''); setVal('paid', ''); active = 'ask'; setActive('ask', true);
-    closeSheet(); renderAll(); flash($('logBtn'), '✓ Logged ' + vnd(entry.vnd)); bump();
+    if (F.fromDeal) { setVal('ask', ''); setVal('paid', ''); active = 'ask'; setActive('ask', true); }
+    closeSheet(); renderAll(); if (F.fromDeal) flash($('logBtn'), '✓ Logged ' + inOwn(entry, entry.vnd)); bump();
   }
   function saveEdit() {
     const e = state.entries.find(x => x.id === F.id); if (!e) { closeSheet(); return; }
-    const amt = Number($('fAmount').value);
-    if (!(amt > 0)) { $('fErr').textContent = 'Enter an amount above zero.'; return; }
+    if (!(formAmount() > 0)) { $('fErr').textContent = 'Enter an amount above zero.'; return; }
     const err = validSplit(); if (err) { $('fErr').textContent = err; return; }
     const w = readWhen(); if (w.err) { $('fErr').textContent = w.err; return; }
-    Object.assign(e, { ts:w.ts, shares:sharesOut(), vnd:amt, item:$('fItem').value.trim() || F.cat, cat:F.cat, paidBy:F.paidBy, among:F.among.slice() });
+    Object.assign(e, { ts:w.ts, item:$('fItem').value.trim() || F.cat, cat:F.cat, paidBy:F.paidBy, among:F.among.slice() }, amountFields(calc()));
     save(); closeSheet(); renderAll();
   }
   $('fDelete').onclick = () => {
     const e = state.entries.find(x => x.id === F.id); if (!e) { closeSheet(); return; }
-    if (!confirm('Delete “' + e.item + '” (' + vnd(e.vnd) + ')?')) return;
+    if (!confirm('Delete “' + e.item + '” (' + inOwn(e, e.vnd) + ')?')) return;
     state.entries = state.entries.filter(x => x.id !== F.id); save(); closeSheet(); renderAll();
   };
 
@@ -1655,7 +1712,7 @@ button.ck-row:active{background:var(--raised)}
           const mine = myShare(e);
           return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
             '<span class="mid"><b>' + esc(e.item) + (shared ? '<span class="tag">split</span>' : '') + '</b><small>' + sub + '</small></span>' +
-            '<span class="amt num"><b>' + esc(vnd(shared ? mine : e.vnd)) + '</b><small>' + (shared ? 'of ' + esc(short(e.vnd)) + ' ₫' : esc(npr(myNpr(e)))) + '</small></span></button>'; }).join('') + '</div>';
+            '<span class="amt num"><b>' + esc(inOwn(e, shared ? mine : e.vnd)) + '</b><small>' + (shared ? 'of ' + esc(inOwn(e, e.vnd)) : esc(npr(myNpr(e)))) + (e.method === 'card' && e.paidBy === 'me' ? ' · 💳' : '') + '</small></span></button>'; }).join('') + '</div>';
     }).join('');
     $('spentEmpty').hidden = list.length > 0;
     $('spentEmpty').textContent = qq ? 'No purchases match “' + spentQuery.trim() + '”.' : filterCat ? 'Nothing in ' + filterCat + '.' : 'Nothing logged yet. Price something on the Deal tab and tap Log purchase.';
@@ -1838,7 +1895,7 @@ button.ck-row:active{background:var(--raised)}
       const m = CATS[e.cat];
       return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
         '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(friendName(e.paidBy)) + ' paid · ' + e.among.length + ' people · ' + esc(dateOf(e.ts)) + '</small></span>' +
-        '<span class="amt num"><b>' + esc(vnd(e.vnd)) + '</b><small>you ' + esc(short(myShare(e))) + ' ₫</small></span></button>';
+        '<span class="amt num"><b>' + esc(inOwn(e, e.vnd)) + '</b><small>you ' + esc(inOwn(e, myShare(e))) + '</small></span></button>';
     }).join('') + '</div>' : '';
   }
   let sharedLimit = 30;
@@ -1877,7 +1934,7 @@ button.ck-row:active{background:var(--raised)}
       let eff = 0;
       if (e.paidBy === 'me' && e.among.includes(f.id)) eff = shareOf(e, f.id);
       else if (e.paidBy === f.id && e.among.includes('me')) eff = -shareOf(e, 'me');
-      hist.push({ ts:e.ts, title:e.item, sub:friendName(e.paidBy) + ' paid ' + vnd(e.vnd), eff, entry:e.id });
+      hist.push({ ts:e.ts, title:e.item, sub:friendName(e.paidBy) + ' paid ' + inOwn(e, e.vnd), eff, entry:e.id });
     });
     state.settlements.filter(t => t.friend === f.id).forEach(t => hist.push({ ts:t.ts, title: t.dir === 'in' ? 'Paid you back' : 'You paid back', sub:'Cash', eff: t.dir === 'in' ? -t.vnd : t.vnd, settle:t.id }));
     hist.sort((a,b) => b.ts.localeCompare(a.ts));
@@ -2155,7 +2212,7 @@ button.ck-row:active{background:var(--raised)}
     const q = s => { const v = String(s ?? ''); return /[",\n\r]/.test(v) || /^[=+\-@]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
     const rows = [];
     state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', '', x.usd, '', '', Math.round(x.vnd/x.usd)]));
-    state.entries.forEach(e => rows.push(['Purchase', dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', friendName(e.paidBy), e.among.map(p => friendName(p) + (e.shares ? ' ' + Math.round(shareOf(e, p)) : '')).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
+    state.entries.forEach(e => rows.push(['Purchase' + (curOf(e) !== 'VND' ? ' (' + e.amt + ' ' + e.cur + ')' : '') + (e.paidBy === 'me' && e.method === 'card' ? ' [card]' : ''), dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', friendName(e.paidBy), e.among.map(p => friendName(p) + (e.shares ? ' ' + Math.round(shareOf(e, p)) : '')).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
     state.settlements.forEach(t => rows.push([t.dir === 'in' ? 'Payback received' : 'Payback given', dayKey(t.ts), timeOf(t.ts), friendName(t.friend), '', t.vnd, '', '', '', '', '', '']));
     rows.sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
     const head = ['Type','Date','Time','Item / where / who','Category','VND total','VND my share','NPR my share','USD','Paid by','Shared by','Rate VND/USD'];
