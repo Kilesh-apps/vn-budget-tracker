@@ -129,12 +129,22 @@ main{flex:1;overflow-y:auto;padding:4px 16px 24px;overscroll-behavior:contain}
 .stat strong.good{color:var(--good)}
 .stat small{display:block;color:var(--muted);font-size:.8rem}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px}
-.days{display:flex;align-items:flex-end;gap:4px;height:96px;position:relative;margin-top:6px}
-.days .plan{position:absolute;left:0;right:0;border-top:1.5px dashed var(--muted);opacity:.6;pointer-events:none}
-.days .day-b{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.days{display:flex;align-items:flex-end;gap:4px;height:118px;position:relative;margin-top:18px}
+.days .plan{position:absolute;left:0;right:0;border-top:1.5px dashed var(--muted);opacity:.7;pointer-events:none}
+.days .plan span{position:absolute;right:0;bottom:2px;font-size:.62rem;color:var(--muted);font-weight:600;background:var(--surface);padding-left:4px}
+.days .day-b{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:pointer}
+.days .day-b b{font-size:.6rem;color:var(--muted);font-weight:600;margin-bottom:2px;white-space:nowrap}
 .days .day-b i{display:block;width:100%;max-width:22px;border-radius:5px 5px 2px 2px;background:var(--accent);min-height:2px}
 .days .day-b.over i{background:var(--warn)}
 .days .day-b.empty i{background:var(--raised)}
+.days .day-b.future i{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.days .day-b.sel i{box-shadow:0 0 0 2px var(--ink)}
+.days .day-b.sel b{color:var(--ink)}
+.pace{font-size:1.08rem;font-weight:700;margin:6px 0 2px}
+.pace.good{color:var(--good)}
+.pace.over{color:var(--warn)}
+.day-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 2px 0;font-size:.88rem;font-weight:600}
+.day-filter button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.82rem;font-weight:600}
 .days-l{display:flex;gap:4px;margin-top:4px}
 .days-l span{flex:1;text-align:center;font-size:.68rem;color:var(--muted);min-width:0}
 .days-l span.today{color:var(--ink);font-weight:700}
@@ -341,6 +351,11 @@ button.ck-row:active{background:var(--raised)}
 .ck-edit button{flex:none;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted)}
 .ck-cat-name{flex:1;min-width:0;min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-weight:700}
 .seg-sm button{padding:6px 11px;font-size:.82rem}
+.stmt{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.stmt div{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0}
+.stmt span{display:block;font-size:.76rem;color:var(--muted);font-weight:600}
+.stmt b{display:block;font-size:1.02rem;overflow-wrap:anywhere}
+.stmt .wide{grid-column:1/-1}
 .preview{white-space:pre-wrap;font:.86rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0 0;max-height:42vh;overflow:auto;color:var(--ink)}
 .checks{display:grid;gap:4px;margin-top:6px}
 .checks label{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;font-size:.92rem;min-height:36px}
@@ -408,14 +423,17 @@ button.ck-row:active{background:var(--raised)}
         <div class="stat"><span>Daily allowance</span><strong class="num" id="perDay"></strong><small class="num" id="perDaySub"></small></div>
       </div>
       <div class="card" id="daysCard">
-        <span class="lbl">Each day of the trip</span>
+        <div class="pack-top"><span class="lbl">Daily spending</span><span class="small num" id="planLbl"></span></div>
+        <p class="pace num" id="pace"></p>
+        <p class="small num" id="paceSub" style="margin:0"></p>
         <div class="days" id="days"></div>
         <div class="days-l" id="daysL"></div>
-        <p class="small" style="margin:6px 0 0">Dashed line: even daily share of your budget.</p>
+        <p class="small" style="margin:8px 0 0">Each bar is what you spent that day; the dashed line is your daily budget. Tap a day to see its purchases.</p>
       </div>
       <input class="search" id="spentSearch" type="search" placeholder="Search purchases, places, people" autocomplete="off" aria-label="Search purchases" enterkeyhint="search" maxlength="60" hidden>
       <button type="button" class="secondary" id="addExpense" style="margin-top:12px">＋ Add an expense (card, rupees, dollars…)</button>
       <div class="legend" id="legend"></div>
+      <div class="day-filter" id="dayFilter" hidden><span id="dayFilterTxt"></span><button type="button" id="dayFilterX">All days ✕</button></div>
       <div id="spentList"></div>
       <button type="button" class="secondary more" id="spentMore" hidden></button>
       <p class="empty-msg" id="spentEmpty">Nothing logged yet. Price something on the Deal tab and tap Log purchase.</p>
@@ -487,7 +505,7 @@ button.ck-row:active{background:var(--raised)}
         <button type="button" class="secondary" id="shareSettle">📊 Share insights…</button>
         <button type="button" class="secondary" id="recordPay">Record a payment</button>
       </div>
-      <h3>Everyone’s balance</h3>
+      <h3>Everyone’s balance <small style="font-weight:500">· tap a person for their statement</small></h3>
       <div id="friendList"></div>
       <p class="empty-msg" id="friendEmpty">Add the people you’re travelling with. Then log shared bills, including ones you didn’t pay for.</p>
       <div class="btn-pair" style="margin-top:10px">
@@ -699,15 +717,21 @@ button.ck-row:active{background:var(--raised)}
   <p class="small">People with shared bills or paybacks can be renamed but not removed.</p>
 </div>
 
-<!-- person balance -->
+<!-- person statement -->
 <div class="sheet" id="sheet-friend" role="dialog" aria-modal="true" aria-labelledby="frName">
   <div class="grab"></div>
   <h2 id="frName"></h2>
   <p class="lead num" id="frLead"></p>
+  <div class="stmt num" id="frStats"></div>
   <div id="frSuggest"></div>
-  <button type="button" class="secondary" id="frRecord" style="margin-top:10px">Record a payment</button>
-  <h3>History</h3>
-  <div id="frHist"></div>
+  <div class="seg seg-sm" id="frFilter" style="margin-top:14px">
+    <button type="button" data-ff="all">All</button><button type="button" data-ff="bills">Bills</button><button type="button" data-ff="pays">Payments</button><button type="button" data-ff="withme" id="frWithMe">With you</button>
+  </div>
+  <div id="frHist" style="margin-top:10px"></div>
+  <div class="sheet-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button type="button" class="secondary" id="frRecord">Record payment</button>
+    <button type="button" class="primary wa" id="frShare" style="margin-top:0">Share statement</button>
+  </div>
 </div>
 
 <!-- share group insights -->
@@ -1878,16 +1902,33 @@ function out(o) {
     $('perDay').textContent = Number.isFinite(allowance) ? (allowance > 0 ? npr(allowance) : 'None left') : '—';
     $('perDaySub').textContent = Number.isFinite(allowance) && allowance > 0 ? '≈ ' + short(allowance / c.nprPerVnd) + ' ₫ · ' + dl + ' day' + (dl === 1 ? '' : 's') + ' left' : (dl === 0 ? 'Trip has ended' : dl === null ? 'Set trip dates in Settings' : (b.left < 0 ? 'Over budget by ' + npr(-b.left) : 'Budget used up'));
 
-    // per-day bars
+    // daily spending vs budget, in plain words
     const days = tripDays();
     $('daysCard').hidden = !days.length;
     if (days.length) {
       const per = {}; state.entries.forEach(e => { const k = dayKey(e.ts); per[k] = (per[k] || 0) + myNpr(e); });
       const plan = b.total / days.length;
-      const max = Math.max(plan * 1.25, ...days.map(d => per[d] || 0)) || 1;
-      $('days').innerHTML = '<div class="plan" style="bottom:' + (plan / max * 100) + '%"></div>' + days.map(d => {
-        const v = per[d] || 0;
-        return '<div class="day-b' + (v > plan ? ' over' : '') + (v ? '' : ' empty') + '" title="' + esc(d + ': ' + npr(v)) + '"><i style="height:' + Math.max(2, v / max * 100) + '%"></i></div>';
+      const kn = v => v >= 1000 ? (Math.round(v / 100) / 10).toString().replace(/\.0$/, '') + 'k' : String(Math.round(v));
+      $('planLbl').textContent = 'Budget ' + npr(plan) + '/day';
+      const elapsed = days.filter(d => d <= today).length;
+      if (!elapsed) {
+        $('pace').className = 'pace num'; $('pace').textContent = 'Trip starts ' + dateOf(days[0] + 'T12:00');
+        $('paceSub').textContent = 'Daily budget ' + npr(plan) + ' for ' + days.length + ' days.';
+      } else {
+        const expected = plan * elapsed, diff = expected - c.spentNpr, ended = today > days[days.length - 1];
+        const avg = c.spentNpr / elapsed;
+        $('pace').className = 'pace num ' + (diff >= 0 ? 'good' : 'over');
+        $('pace').textContent = Math.abs(diff) < plan * 0.05 ? 'Right on budget so far'
+          : diff > 0 ? (ended ? 'Finished ' : 'On track: ') + npr(diff) + ' under budget' + (ended ? '' : ' so far')
+          : npr(-diff) + ' over budget' + (ended ? '' : ' so far');
+        $('paceSub').textContent = 'Spent ' + npr(c.spentNpr) + ' in ' + elapsed + ' day' + (elapsed === 1 ? '' : 's') + ' · average ' + npr(avg) + '/day' + (ended ? '' : ' (budget ' + npr(plan) + ')');
+      }
+      const max = Math.max(plan * 1.15, ...days.map(d => per[d] || 0)) || 1;
+      $('days').innerHTML = '<div class="plan" style="bottom:' + (plan / max * 100) + '%"><span>' + esc(kn(plan)) + '</span></div>' + days.map(d => {
+        const v = per[d] || 0, future = d > today;
+        const cls = 'day-b' + (future ? ' future' : v > plan ? ' over' : '') + (v ? '' : ' empty') + (d === filterDay ? ' sel' : '');
+        return '<button type="button" class="' + cls + '" data-day="' + d + '" aria-label="' + esc(dateOf(d + 'T12:00') + ': ' + npr(v)) + '">' +
+          '<b>' + (v ? esc(kn(v)) : '') + '</b><i style="height:' + (future ? 100 * plan / max : Math.max(2, v / max * 100)) + '%"></i></button>';
       }).join('');
       const step = days.length > 28 ? 7 : days.length > 14 ? 3 : 1;
       $('daysL').innerHTML = days.map((d, i) => '<span class="' + (d === today ? 'today' : '') + '">' + (i % step === 0 || d === today ? Number(d.slice(8)) : '') + '</span>').join('');
@@ -1902,7 +1943,9 @@ function out(o) {
     $('spentSearch').hidden = state.entries.length < 8 && !spentQuery;
     const qq = spentQuery.trim().toLowerCase();
     const matches = e => !qq || [e.item, e.cat, e.city || '', friendName(e.paidBy), ...e.among.map(friendName)].join(' ').toLowerCase().includes(qq);
-    const list = state.entries.filter(e => (e.paidBy === 'me' || myShare(e) > 0) && (!filterCat || e.cat === filterCat) && matches(e)).sort((a,b2) => b2.ts.localeCompare(a.ts));
+    const list = state.entries.filter(e => (e.paidBy === 'me' || myShare(e) > 0) && (!filterCat || e.cat === filterCat) && (!filterDay || dayKey(e.ts) === filterDay) && matches(e)).sort((a,b2) => b2.ts.localeCompare(a.ts));
+    $('dayFilter').hidden = !filterDay;
+    if (filterDay) $('dayFilterTxt').textContent = new Date(filterDay + 'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}) + ' · ' + npr(list.reduce((a, e) => a + myNpr(e), 0));
     const shown = list.slice(0, spentLimit);
     $('spentMore').hidden = list.length <= spentLimit;
     $('spentMore').textContent = 'Show ' + Math.min(50, list.length - spentLimit) + ' more (' + (list.length - spentLimit) + ' older)';
@@ -1919,9 +1962,15 @@ function out(o) {
             '<span class="amt num"><b>' + esc(inOwn(e, shared ? mine : e.vnd)) + '</b><small>' + (shared ? 'of ' + esc(inOwn(e, e.vnd)) : esc(npr(myNpr(e)))) + (e.method === 'card' && e.paidBy === 'me' ? ' · 💳' : '') + '</small></span></button>'; }).join('') + '</div>';
     }).join('');
     $('spentEmpty').hidden = list.length > 0;
-    $('spentEmpty').textContent = qq ? 'No purchases match “' + spentQuery.trim() + '”.' : filterCat ? 'Nothing in ' + filterCat + '.' : 'Nothing logged yet. Price something on the Deal tab and tap Log purchase.';
+    $('spentEmpty').textContent = filterDay && !qq && !filterCat ? 'Nothing logged on this day.' : qq ? 'No purchases match “' + spentQuery.trim() + '”.' : filterCat ? 'Nothing in ' + filterCat + '.' : 'Nothing logged yet. Price something on the Deal tab and tap Log purchase.';
   }
-  let spentQuery = '', spentLimit = 50;
+  let spentQuery = '', spentLimit = 50, filterDay = null;
+  $('days').addEventListener('click', e => {
+    const b = e.target.closest('[data-day]'); if (!b) return;
+    filterDay = filterDay === b.dataset.day ? null : b.dataset.day; spentLimit = 50; renderSpent();
+    if (filterDay) $('dayFilter').scrollIntoView({ behavior:'smooth', block:'start' });
+  });
+  $('dayFilterX').onclick = () => { filterDay = null; renderSpent(); };
   $('legend').addEventListener('click', e => { const b = e.target.closest('[data-filter]'); if (!b) return; filterCat = filterCat === b.dataset.filter ? null : b.dataset.filter; spentLimit = 50; renderSpent(); });
   $('spentSearch').addEventListener('input', () => { spentQuery = $('spentSearch').value; spentLimit = 50; renderSpent(); });
   $('spentMore').onclick = () => { spentLimit += 50; renderSpent(); };
@@ -2214,32 +2263,86 @@ function out(o) {
   $('pList').addEventListener('click', e => { const b = e.target.closest('[data-remove]'); if (!b || b.disabled) return;
     state.friends = state.friends.filter(f => f.id !== b.dataset.remove); save(); renderPeople(); renderAll(); });
 
-  // person sheet
-  let friendId = null;
-  function renderFriend() {
-    const c = calc(), id = friendId; if (id !== 'me' && !state.friends.some(f => f.id === id)) return;
-    const v = Math.round(c.nets[id] || 0), name = who(id);
-    $('frName').textContent = name;
-    $('frLead').textContent = Math.abs(v) < 500 ? 'Even with the group.' : (v > 0 ? name + (id === 'me' ? ' get back ' : ' gets back ') : name + (id === 'me' ? ' owe ' : ' owes ')) + gm(Math.abs(v), c) + ' (' + gmAlt(Math.abs(v), c) + ') in total.';
-    personTr = simplify(c.nets).filter(t => t.from === id || t.to === id);
-    $('frSuggest').innerHTML = personTr.length ? '<div class="list">' + personTr.map((t, k) => '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>to settle</small></span><span class="amt num"><b>' + esc(gm(t.vnd, c)) + '</b></span><button type="button" class="mini" data-fs="' + k + '" style="flex:none">Paid</button></div>').join('') + '</div>' : '';
-    const hist = [];
+  // person statement
+  let friendId = null, frFilter = 'all';
+  function personRows(id) {
+    const rows = [];
     state.entries.filter(e => isShared(e) && (e.paidBy === id || e.among.includes(id))).forEach(e => {
-      const eff = (e.paidBy === id ? e.vnd : 0) - shareOf(e, id);
-      hist.push({ ts:e.ts, title:e.item, sub:who(e.paidBy) + ' paid ' + inOwn(e, e.vnd) + (entryRate(e) ? ' (' + entryRate(e) + ')' : ''), eff, entry:e.id });
+      const paid = e.paidBy === id ? e.vnd : 0, share = shareOf(e, id);
+      rows.push({ kind:'bill', ts:e.ts, e, paid, share, eff: paid - share, withMe: e.paidBy === 'me' || e.among.includes('me') });
     });
     state.settlements.filter(t => t.from === id || t.to === id).forEach(t =>
-      hist.push({ ts:t.ts, title: who(t.from) + ' paid ' + who(t.to), sub: t.cur ? fmtCur(t.amt, t.cur) + ' (' + payRate(t) + ')' : 'Cash in dong', eff: t.from === id ? t.vnd : -t.vnd, settle:t.id }));
-    hist.sort((a,b) => b.ts.localeCompare(a.ts));
-    $('frHist').innerHTML = hist.length ? '<div class="list">' + hist.map(h =>
-      '<button type="button" class="row" ' + (h.entry ? 'data-entry="' + esc(h.entry) + '"' : 'data-settle="' + esc(h.settle) + '"') + '>' +
-      '<span class="mid"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + ' · ' + esc(dateOf(h.ts)) + '</small></span>' +
-      '<span class="amt num"><b class="' + (h.eff > 0 ? 'good' : h.eff < 0 ? 'over' : '') + '">' + (h.eff > 0 ? '+' : h.eff < 0 ? '−' : '') + esc(short(Math.abs(h.eff))) + ' ₫</b></span></button>').join('') + '</div>'
-      : '<p class="empty-msg">Nothing shared yet.</p>';
+      rows.push({ kind:'pay', ts:t.ts, t, eff: t.from === id ? t.vnd : -t.vnd, withMe: t.from === 'me' || t.to === 'me' }));
+    rows.sort((a, b) => a.ts.localeCompare(b.ts));
+    let run = 0; rows.forEach(r => { run += r.eff; r.bal = run; });
+    return rows;
   }
+  function renderFriend() {
+    const c = calc(), id = friendId; if (id !== 'me' && !state.friends.some(f => f.id === id)) return;
+    const v = Math.round(c.nets[id] || 0), name = who(id), isMe = id === 'me';
+    $('frName').textContent = isMe ? 'Your statement' : name + '’s statement';
+    $('frLead').textContent = Math.abs(v) < 500 ? 'Even with the group.' : name + (v > 0 ? (isMe ? ' get back ' : ' gets back ') : (isMe ? ' owe ' : ' owes ')) + gm(Math.abs(v), c) + ' (' + gmAlt(Math.abs(v), c) + ').';
+    const rows = personRows(id);
+    const sum = f => rows.reduce((a, r) => a + f(r), 0);
+    const paidBills = sum(r => r.kind === 'bill' ? r.paid : 0), share = sum(r => r.kind === 'bill' ? r.share : 0);
+    const gave = sum(r => r.kind === 'pay' && r.t.from === id ? r.t.vnd : 0), got = sum(r => r.kind === 'pay' && r.t.to === id ? r.t.vnd : 0);
+    const nBills = rows.filter(r => r.kind === 'bill').length;
+    $('frStats').innerHTML =
+      '<div><span>Paid for bills</span><b>' + esc(gm(paidBills, c)) + '</b></div>' +
+      '<div><span>' + (isMe ? 'Your share' : 'Their share') + ' (' + nBills + ' bill' + (nBills === 1 ? '' : 's') + ')</span><b>' + esc(gm(share, c)) + '</b></div>' +
+      '<div><span>Paid back to others</span><b>' + esc(gm(gave, c)) + '</b></div>' +
+      '<div><span>Received back</span><b>' + esc(gm(got, c)) + '</b></div>' +
+      '<div class="wide"><span>Balance = paid − share + paid back − received</span><b class="' + (v >= 500 ? 'good' : v <= -500 ? 'over' : '') + '" style="color:' + (v >= 500 ? 'var(--good)' : v <= -500 ? 'var(--warn)' : 'inherit') + '">' +
+        (Math.abs(v) < 500 ? 'Even' : (v > 0 ? '+' : '−') + esc(gm(Math.abs(v), c))) + '</b></div>';
+    personTr = simplify(c.nets).filter(t => t.from === id || t.to === id);
+    $('frSuggest').innerHTML = personTr.length ? '<p class="small" style="margin:12px 2px 6px">To settle up</p><div class="list">' + personTr.map((t, k) => '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>' + esc(gmAlt(t.vnd, c)) + '</small></span><span class="amt num"><b>' + esc(gm(t.vnd, c)) + '</b></span><button type="button" class="mini" data-fs="' + k + '" style="flex:none">Paid</button></div>').join('') + '</div>' : '';
+    $('frWithMe').hidden = isMe;
+    if (isMe && frFilter === 'withme') frFilter = 'all';
+    document.querySelectorAll('#frFilter [data-ff]').forEach(b => b.classList.toggle('sel', b.dataset.ff === frFilter));
+    const shown = rows.filter(r => frFilter === 'all' || (frFilter === 'bills' && r.kind === 'bill') || (frFilter === 'pays' && r.kind === 'pay') || (frFilter === 'withme' && r.withMe)).reverse();
+    $('frHist').innerHTML = shown.length ? '<div class="list">' + shown.map(r => {
+      let title, sub;
+      if (r.kind === 'bill') {
+        const e = r.e;
+        title = e.item;
+        sub = (e.paidBy === id ? (isMe ? 'You' : 'They') + ' paid ' + inOwn(e, e.vnd) : who(e.paidBy) + ' paid') + ' · share ' + inOwn(e, r.share) + (entryRate(e) ? ' · ' + entryRate(e) : '');
+      } else {
+        title = who(r.t.from) + ' → ' + who(r.t.to);
+        sub = 'Payment' + (r.t.cur ? ' · ' + fmtCur(r.t.amt, r.t.cur) + ' (' + payRate(r.t) + ')' : ' in dong');
+      }
+      const b = Math.round(r.bal);
+      return '<button type="button" class="row" ' + (r.kind === 'bill' ? 'data-entry="' + esc(r.e.id) + '"' : 'data-settle="' + esc(r.t.id) + '"') + '>' +
+        '<span class="mid"><b>' + esc(title) + '</b><small>' + esc(sub) + ' · ' + esc(dateOf(r.ts)) + '</small></span>' +
+        '<span class="amt num"><b class="' + (r.eff > 0 ? 'good' : r.eff < 0 ? 'over' : '') + '">' + (r.eff > 0 ? '+' : r.eff < 0 ? '−' : '') + esc(short(Math.abs(r.eff))) + ' ₫</b>' +
+        '<small>bal ' + (Math.abs(b) < 500 ? '0' : (b > 0 ? '+' : '−') + esc(short(Math.abs(b)))) + '</small></span></button>';
+    }).join('') + '</div>' : '<p class="empty-msg">' + (rows.length ? 'Nothing in this filter.' : 'Nothing shared yet.') + '</p>';
+  }
+  function statementText(id) {
+    const c = calc(), rows = personRows(id), name = shareName(id), v = Math.round(c.nets[id] || 0);
+    const m = x => state.groupCur === 'NPR' ? npr(x * c.nprPerVnd) : vnd(x);
+    const L = ['*' + name + ': trip statement*', '_' + dateOf(new Date().toISOString()) + ' · ' + rows.length + ' item' + (rows.length === 1 ? '' : 's') + '_', ''];
+    rows.forEach(r => {
+      const sign = (r.eff >= 0 ? '+' : '−') + m(Math.abs(r.eff));
+      if (r.kind === 'bill') L.push('• ' + dateOf(r.ts) + ' ' + r.e.item + ': ' + (r.e.paidBy === id ? 'paid ' + inOwn(r.e, r.e.vnd) + ', ' : '') + 'share ' + inOwn(r.e, r.share) + ' → ' + sign);
+      else L.push('• ' + dateOf(r.ts) + ' ' + shareName(r.t.from) + ' paid ' + shareName(r.t.to) + ' ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd)) + ' → ' + sign);
+    });
+    L.push('', '*Balance:* ' + (Math.abs(v) < 500 ? 'even ✅' : (v > 0 ? 'gets back ' : 'owes ') + m(Math.abs(v)) + (state.groupCur === 'NPR' ? '' : ' (' + npr(Math.abs(v) * c.nprPerVnd) + ')')));
+    simplify(c.nets).filter(t => t.from === id || t.to === id).forEach(t => L.push('→ ' + shareName(t.from) + ' pays ' + shareName(t.to) + ' ' + m(t.vnd)));
+    const rn = ratesUsed(rows.filter(r => r.kind === 'bill').map(r => r.e), rows.filter(r => r.kind === 'pay').map(r => r.t));
+    if (rn) L.push('', '_Rates used: ' + rn + '_');
+    L.push('', '_Sent from Deal Calc_');
+    return L.join('\n');
+  }
+  $('frFilter').addEventListener('click', e => { const b = e.target.closest('[data-ff]'); if (!b) return; frFilter = b.dataset.ff; renderFriend(); });
+  $('frShare').onclick = async () => {
+    const text = statementText(friendId);
+    if (navigator.onLine) { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener'); return; }
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch (err) { if (err && err.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text); } catch (err) {}
+  };
   $('friendList').addEventListener('click', e => {
     const b = e.target.closest('[data-friend]'); if (!b) return;
-    friendId = b.dataset.friend; renderFriend(); openSheet('sheet-friend');
+    friendId = b.dataset.friend; frFilter = 'all'; renderFriend(); openSheet('sheet-friend');
   });
   $('frSuggest').addEventListener('click', e => { const b = e.target.closest('[data-fs]'); if (!b) return;
     const t = personTr[Number(b.dataset.fs)]; if (t) openPayment(t.from, t.to, t.vnd); });
