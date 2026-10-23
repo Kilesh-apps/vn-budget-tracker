@@ -341,6 +341,10 @@ button.ck-row:active{background:var(--raised)}
 .ck-edit button{flex:none;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted)}
 .ck-cat-name{flex:1;min-width:0;min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-weight:700}
 .seg-sm button{padding:6px 11px;font-size:.82rem}
+.preview{white-space:pre-wrap;font:.86rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0 0;max-height:42vh;overflow:auto;color:var(--ink)}
+.checks{display:grid;gap:4px;margin-top:6px}
+.checks label{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;font-size:.92rem;min-height:36px}
+.wa{background:#1f8f5a;color:#fff}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 @media (max-height:720px){ .key{height:46px} .big{font-size:1.65rem} .actions{margin:8px 0 6px} .act{min-height:40px} }
 </style>
@@ -479,10 +483,9 @@ button.ck-row:active{background:var(--raised)}
       <div id="settleList"></div>
       <p class="empty-msg" id="settleEmpty">Everyone is even. 🎉</p>
       <div class="btn-pair" style="margin-top:10px">
-        <button type="button" class="secondary" id="shareSettle">Share summary…</button>
+        <button type="button" class="secondary" id="shareSettle">📊 Share insights…</button>
         <button type="button" class="secondary" id="recordPay">Record a payment</button>
       </div>
-      <p class="status" id="shareStatus"></p>
       <h3>Everyone’s balance</h3>
       <div id="friendList"></div>
       <p class="empty-msg" id="friendEmpty">Add the people you’re travelling with. Then log shared bills, including ones you didn’t pay for.</p>
@@ -697,6 +700,91 @@ button.ck-row:active{background:var(--raised)}
   <div id="frHist"></div>
 </div>
 
+<!-- share group insights -->
+<div class="sheet" id="sheet-insights" role="dialog" aria-modal="true" aria-labelledby="inTitle">
+  <div class="grab"></div>
+  <h2 id="inTitle">Share group insights</h2>
+  <p class="lead">Built from shared bills only. Your personal purchases are never included.</p>
+  <span class="flabel">Period</span>
+  <div class="seg seg-sm" id="inPeriod"><button type="button" data-ip="trip">Whole trip</button><button type="button" data-ip="today">Today</button><button type="button" data-ip="yday">Yesterday</button></div>
+  <span class="flabel">Include</span>
+  <div class="checks">
+    <label><input type="checkbox" id="inPeople" checked> Who spent what, and who paid</label>
+    <label><input type="checkbox" id="inCats" checked> Spending by category</label>
+    <label><input type="checkbox" id="inTop" checked> Biggest bills</label>
+    <label><input type="checkbox" id="inSettle" checked> Settle up (all bills, not just this period)</label>
+  </div>
+  <pre class="preview" id="inPreview"></pre>
+  <p class="status" id="inStatus"></p>
+  <div class="sheet-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button type="button" class="secondary" id="inOther">Other apps / copy</button>
+    <button type="button" class="primary wa" id="inWa" style="margin-top:0">WhatsApp</button>
+  </div>
+</div>
+
+<script type="text/plain" id="gsCode">// Deal Calc → Google Sheets backup.
+// Paste this into Extensions → Apps Script, save, then Deploy → New deployment →
+// Web app (Execute as: Me, Who has access: Anyone). Copy the web-app link into the app.
+// The first phone that connects becomes the only one allowed to write or read.
+
+const TABS = ['Purchases', 'Group bills', 'Payments', 'Exchanges', 'Balances'];
+const BACKUP_TAB = 'Backup (do not edit)';
+
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const props = PropertiesService.getScriptProperties();
+    const saved = props.getProperty('SECRET');
+    if (!body.secret || String(body.secret).length < 20) return out({ ok: false, error: 'Missing secret.' });
+    if (!saved) props.setProperty('SECRET', body.secret);
+    else if (saved !== body.secret) return out({ ok: false, error: 'This sheet is already linked to another phone.' });
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    TABS.forEach(name => writeTab(ss, name, (body.tabs && body.tabs[name]) || []));
+    const json = String(body.backup || '');
+    const rows = [['Full backup for the app, saved ' + new Date().toISOString() + '. Do not edit.']];
+    for (let i = 0; i < json.length; i += 45000) rows.push(['~' + json.slice(i, i + 45000)]);
+    writeTab(ss, BACKUP_TAB, rows, true);
+    return out({ ok: true, at: new Date().toISOString() });
+  } catch (err) {
+    return out({ ok: false, error: String(err) });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function doGet(e) {
+  const saved = PropertiesService.getScriptProperties().getProperty('SECRET');
+  if (!saved || !e.parameter || e.parameter.secret !== saved) return out({ ok: false, error: 'Not allowed.' });
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BACKUP_TAB);
+  if (!sh || sh.getLastRow() < 2) return out({ ok: false, error: 'No backup in this sheet yet.' });
+  const cells = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+  return out({ ok: true, backup: cells.map(r => String(r[0]).slice(1)).join('') });
+}
+
+function writeTab(ss, name, rows, raw) {
+  const sh = ss.getSheetByName(name) || ss.insertSheet(name);
+  sh.clearContents();
+  if (!rows.length) return;
+  const width = Math.max.apply(null, rows.map(r => r.length));
+  const data = rows.map(r => {
+    const x = r.slice();
+    while (x.length < width) x.push('');
+    // text that starts with = + - @ would become a formula; keep it as plain text
+    return x.map(v => (!raw && typeof v === 'string' && /^[=+\-@]/.test(v)) ? "'" + v : v);
+  });
+  const range = sh.getRange(1, 1, data.length, width);
+  if (raw) range.setNumberFormat('@');
+  range.setValues(data);
+  if (!raw) { sh.setFrozenRows(1); sh.getRange(1, 1, 1, width).setFontWeight('bold'); }
+}
+
+function out(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+</script>
+
 <!-- record a payment -->
 <div class="sheet" id="sheet-paym" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
   <div class="grab"></div>
@@ -796,6 +884,35 @@ button.ck-row:active{background:var(--raised)}
   <input id="sKey" type="password" autocomplete="off" placeholder="sk-ant-…">
   <p class="small">Without a key, price advice opens the Claude version of this app instead. A key is saved only on this phone and sent only to Anthropic.</p>
   <label style="display:flex;align-items:center;gap:10px"><input id="sSearch" type="checkbox"> Also search the web (slower, costs more)</label>
+  <h3>Google Sheets backup</h3>
+  <p class="small num" id="gsStatus" style="margin-top:0"></p>
+  <label for="gsUrl">Web-app link from Apps Script</label>
+  <input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
+  <div class="btn-pair" style="margin-top:10px">
+    <button type="button" class="secondary" id="gsNow">Back up now</button>
+    <button type="button" class="secondary" id="gsRestore">Restore from sheet</button>
+  </div>
+  <label style="display:flex;align-items:center;gap:10px"><input id="gsAuto" type="checkbox"> Back up automatically whenever you’re online</label>
+  <div class="card" style="margin-top:10px;padding:12px">
+    <b style="font-size:.9rem">Recovery code</b>
+    <p class="small" style="margin:4px 0 8px">Only this phone can read the sheet. Save this code somewhere safe (e.g. a note or email to yourself); you need it to restore on a new phone.</p>
+    <div class="rate-wrap"><input id="gsCodeShow" readonly class="num" style="font-size:.8rem" aria-label="Recovery code"><button type="button" class="mini" id="gsCodeCopy">Copy</button></div>
+    <label for="gsCodeIn">New phone? Paste your recovery code</label>
+    <div class="rate-wrap"><input id="gsCodeIn" autocomplete="off" spellcheck="false" placeholder="Paste code, then Restore from sheet"><button type="button" class="mini" id="gsCodeUse">Use</button></div>
+  </div>
+  <details class="gs-help" style="margin-top:10px">
+    <summary style="font-weight:600;cursor:pointer;min-height:40px;display:flex;align-items:center">How to set it up (about 5 minutes)</summary>
+    <ol class="small" style="padding-left:20px">
+      <li>In Chrome (Desktop site on), open <b>sheets.new</b> and name the sheet, e.g. “Vietnam trip backup”.</li>
+      <li><b>Extensions → Apps Script</b>. Delete what’s there, tap <b>Copy the script</b> below, paste it in, and tap 💾 Save.</li>
+      <li><b>Deploy → New deployment</b> → ⚙ <b>Web app</b>. Execute as: <b>Me</b>. Who has access: <b>Anyone</b>. Tap <b>Deploy</b>.</li>
+      <li>Allow access: <b>Advanced → Go to project (unsafe) → Allow</b>. It’s your own script, so this warning is expected.</li>
+      <li>Copy the <b>Web app URL</b>, paste it in the box above and tap <b>Back up now</b>.</li>
+    </ol>
+    <button type="button" class="secondary" id="gsCopy">Copy the script</button>
+    <pre class="preview" id="gsCodeView" style="max-height:200px"></pre>
+  </details>
+  <p class="small">The sheet includes your personal spending, so don’t share it. “Anyone” only lets this phone in: the first phone that connects locks the sheet to itself.</p>
   <h3>Backup</h3>
   <p class="small" style="margin-top:0" id="lastBackupText"></p>
   <div class="btn-pair">
@@ -965,7 +1082,9 @@ button.ck-row:active{background:var(--raised)}
     }
   }
   let saveWarned = false;
-  function save() {
+  var SYNC = null; // Google Sheets backup settings, set up further down
+  function save(skipSync) {
+    if (!skipSync && SYNC) { SYNC.dirty = true; saveSync(); scheduleSheetPush(20000); }
     try { localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (e) { if (!saveWarned) { saveWarned = true; showError('couldn’t save on this phone; save a backup from Settings now'); } }
   }
@@ -1964,15 +2083,71 @@ button.ck-row:active{background:var(--raised)}
     const t = settleTr[Number(b.dataset.settleK)]; if (t) openPayment(t.from, t.to, t.vnd);
   });
   $('recordPay').onclick = () => openPayment(null, null, 0);
-  $('shareSettle').onclick = async () => {
-    const c = calc(), tr = simplify(c.nets);
-    const lines = tr.length ? tr.map(t => shareName(t.from) + ' → ' + shareName(t.to) + ': ' + vnd(t.vnd) + ' (' + npr(t.vnd * c.nprPerVnd) + ')') : ['Everyone is even.'];
-    const text = 'Trip balances, ' + dateOf(new Date().toISOString()) + '\n' + lines.join('\n');
-    $('shareStatus').textContent = '';
+  // ---------- group insights for WhatsApp ----------
+  let inPeriod = 'trip';
+  function insightsText() {
+    const c = calc(), today = dayKey(new Date()), yd = dayKey(new Date(Date.now() - 864e5));
+    const inP = e => inPeriod === 'trip' || dayKey(e.ts) === (inPeriod === 'today' ? today : yd);
+    const bills = state.entries.filter(e => isShared(e) && inP(e));
+    const m = v => state.groupCur === 'NPR' ? npr(v * c.nprPerVnd) : vnd(v) + ' (' + npr(v * c.nprPerVnd) + ')';
+    const ms = v => state.groupCur === 'NPR' ? npr(v * c.nprPerVnd) : short(v) + ' ₫';
+    const name = shareName;
+    const L = [];
+    const when = inPeriod === 'trip' ? (bills.length ? dateOf(bills.reduce((a, e) => e.ts < a ? e.ts : a, bills[0].ts)) + ' – ' + dateOf(new Date().toISOString()) : 'No bills yet')
+      : (inPeriod === 'today' ? 'Today, ' : 'Yesterday, ') + dateOf(new Date(inPeriod === 'today' ? Date.now() : Date.now() - 864e5).toISOString());
+    L.push('*🇻🇳 Vietnam trip: group spending*');
+    L.push('_' + when + ' · ' + bills.length + ' shared bill' + (bills.length === 1 ? '' : 's') + '_');
+    if (!bills.length) { L.push('', 'Nothing shared ' + (inPeriod === 'trip' ? 'yet.' : inPeriod === 'today' ? 'today.' : 'yesterday.')); }
+    else {
+      const total = bills.reduce((a, e) => a + e.vnd, 0);
+      L.push('', '*Total:* ' + m(total));
+      if (inPeriod === 'trip') { const days = new Set(bills.map(e => dayKey(e.ts))).size; if (days > 1) L.push('*Per day:* about ' + ms(total / days) + ' over ' + days + ' days'); }
+      const people = ['me'].concat(state.friends.map(f => f.id));
+      if ($('inPeople').checked) {
+        const used = {}, paid = {};
+        bills.forEach(e => { paid[e.paidBy] = (paid[e.paidBy] || 0) + e.vnd; e.among.forEach(p => { used[p] = (used[p] || 0) + shareOf(e, p); }); });
+        const byUse = people.filter(p => used[p] > 0).sort((a, b) => used[b] - used[a]);
+        if (byUse.length) { L.push('', '*Who spent what* _(their share)_'); byUse.forEach(p => L.push('• ' + name(p) + ': ' + ms(used[p]))); }
+        const byPaid = people.filter(p => paid[p] > 0).sort((a, b) => paid[b] - paid[a]);
+        if (byPaid.length) { L.push('', '*Who paid upfront*'); byPaid.forEach(p => L.push('• ' + name(p) + ': ' + ms(paid[p]))); }
+      }
+      if ($('inCats').checked) {
+        const cats = {}; bills.forEach(e => { cats[e.cat] = (cats[e.cat] || 0) + e.vnd; });
+        const list = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+        L.push('', '*By category*'); list.forEach(([k, v]) => L.push(CATS[k].e + ' ' + k + ': ' + ms(v) + ' (' + Math.round(v / total * 100) + '%)'));
+      }
+      if ($('inTop').checked) {
+        const top = bills.slice().sort((a, b) => b.vnd - a.vnd).slice(0, 5);
+        L.push('', '*Biggest bills*'); top.forEach((e, i) => L.push((i + 1) + '. ' + e.item + ': ' + (curOf(e) === 'VND' ? ms(e.vnd) : inOwn(e, e.vnd)) + ' _(' + name(e.paidBy) + ' paid)_'));
+      }
+    }
+    if ($('inSettle').checked) {
+      const tr = simplify(c.nets);
+      L.push('', '*Settle up*');
+      if (!tr.length) L.push('Everyone is even ✅');
+      else tr.forEach(t => L.push('• ' + name(t.from) + ' → ' + name(t.to) + ': ' + m(t.vnd)));
+    }
+    L.push('', '_Sent from Deal Calc_');
+    return L.join('\n');
+  }
+  function renderInsights() {
+    document.querySelectorAll('#inPeriod [data-ip]').forEach(b => b.classList.toggle('sel', b.dataset.ip === inPeriod));
+    $('inPreview').textContent = insightsText(); $('inStatus').textContent = '';
+  }
+  $('shareSettle').onclick = () => { if (!state.myName) $('inStatus').textContent = ''; renderInsights(); openSheet('sheet-insights');
+    if (!state.myName) $('inStatus').textContent = 'Tip: set your name under People so the message doesn’t say “Me”.'; };
+  $('inPeriod').addEventListener('click', e => { const b = e.target.closest('[data-ip]'); if (!b) return; inPeriod = b.dataset.ip; renderInsights(); });
+  ['inPeople','inCats','inTop','inSettle'].forEach(id => $(id).addEventListener('change', renderInsights));
+  $('inWa').onclick = () => {
+    if (!navigator.onLine) { $('inStatus').textContent = 'You’re offline. WhatsApp will send it when you’re back online, or use Other apps / copy.'; }
+    window.open('https://wa.me/?text=' + encodeURIComponent(insightsText()), '_blank', 'noopener');
+  };
+  $('inOther').onclick = async () => {
+    const text = insightsText();
     try { if (navigator.share) { await navigator.share({ text }); return; } }
     catch (err) { if (err && err.name === 'AbortError') return; }
-    try { await navigator.clipboard.writeText(text); $('shareStatus').textContent = 'Copied. Paste it into your group chat.'; }
-    catch (err) { $('shareStatus').textContent = text; }
+    try { await navigator.clipboard.writeText(text); $('inStatus').textContent = 'Copied. Paste it into your group chat.'; }
+    catch (err) { $('inStatus').textContent = 'Couldn’t copy automatically. Long-press the preview to select and copy it.'; }
   };
 
   // people sheet
@@ -2239,7 +2414,7 @@ button.ck-row:active{background:var(--raised)}
     $('lastBackupText').textContent = state.lastBackup ? 'Last backup: ' + new Date(state.lastBackup).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) + '.' : 'No backup saved yet. Save one every day or two; it’s your only copy if the phone is lost or Chrome’s data is cleared.';
     applyTheme();
   }
-  $('openSettings').onclick = () => { fillSettings(); $('importNote').textContent = ''; $('backupStatus').textContent = ''; openSheet('sheet-settings'); };
+  $('openSettings').onclick = () => { fillSettings(); fillGs(); $('importNote').textContent = ''; $('backupStatus').textContent = ''; openSheet('sheet-settings'); };
   $('sCity').addEventListener('click', e => { const b = e.target.closest('[data-city]'); if (!b) return; state.city = b.dataset.city; save(); fillSettings(); });
   const bindNum = (id, key, allowEmpty, min) => $(id).addEventListener('input', () => {
     const raw = $(id).value, v = Number(raw);
@@ -2328,9 +2503,15 @@ button.ck-row:active{background:var(--raised)}
   $('importBtn').onclick = () => $('importFile').click();
   $('importFile').onchange = async () => {
     const f = $('importFile').files[0]; if (!f) return;
-    try {
-      const d = migrate(JSON.parse((await f.text()).replace(/^\ufeff/, '')));
+    try { $('importNote').textContent = importData(JSON.parse((await f.text()).replace(/^\ufeff/, ''))); }
+    catch (e) { $('importNote').textContent = 'That file isn’t a backup from this app.'; }
+    $('importFile').value = '';
+  };
+  function importData(raw) {
+    {
+      const d = migrate(raw);
       const fresh = !state.entries.length && !state.exchanges.length && !state.settlements.length;
+      if (fresh) state.myName = state.myName || d.myName || '';
       if (fresh) ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','city','lastCat','theme','lastBackup']
         .forEach(k => { state[k] = d[k]; });
       const byName = {}; state.friends.forEach(f => { byName[f.name.trim().toLowerCase()] = f.id; });
@@ -2348,16 +2529,117 @@ button.ck-row:active{background:var(--raised)}
       d.checklist.forEach(dc => { const mc = state.checklist.find(c => c.id === dc.id);
         if (!mc) state.checklist.push(dc); else dc.items.forEach(i => { if (!mc.items.some(x => x.id === i.id)) mc.items.push(i); }); });
       save(); fillSettings(); renderAll();
-      $('importNote').textContent = 'Restored ' + ne + ' purchases, ' + nx + ' exchanges, ' + ns + ' paybacks and ' + nf + ' people. ' + (fresh ? 'Budget, trip dates and rates were restored too.' : 'Nothing already here was changed.');
-    } catch (e) { $('importNote').textContent = 'That file isn’t a backup from this app.'; }
-    $('importFile').value = '';
-  };
+      return 'Restored ' + ne + ' purchases, ' + nx + ' exchanges, ' + ns + ' payments and ' + nf + (nf === 1 ? ' person. ' : ' people. ') + (fresh ? 'Budget, trip dates and rates were restored too.' : 'Nothing already here was changed.');
+    }
+  }
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persisted().then(p => p || navigator.storage.persist()).then(ok => {
       $('persistNote').textContent = ok ? 'Storage is marked persistent, so Chrome won’t clear it to free space.' : 'Storage isn’t marked persistent yet. Installing the app usually fixes that.';
     }).catch(() => {});
   }
   if (!location.protocol.startsWith('http')) $('fileNote').hidden = false;
+
+  // ---------- Google Sheets backup (one way: phone → sheet) ----------
+  const SYNC_KEY = 'vdc.sync';
+  function saveSync() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(SYNC)); } catch (e) {} }
+  let pushTimer = null, pushing = false;
+  SYNC = (() => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) { return {}; } })();
+  if (!SYNC.secret) { SYNC.secret = (crypto.randomUUID ? crypto.randomUUID() : uid() + uid()) + '-' + uid(); }
+  if (SYNC.auto === undefined) SYNC.auto = true;
+  saveSync();
+  const validUrl = u => /^https:\/\/script\.google(usercontent)?\.com\/.+/.test(u || '');
+  function scheduleSheetPush(ms) {
+    clearTimeout(pushTimer);
+    if (!SYNC || !SYNC.auto || !validUrl(SYNC.url)) return;
+    pushTimer = setTimeout(() => pushToSheet(false), ms);
+  }
+  function sheetTabs() {
+    const c = calc(), byTs = (a, b) => a.ts.localeCompare(b.ts), n = shareName;
+    const tabs = {};
+    tabs['Purchases'] = [['Date','Time','Item','Category','City','Amount','Currency','Total ₫','My share ₫','My share NPR','Paid by','Shared by','Paid with']]
+      .concat(state.entries.slice().sort(byTs).map(e => [dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.city || '', curOf(e) === 'VND' ? e.vnd : e.amt, curOf(e), e.vnd,
+        Math.round(myShare(e)), Math.round(myNpr(e)), n(e.paidBy), e.among.map(n).join(' + '), e.paidBy === 'me' ? (e.method === 'card' ? 'Card' : 'Cash') : '']));
+    tabs['Group bills'] = [['Date','Item','Category','Paid by','Total ₫','Original amount','Each person’s share (₫)']]
+      .concat(state.entries.filter(isShared).sort(byTs).map(e => [dayKey(e.ts), e.item, e.cat, n(e.paidBy), e.vnd, curOf(e) === 'VND' ? '' : fmtCur(e.amt, e.cur),
+        e.among.map(p => n(p) + ' ' + Math.round(shareOf(e, p))).join(', ')]));
+    tabs['Payments'] = [['Date','Time','From','To','₫','Original amount']]
+      .concat(state.settlements.slice().sort(byTs).map(t => [dayKey(t.ts), timeOf(t.ts), n(t.from), n(t.to), t.vnd, t.cur ? fmtCur(t.amt, t.cur) : '']));
+    tabs['Exchanges'] = [['Date','Dollars','₫ received','Rate ₫ per $','Where']]
+      .concat(state.exchanges.slice().sort(byTs).map(x => [dayKey(x.ts), x.usd, x.vnd, Math.round(x.vnd / x.usd), x.where || '']));
+    const people = ['me'].concat(state.friends.map(f => f.id));
+    tabs['Balances'] = [['Person','Net ₫ (+ gets back, − owes)','Net NPR','']]
+      .concat(people.map(p => { const v = Math.round(c.nets[p] || 0); return [n(p), v, Math.round(v * c.nprPerVnd), Math.abs(v) < 500 ? 'even' : v > 0 ? 'gets back' : 'owes']; }))
+      .concat([['','','',''], ['Settle up: who pays whom','₫','NPR','']])
+      .concat(simplify(c.nets).map(t => [n(t.from) + ' → ' + n(t.to), t.vnd, Math.round(t.vnd * c.nprPerVnd), '']))
+      .concat([['','','',''], ['Dollars left', Math.round(c.usdLeft * 100) / 100, '', ''], ['Dong in wallet', Math.round(c.vndLeft), '', ''], ['Updated', new Date().toLocaleString('en-GB'), '', '']]);
+    return tabs;
+  }
+  async function pushToSheet(manual) {
+    if (!validUrl(SYNC.url)) { if (manual) setGsStatus('Paste your Apps Script web-app link first.', true); return; }
+    if (!navigator.onLine) { setGsStatus('Offline. Will back up when you’re online.', false); return; }
+    if (pushing) return;
+    pushing = true; if (manual) setGsStatus('Backing up…', false);
+    try {
+      const res = await withTimeout(fetch(SYNC.url, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify({ secret:SYNC.secret, tabs:sheetTabs(), backup:backupText() }) }), 45000);
+      const j = await res.json().catch(() => null);
+      if (!j || !j.ok) throw new Error((j && j.error) || 'The sheet didn’t answer properly. Check the link, and that access is set to “Anyone”.');
+      SYNC.last = Date.now(); SYNC.dirty = false; SYNC.error = null; saveSync();
+      state.lastBackup = Date.now(); save(true);
+      setGsStatus(null); if (tab === 'spent') renderSpent();
+    } catch (e) {
+      SYNC.error = e && e.message === 'timeout' ? 'The sheet took too long to answer. Will try again.' : (e && e.message) || 'Backup failed.';
+      saveSync(); setGsStatus(null);
+    } finally { pushing = false; }
+  }
+  function setGsStatus(msg, warn) {
+    const el = $('gsStatus'); if (!el) return;
+    if (msg) { el.textContent = msg; el.style.color = warn ? 'var(--warn)' : ''; return; }
+    if (!validUrl(SYNC.url)) { el.textContent = 'Not connected. Back up everything to a Google Sheet you own: set-up steps below.'; el.style.color = ''; return; }
+    if (SYNC.error) { el.textContent = '⚠ Last backup failed: ' + SYNC.error; el.style.color = 'var(--warn)'; return; }
+    el.style.color = '';
+    el.textContent = SYNC.last ? '✓ Backed up to Google Sheets ' + ago(SYNC.last) + (SYNC.dirty ? ' · newer changes waiting' + (navigator.onLine ? '' : ' for internet') : '') : 'Connected. Tap Back up now for the first backup.';
+  }
+  function fillGs() {
+    $('gsUrl').value = SYNC.url || ''; $('gsAuto').checked = !!SYNC.auto;
+    $('gsRestore').disabled = !validUrl(SYNC.url); $('gsCodeView').textContent = $('gsCode').textContent.trim();
+    $('gsCodeShow').value = SYNC.secret; $('gsCodeIn').value = '';
+    setGsStatus(null);
+  }
+  $('gsUrl').addEventListener('change', () => {
+    const u = $('gsUrl').value.trim();
+    if (u && !validUrl(u)) { setGsStatus('That doesn’t look like an Apps Script web-app link (it starts with https://script.google.com/macros/s/).', true); return; }
+    SYNC.url = u; SYNC.error = null; SYNC.dirty = true; saveSync(); fillGs();
+  });
+  $('gsCodeCopy').onclick = async () => { try { await navigator.clipboard.writeText(SYNC.secret); $('gsCodeCopy').textContent = 'Copied ✓'; } catch (e) { $('gsCodeShow').select(); } setTimeout(() => { $('gsCodeCopy').textContent = 'Copy'; }, 2000); };
+  $('gsCodeUse').onclick = () => {
+    const code = $('gsCodeIn').value.trim();
+    if (code.length < 20) { setGsStatus('That recovery code looks too short.', true); return; }
+    if (state.entries.length && !confirm('Switch this phone to that recovery code? Backups from this phone will then go to that sheet.')) return;
+    SYNC.secret = code; SYNC.error = null; saveSync(); fillGs(); setGsStatus('Recovery code set. Paste the sheet’s web-app link above if needed, then tap Restore from sheet.', false);
+  };
+  $('gsAuto').addEventListener('change', () => { SYNC.auto = $('gsAuto').checked; saveSync(); if (SYNC.auto && SYNC.dirty) scheduleSheetPush(1000); });
+  $('gsNow').onclick = () => { $('gsUrl').dispatchEvent(new Event('change')); if (validUrl(SYNC.url)) pushToSheet(true); };
+  $('gsCopy').onclick = async () => {
+    try { await navigator.clipboard.writeText($('gsCode').textContent.trim()); $('gsCopy').textContent = 'Copied ✓'; }
+    catch (e) { $('gsCopy').textContent = 'Long-press the code below to copy it'; }
+    setTimeout(() => { $('gsCopy').textContent = 'Copy the script'; }, 2500);
+  };
+  $('gsRestore').onclick = async () => {
+    if (!validUrl(SYNC.url)) return;
+    if (!navigator.onLine) { setGsStatus('Restoring needs internet.', true); return; }
+    setGsStatus('Fetching your backup…', false);
+    try {
+      const res = await withTimeout(fetch(SYNC.url + (SYNC.url.includes('?') ? '&' : '?') + 'secret=' + encodeURIComponent(SYNC.secret)), 30000);
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || 'No backup found.');
+      $('importNote').textContent = importData(JSON.parse(j.backup));
+      setGsStatus(null);
+    } catch (e) { setGsStatus('Couldn’t restore: ' + ((e && e.message) || 'unknown error'), true); }
+  };
+  window.addEventListener('online', () => { if (SYNC.dirty) scheduleSheetPush(3000); setGsStatus(null); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && SYNC.dirty) scheduleSheetPush(3000); });
+  if (SYNC.dirty || (SYNC.last && Date.now() - SYNC.last > 6 * 3600e3)) { SYNC.dirty = true; scheduleSheetPush(4000); }
 
   // ---------- go ----------
   function renderAll() { renderDeal(); renderSpent(); renderCash(); renderGroup(); renderPack(); renderRateStatus(); }

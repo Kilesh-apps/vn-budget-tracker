@@ -20,3 +20,6 @@ After changing any file, bump `CACHE` in sw.js so phones pick up the update.
 
 ## Price advice without an API key
 https://claude.ai/artifact/9QYn1kZcDn5FWXV1HBNkFf — uses your Claude account. In the installed app, Price advice opens it with your prices filled in.
+
+## Google Sheets backup (v19)
+Code.gs is the Apps Script for the sheet. You don't need to upload it to GitHub; the app has a "Copy the script" button (Settings → Google Sheets backup) with set-up steps.
