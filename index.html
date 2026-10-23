@@ -482,6 +482,7 @@ button.ck-row:active{background:var(--raised)}
       <h3>Settle up · fewest payments</h3>
       <div id="settleList"></div>
       <p class="empty-msg" id="settleEmpty">Everyone is even. 🎉</p>
+      <p class="small num" id="ratesNote" hidden></p>
       <div class="btn-pair" style="margin-top:10px">
         <button type="button" class="secondary" id="shareSettle">📊 Share insights…</button>
         <button type="button" class="secondary" id="recordPay">Record a payment</button>
@@ -526,6 +527,15 @@ button.ck-row:active{background:var(--raised)}
     <label for="fAmount">Amount</label>
     <div class="rate-wrap"><input id="fAmount" type="number" inputmode="decimal" min="0" step="any" class="num"></div>
     <div class="seg seg-sm" id="fCur" style="margin-top:8px" aria-label="Currency"></div>
+    <div id="fRateRow" hidden>
+      <div class="rate-wrap" style="align-items:center;margin-top:10px">
+        <span class="num" id="fRateUnit" style="font-weight:600;white-space:nowrap"></span>
+        <input id="fRate" type="number" inputmode="decimal" min="0" step="any" class="num" aria-label="Conversion rate in dong">
+        <span style="font-weight:600">₫</span>
+        <button type="button" class="mini" id="fRateAuto">Auto</button>
+      </div>
+      <p class="status" id="fRateNote" style="margin-bottom:0"></p>
+    </div>
   </div>
   <label for="fItem">What is it?</label>
   <input id="fItem" type="text" maxlength="80" placeholder="e.g. Silk scarf, pho, Grab" autocomplete="off" enterkeyhint="done">
@@ -1098,6 +1108,20 @@ function out(o) {
   function vndPer(cur, c) { c = c || calc(); return cur === 'USD' ? c.vndPerUsd : cur === 'NPR' ? c.vndPerUsd / state.nprPerUsd : cur === 'INR' ? INR_TO_NPR * c.vndPerUsd / state.nprPerUsd : 1; }
   function fmtCur(a, cur) { return cur === 'USD' ? usd(Math.round(a * 100) / 100) : cur === 'INR' ? '₹' + fmt(a, 2) : cur === 'NPR' ? 'NPR ' + fmt(a, 2) : vnd(a); }
   const curOf = e => e.cur && e.cur !== 'VND' && e.amt > 0 ? e.cur : 'VND';
+  const unitOf = cur => cur === 'INR' ? '₹1' : cur === 'USD' ? '$1' : cur === 'NPR' ? 'NPR 1' : '1 ₫';
+  function rateText(cur, f) { return unitOf(cur) + ' = ' + fmt(f, f >= 100 ? 0 : f >= 10 ? 1 : 2) + ' ₫'; }
+  const entryRate = e => curOf(e) === 'VND' ? '' : rateText(e.cur, e.vnd / e.amt);
+  const payRate = t => t.cur && t.amt > 0 ? rateText(t.cur, t.vnd / t.amt) : '';
+  // one line listing the rates used, e.g. "₹1 = 272 ₫ · $1 = 25,900 ₫"
+  function ratesUsed(entries, pays) {
+    const by = {};
+    entries.filter(e => curOf(e) !== 'VND').forEach(e => { (by[e.cur] ||= []).push(e.vnd / e.amt); });
+    (pays || []).filter(t => t.cur && t.amt > 0).forEach(t => { (by[t.cur] ||= []).push(t.vnd / t.amt); });
+    return Object.entries(by).map(([cur, rs]) => {
+      const lo = Math.min(...rs), hi = Math.max(...rs), d = lo >= 100 ? 0 : lo >= 10 ? 1 : 2;
+      return unitOf(cur) + ' = ' + (Math.abs(hi - lo) < Math.pow(10, -d) ? fmt(lo, d) : fmt(lo, d) + '–' + fmt(hi, d)) + ' ₫';
+    }).join(' · ');
+  }
   // shows a VND value in the entry's own currency, using the rate it was logged at
   const inOwn = (e, v) => curOf(e) === 'VND' ? vnd(v) : fmtCur(v * e.amt / e.vnd, e.cur);
   const outOfWallet = e => e.paidBy === 'me' && e.method !== 'card' && curOf(e) === 'VND' ? e.vnd : 0;
@@ -1656,12 +1680,25 @@ function out(o) {
   }
   function formAmount() { return Math.max(0, Number($('fAmount').value) || 0); }
   // VND per unit of the form's currency: keep the original rate when editing an entry in its own currency
-  function formFactor(c) { return F.mode === 'edit' && F.cur === F.origCur && F.origFactor ? F.origFactor : vndPer(F.cur, c); }
+  function formFactor(c) {
+    if (F.cur === 'VND') return 1;
+    if (F.rateOverride > 0) return F.rateOverride;
+    return F.mode === 'edit' && F.cur === F.origCur && F.origFactor ? F.origFactor : vndPer(F.cur, c);
+  }
+  function renderRate(c, factor) {
+    const row = $('fRateRow'); row.hidden = F.cur === 'VND'; if (row.hidden) return;
+    $('fRateUnit').textContent = unitOf(F.cur) + ' =';
+    if (document.activeElement !== $('fRate')) $('fRate').value = Math.round(factor * 100) / 100;
+    const auto = F.mode === 'edit' && F.cur === F.origCur ? 'the rate saved with this bill' : F.cur === 'INR' ? 'the ₹1 = NPR 1.6 peg and your exchange rate' : 'your exchange rate';
+    $('fRateNote').textContent = F.rateOverride > 0 ? 'Your own rate. Tap Auto to go back to ' + auto + '.' : 'Using ' + auto + '. Change it if the card charged a different rate.';
+    $('fRateAuto').hidden = !(F.rateOverride > 0);
+  }
   function renderForm() {
     const c = calc(), amt = formAmount(), hasFriends = state.friends.length > 0;
     const factor = formFactor(c), rate = F.mode === 'edit' ? F.rate : c.nprPerVnd;
     $('fTitle').textContent = F.mode === 'edit' ? 'Edit purchase' : amt ? 'Log ' + fc(amt) : 'Add an expense';
-    $('fLead').textContent = amt ? '≈ ' + npr(amt * factor * rate) + (F.cur !== 'VND' ? ' · ≈ ' + vnd(amt * factor) : '') + (F.asked && F.cur === 'VND' && F.asked !== amt ? ' · asked ' + vnd(F.asked) : '') : 'Enter the amount and pick its currency.';
+    $('fLead').textContent = amt ? '≈ ' + npr(amt * factor * rate) + (F.cur !== 'VND' ? ' · ≈ ' + vnd(amt * factor) + ' at ' + rateText(F.cur, factor) : '') + (F.asked && F.cur === 'VND' && F.asked !== amt ? ' · asked ' + vnd(F.asked) : '') : 'Enter the amount and pick its currency.';
+    renderRate(c, factor);
     $('fCur').innerHTML = Object.entries(CURS).map(([k, v]) => '<button type="button" class="' + (k === F.cur ? 'sel' : '') + '" data-cur="' + k + '">' + v.label + '</button>').join('');
     $('fAmount').step = F.cur === 'VND' ? '1000' : 'any';
     $('fMethodWrap').hidden = F.paidBy !== 'me';
@@ -1752,10 +1789,12 @@ function out(o) {
   $('addExpense').onclick = () => openLog('manual');
   $('addShared').onclick = () => openLog('shared');
   $('fCur').addEventListener('click', e => { const b = e.target.closest('[data-cur]'); if (!b || b.dataset.cur === F.cur) return;
-    F.cur = b.dataset.cur; if (F.mode === 'log') F.method = F.cur === 'VND' || F.cur === 'USD' ? 'cash' : 'card';
+    F.cur = b.dataset.cur; F.rateOverride = null; if (F.mode === 'log') F.method = F.cur === 'VND' || F.cur === 'USD' ? 'cash' : 'card';
     if (F.custom) F.shares = evenShares(formAmount()); customKey = ''; renderForm(); });
   $('fMethod').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; F.method = b.dataset.m; renderForm(); });
   $('fAmount').addEventListener('input', renderForm);
+  $('fRate').addEventListener('input', () => { const v = Number($('fRate').value); F.rateOverride = v > 0 ? v : null; renderForm(); });
+  $('fRateAuto').onclick = () => { F.rateOverride = null; $('fRate').blur(); renderForm(); };
   $('fSplitToggle').onclick = () => { F.open = !F.open; renderForm(); };
   function amongChanged() { if (F.custom) { F.among.forEach(p => { if (!(p in F.shares)) F.shares[p] = 0; }); Object.keys(F.shares).forEach(p => { if (!F.among.includes(p)) delete F.shares[p]; }); } renderForm(); }
   $('fAll').onclick = () => { F.among = ['me'].concat(state.friends.map(f => f.id)); amongChanged(); };
@@ -1873,7 +1912,7 @@ function out(o) {
       const label = d === today ? 'Today' : new Date(d+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
       return '<div class="day num"><span>' + esc(label) + '</span><span>' + esc(npr(dayTotal[d])) + '</span></div><div class="list">' +
         items.map(e => { const m = CATS[e.cat], shared = isShared(e);
-          const sub = esc(e.cat) + ' · ' + esc(timeOf(e.ts)) + (e.city ? ' · ' + esc(e.city) : '');
+          const sub = esc(e.cat) + ' · ' + esc(timeOf(e.ts)) + (e.city ? ' · ' + esc(e.city) : '') + (entryRate(e) ? ' · ' + esc(entryRate(e)) : '');
           const mine = myShare(e);
           return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
             '<span class="mid"><b>' + esc(e.item) + (shared ? '<span class="tag">split</span>' : '') + '</b><small>' + sub + '</small></span>' +
@@ -2053,6 +2092,8 @@ function out(o) {
       '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>' + esc(gmAlt(t.vnd, c)) + '</small></span>' +
       '<span class="amt num"><b class="' + (t.from === 'me' ? 'over' : t.to === 'me' ? 'good' : '') + '">' + esc(gm(t.vnd, c)) + '</b></span>' +
       '<button type="button" class="mini" data-settle-k="' + k + '" style="flex:none">Paid</button></div>').join('') + '</div>' : '';
+    const rn = ratesUsed(state.entries.filter(isShared), state.settlements);
+    $('ratesNote').hidden = !rn; $('ratesNote').textContent = 'Bills in other currencies were converted at: ' + rn + '. Tap a bill to see or change its rate.';
     $('shareSettle').disabled = !state.friends.length;
     $('recordPay').disabled = !state.friends.length;
     $('friendEmpty').hidden = state.friends.length > 0;
@@ -2070,7 +2111,7 @@ function out(o) {
     $('sharedList').innerHTML = shared.length ? '<div class="list">' + shared.slice(0, sharedLimit).map(e => {
       const m = CATS[e.cat], mine = myShare(e);
       return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
-        '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(who(e.paidBy)) + ' paid · ' + e.among.length + ' ' + (e.among.length === 1 ? 'person' : 'people') + ' · ' + esc(dateOf(e.ts)) + '</small></span>' +
+        '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(who(e.paidBy)) + ' paid · ' + e.among.length + ' ' + (e.among.length === 1 ? 'person' : 'people') + ' · ' + esc(dateOf(e.ts)) + (entryRate(e) ? ' · ' + esc(entryRate(e)) : '') + '</small></span>' +
         '<span class="amt num"><b>' + esc(inOwn(e, e.vnd)) + '</b><small>' + (mine ? 'you ' + esc(inOwn(e, mine)) : 'not you') + '</small></span></button>';
     }).join('') + '</div>' : '';
   }
@@ -2118,7 +2159,7 @@ function out(o) {
       }
       if ($('inTop').checked) {
         const top = bills.slice().sort((a, b) => b.vnd - a.vnd).slice(0, 5);
-        L.push('', '*Biggest bills*'); top.forEach((e, i) => L.push((i + 1) + '. ' + e.item + ': ' + (curOf(e) === 'VND' ? ms(e.vnd) : inOwn(e, e.vnd)) + ' _(' + name(e.paidBy) + ' paid)_'));
+        L.push('', '*Biggest bills*'); top.forEach((e, i) => L.push((i + 1) + '. ' + e.item + ': ' + (curOf(e) === 'VND' ? ms(e.vnd) : inOwn(e, e.vnd) + ' ≈ ' + ms(e.vnd)) + ' _(' + name(e.paidBy) + ' paid)_'));
       }
     }
     if ($('inSettle').checked) {
@@ -2127,6 +2168,8 @@ function out(o) {
       if (!tr.length) L.push('Everyone is even ✅');
       else tr.forEach(t => L.push('• ' + name(t.from) + ' → ' + name(t.to) + ': ' + m(t.vnd)));
     }
+    const rn = ratesUsed(bills, $('inSettle').checked ? state.settlements : []) || ($('inSettle').checked ? ratesUsed(state.entries.filter(isShared), []) : '');
+    if (rn) L.push('', '_Rates used: ' + rn + '_');
     L.push('', '_Sent from Deal Calc_');
     return L.join('\n');
   }
@@ -2183,10 +2226,10 @@ function out(o) {
     const hist = [];
     state.entries.filter(e => isShared(e) && (e.paidBy === id || e.among.includes(id))).forEach(e => {
       const eff = (e.paidBy === id ? e.vnd : 0) - shareOf(e, id);
-      hist.push({ ts:e.ts, title:e.item, sub:who(e.paidBy) + ' paid ' + inOwn(e, e.vnd), eff, entry:e.id });
+      hist.push({ ts:e.ts, title:e.item, sub:who(e.paidBy) + ' paid ' + inOwn(e, e.vnd) + (entryRate(e) ? ' (' + entryRate(e) + ')' : ''), eff, entry:e.id });
     });
     state.settlements.filter(t => t.from === id || t.to === id).forEach(t =>
-      hist.push({ ts:t.ts, title: who(t.from) + ' paid ' + who(t.to), sub: t.cur ? fmtCur(t.amt, t.cur) : 'Cash in dong', eff: t.from === id ? t.vnd : -t.vnd, settle:t.id }));
+      hist.push({ ts:t.ts, title: who(t.from) + ' paid ' + who(t.to), sub: t.cur ? fmtCur(t.amt, t.cur) + ' (' + payRate(t) + ')' : 'Cash in dong', eff: t.from === id ? t.vnd : -t.vnd, settle:t.id }));
     hist.sort((a,b) => b.ts.localeCompare(a.ts));
     $('frHist').innerHTML = hist.length ? '<div class="list">' + hist.map(h =>
       '<button type="button" class="row" ' + (h.entry ? 'data-entry="' + esc(h.entry) + '"' : 'data-settle="' + esc(h.settle) + '"') + '>' +
@@ -2218,7 +2261,7 @@ function out(o) {
     $('pmAmt').step = PM.cur === 'VND' ? '1000' : 'any';
     const amt = Number($('pmAmt').value) || 0, v = amt * vndPer(PM.cur, c);
     const involved = PM.from === 'me' || PM.to === 'me';
-    $('pmNote').textContent = (amt && PM.cur !== 'VND' ? '≈ ' + vnd(v) + '. ' : '') + (!involved ? 'Doesn’t touch your wallet.'
+    $('pmNote').textContent = (PM.cur !== 'VND' ? (amt ? '≈ ' + vnd(v) + ' at ' : 'Rate: ') + rateText(PM.cur, vndPer(PM.cur, c)) + '. ' : '') + (!involved ? 'Doesn’t touch your wallet.'
       : PM.cur === 'VND' ? (PM.to === 'me' ? 'Adds to the dong in your wallet.' : 'Comes out of the dong in your wallet.')
       : PM.cur === 'USD' ? (PM.to === 'me' ? 'Adds to your dollars.' : 'Comes out of your dollars.') : 'Rupee payments don’t change your trip wallet.');
   }
@@ -2556,14 +2599,14 @@ function out(o) {
   function sheetTabs() {
     const c = calc(), byTs = (a, b) => a.ts.localeCompare(b.ts), n = shareName;
     const tabs = {};
-    tabs['Purchases'] = [['Date','Time','Item','Category','City','Amount','Currency','Total ₫','My share ₫','My share NPR','Paid by','Shared by','Paid with']]
-      .concat(state.entries.slice().sort(byTs).map(e => [dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.city || '', curOf(e) === 'VND' ? e.vnd : e.amt, curOf(e), e.vnd,
+    tabs['Purchases'] = [['Date','Time','Item','Category','City','Amount','Currency','Rate (₫ per unit)','Total ₫','My share ₫','My share NPR','Paid by','Shared by','Paid with']]
+      .concat(state.entries.slice().sort(byTs).map(e => [dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.city || '', curOf(e) === 'VND' ? e.vnd : e.amt, curOf(e), curOf(e) === 'VND' ? 1 : Math.round(e.vnd / e.amt * 100) / 100, e.vnd,
         Math.round(myShare(e)), Math.round(myNpr(e)), n(e.paidBy), e.among.map(n).join(' + '), e.paidBy === 'me' ? (e.method === 'card' ? 'Card' : 'Cash') : '']));
-    tabs['Group bills'] = [['Date','Item','Category','Paid by','Total ₫','Original amount','Each person’s share (₫)']]
-      .concat(state.entries.filter(isShared).sort(byTs).map(e => [dayKey(e.ts), e.item, e.cat, n(e.paidBy), e.vnd, curOf(e) === 'VND' ? '' : fmtCur(e.amt, e.cur),
+    tabs['Group bills'] = [['Date','Item','Category','Paid by','Total ₫','Original amount','Rate used','Each person’s share (₫)']]
+      .concat(state.entries.filter(isShared).sort(byTs).map(e => [dayKey(e.ts), e.item, e.cat, n(e.paidBy), e.vnd, curOf(e) === 'VND' ? '' : fmtCur(e.amt, e.cur), entryRate(e),
         e.among.map(p => n(p) + ' ' + Math.round(shareOf(e, p))).join(', ')]));
-    tabs['Payments'] = [['Date','Time','From','To','₫','Original amount']]
-      .concat(state.settlements.slice().sort(byTs).map(t => [dayKey(t.ts), timeOf(t.ts), n(t.from), n(t.to), t.vnd, t.cur ? fmtCur(t.amt, t.cur) : '']));
+    tabs['Payments'] = [['Date','Time','From','To','₫','Original amount','Rate used']]
+      .concat(state.settlements.slice().sort(byTs).map(t => [dayKey(t.ts), timeOf(t.ts), n(t.from), n(t.to), t.vnd, t.cur ? fmtCur(t.amt, t.cur) : '', payRate(t)]));
     tabs['Exchanges'] = [['Date','Dollars','₫ received','Rate ₫ per $','Where']]
       .concat(state.exchanges.slice().sort(byTs).map(x => [dayKey(x.ts), x.usd, x.vnd, Math.round(x.vnd / x.usd), x.where || '']));
     const people = ['me'].concat(state.friends.map(f => f.id));
