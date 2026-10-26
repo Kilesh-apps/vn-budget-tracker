@@ -563,6 +563,7 @@ button.ck-row:active{background:var(--raised)}
     <div class="split-head"><b id="fSplitTitle">Just for me, I paid</b><button type="button" class="mini" id="fSplitToggle">Split</button></div>
     <div id="fSplitBody" hidden>
       <span class="flabel">Who paid?</span><div class="seg" id="fPaidBy"></div>
+      <div id="fPayers" hidden></div>
       <span class="flabel">Shared by <button type="button" class="mini" id="fAll" style="min-height:30px;margin-left:6px">Everyone</button></span><div class="seg" id="fAmong"></div>
       <span class="flabel">How to split</span>
       <div class="seg" id="fMode"><button type="button" data-mode="equal">Equally</button><button type="button" data-mode="custom">Custom amounts</button></div>
@@ -973,7 +974,7 @@ function out(o) {
   const DEF = { nprPerUsd: 152.55, marketVndPerUsd: 25877 };
   const ARTIFACT_URL = 'https://claude.ai/artifact/9QYn1kZcDn5FWXV1HBNkFf';
   const CATS = {
-    Shopping:{e:'🛍️',c:'#d9577a'}, Food:{e:'🍜',c:'#e8962e'}, Transport:{e:'🛵',c:'#3b82c4'},
+    Shopping:{e:'🛍️',c:'#d9577a'}, Food:{e:'🍜',c:'#e8962e'}, Drinks:{e:'🍺',c:'#c9a227'}, Transport:{e:'🛵',c:'#3b82c4'},
     Stay:{e:'🏨',c:'#7c5cc4'}, Activities:{e:'🎟️',c:'#1f9e78'}, Other:{e:'✨',c:'#8a9a94'}
   };
   const CURS = { VND:{ label:'₫ Dong', unit:1000 }, INR:{ label:'₹ Indian rupee', unit:1 }, NPR:{ label:'रू Nepali rupee', unit:1 }, USD:{ label:'$ Dollar', unit:0.01 } };
@@ -1046,6 +1047,11 @@ function out(o) {
       exchanges:[], entries:[], settlements:[], friends:[], myName:'', groupCur:'VND', lastCat:'Shopping', city:'Ho Chi Minh City',
       theme:'auto', lastBackup:null, ttsSlow:false, phrases:[], checklist:[], ai:{ key:'', place:'Market stall', search:false } };
   }
+  function payersOf(e) { return e.paidBy === 'multi' && e.payers ? e.payers : { [e.paidBy || 'me']: e.vnd }; }
+  function paidOf(e, p) { return payersOf(e)[p] || 0; }
+  function payerText(e, nameFn) {
+    return e.paidBy === 'multi' ? Object.entries(payersOf(e)).map(([p, v]) => nameFn(p) + ' ' + short(v)).join(' + ') : nameFn(e.paidBy);
+  }
   function validTs(t) { const d = new Date(t); return t && !isNaN(d) ? d.toISOString() : new Date().toISOString(); }
   function uniqById(arr) { const seen = new Set(); return arr.filter(x => !seen.has(x.id) && seen.add(x.id)); }
   function normEntry(e, s) {
@@ -1059,9 +1065,15 @@ function out(o) {
       shares = {}; among.forEach(p => { shares[p] = Math.max(0, Number(e.shares[p]) || 0); });
       if (Math.abs(Object.values(shares).reduce((a, x) => a + x, 0) - v) > 1) shares = null;
     }
+    let paidBy = e.paidBy ? String(e.paidBy) : 'me', payers = null;
+    if (paidBy === 'multi') {
+      if (e.payers && typeof e.payers === 'object') { payers = {}; Object.keys(e.payers).forEach(k => { const x = Number(e.payers[k]) || 0; if (x > 0) payers[String(k)] = x; }); }
+      const ks = payers ? Object.keys(payers) : [];
+      if (!ks.length || Math.abs(ks.reduce((a, k) => a + payers[k], 0) - v) > 1) { paidBy = ks[0] || 'me'; payers = null; }
+    }
     const cur = CURS[e.cur] && e.cur !== 'VND' && Number(e.amt) > 0 ? e.cur : null;
     return { cur, amt: cur ? Number(e.amt) : null, method: e.method === 'card' ? 'card' : 'cash', shares, id:String(e.id), ts:validTs(e.ts), item:String(e.item || e.cat || 'Purchase'),
-      cat: CATS[e.cat] ? e.cat : 'Other', vnd:v, rate, paidBy: e.paidBy ? String(e.paidBy) : 'me', among,
+      cat: CATS[e.cat] ? e.cat : 'Other', vnd:v, rate, paidBy, payers, among,
       asked: Number(e.asked) || null, city: e.city || null };
   }
   function migrate(raw) {
@@ -1100,7 +1112,7 @@ function out(o) {
     // anyone referenced but missing from the people list gets a placeholder, so no debt is ever hidden
     const known = new Set(b.friends.map(f => f.id)); let n = 0;
     const need = id => { if (id && id !== 'me' && !known.has(id)) { known.add(id); b.friends.push({ id, name:'Person ' + (++n) }); } };
-    b.entries.forEach(e => { need(e.paidBy); e.among.forEach(need); });
+    b.entries.forEach(e => { Object.keys(payersOf(e)).forEach(need); e.among.forEach(need); });
     b.settlements.forEach(t => { need(t.from); need(t.to); });
     b.v = 3;
     return b;
@@ -1148,8 +1160,8 @@ function out(o) {
   }
   // shows a VND value in the entry's own currency, using the rate it was logged at
   const inOwn = (e, v) => curOf(e) === 'VND' ? vnd(v) : fmtCur(v * e.amt / e.vnd, e.cur);
-  const outOfWallet = e => e.paidBy === 'me' && e.method !== 'card' && curOf(e) === 'VND' ? e.vnd : 0;
-  const usdCashOut = e => e.paidBy === 'me' && e.method !== 'card' && curOf(e) === 'USD' ? e.amt : 0;
+  const outOfWallet = e => e.method !== 'card' && curOf(e) === 'VND' ? paidOf(e, 'me') : 0;
+  const usdCashOut = e => e.method !== 'card' && curOf(e) === 'USD' ? paidOf(e, 'me') * e.amt / e.vnd : 0;
   const friendName = id => id === 'me' ? 'You' : ((state.friends.find(f => f.id === id) || {}).name || 'Someone');
   const isShared = e => e.paidBy !== 'me' || e.among.length !== 1 || e.among[0] !== 'me';
   // net per person across ALL shared bills and payments: positive = should get money back
@@ -1157,7 +1169,7 @@ function out(o) {
     const n = { me:0 }; state.friends.forEach(f => { n[f.id] = 0; });
     for (const e of state.entries) {
       if (!isShared(e)) continue;
-      n[e.paidBy] = (n[e.paidBy] || 0) + e.vnd;
+      Object.entries(payersOf(e)).forEach(([p, v]) => { n[p] = (n[p] || 0) + v; });
       e.among.forEach(p => { n[p] = (n[p] || 0) - shareOf(e, p); });
     }
     for (const t of state.settlements) { n[t.from] = (n[t.from] || 0) + t.vnd; n[t.to] = (n[t.to] || 0) - t.vnd; }
@@ -1686,6 +1698,7 @@ function out(o) {
       const sum = F.among.reduce((a, p) => a + formShare(p, total), 0), gap = total - sum;
       if (Math.abs(gap) > CURS[F.cur].unit / 2 + 1e-9 && Math.abs(gap) > 0.009) return gap > 0 ? 'Still to assign: ' + fc(gap) + '.' : 'Over by ' + fc(-gap) + '. Lower someone’s amount.';
     }
+    if (F.paidBy === 'multi') return multiSummary(total, toNpr);
     const payer = F.paidBy, payerName = payer === 'me' ? 'you' : friendName(payer);
     const debtors = F.among.filter(p => p !== payer);
     const head = F.among.includes('me') ? 'Your share ' + fc(formShare('me', total)) + ' (' + toNpr(formShare('me', total)) + '). ' : 'Not part of your own spending. ';
@@ -1697,7 +1710,34 @@ function out(o) {
       : debtors.map(p => whoF(p) + (p === 'me' ? ' owe ' : ' owes ') + payerName + ' ' + fc(formShare(p, total))).join('; ') + '.';
     return head + lines + (payer !== 'me' ? ' Nothing leaves your wallet.' : '');
   }
+  function payersSum() { return Object.values(F.payers || {}).reduce((a, x) => a + (Number(x) || 0), 0); }
+  function multiSummary(total, toNpr) {
+    const gap = total - payersSum();
+    if (Math.abs(gap) > Math.max(0.009, CURS[F.cur].unit / 2)) return gap > 0 ? 'Who paid: ' + fc(gap) + ' still to assign.' : 'Who paid: over by ' + fc(-gap) + '.';
+    const people = ['me'].concat(state.friends.map(f => f.id)).filter(p => (Number(F.payers[p]) || 0) > 0 || F.among.includes(p));
+    const whoF = p => p === 'me' ? 'You' : friendName(p);
+    const parts = people.map(p => { const d = (Number(F.payers[p]) || 0) - formShare(p, total); return { p, d }; }).filter(x => Math.abs(x.d) >= CURS[F.cur].unit / 2 && Math.abs(x.d) > 0.009);
+    const head = F.among.includes('me') ? 'Your share ' + fc(formShare('me', total)) + ' (' + toNpr(formShare('me', total)) + '). ' : 'Not part of your own spending. ';
+    if (!parts.length) return head + 'Everyone paid exactly their share, so nobody owes anything.';
+    return head + parts.map(x => whoF(x.p) + (x.d > 0 ? (x.p === 'me' ? ' get back ' : ' gets back ') : (x.p === 'me' ? ' owe ' : ' owes ')) + fc(Math.abs(x.d))).join('; ') + '.';
+  }
+  let payersKey = '';
+  function renderPayers(total) {
+    const box = $('fPayers'); box.hidden = F.paidBy !== 'multi';
+    if (box.hidden) { payersKey = ''; return; }
+    const people = [{ id:'me', name:'Me' }].concat(state.friends);
+    const key = people.map(p => p.id).join('|') + '#' + F.id + '#' + F.mode + '#' + F.cur;
+    if (key !== payersKey) {
+      payersKey = key;
+      box.innerHTML = '<p class="small" style="margin:8px 0 0">How much did each person put in?</p>' + people.map(p => '<div class="share-row"><span>' + esc(p.name) + '</span>' +
+        '<input type="number" inputmode="decimal" min="0" step="any" data-payer="' + esc(p.id) + '" value="' + (Number(F.payers[p.id]) ? Math.round(F.payers[p.id] * 100) / 100 : '') + '" placeholder="0" aria-label="' + esc(p.name) + ' paid"></div>').join('') +
+        '<p class="status num" id="fPayersLeft" style="margin-bottom:0"></p>';
+    }
+    const ok = Math.abs(total - payersSum()) <= Math.max(0.009, CURS[F.cur].unit / 2), gap = total - payersSum(), el = $('fPayersLeft');
+    if (el) { el.textContent = ok ? '✓ Adds up to ' + fc(total) : gap > 0 ? 'Still to assign: ' + fc(gap) : 'Over by ' + fc(-gap); el.style.color = ok ? 'var(--good)' : 'var(--warn)'; }
+  }
   function splitTitle() {
+    if (F.paidBy === 'multi') { const n = F.among.length; return 'Several people paid' + (F.custom ? ' · custom split' : ' · split ' + n + ' way' + (n === 1 ? '' : 's')); }
     if (F.paidBy === 'me' && F.among.length === 1 && F.among[0] === 'me') return 'Just for me, I paid';
     const n = F.among.length;
     return (F.paidBy === 'me' ? 'I paid' : friendName(F.paidBy) + ' paid') + (F.custom ? ' · custom split' : ' · split ' + n + ' way' + (n === 1 ? '' : 's'));
@@ -1725,9 +1765,10 @@ function out(o) {
     renderRate(c, factor);
     $('fCur').innerHTML = Object.entries(CURS).map(([k, v]) => '<button type="button" class="' + (k === F.cur ? 'sel' : '') + '" data-cur="' + k + '">' + v.label + '</button>').join('');
     $('fAmount').step = F.cur === 'VND' ? '1000' : 'any';
-    $('fMethodWrap').hidden = F.paidBy !== 'me';
+    const iPay = F.paidBy === 'me' || (F.paidBy === 'multi' && (Number(F.payers.me) || 0) > 0);
+    $('fMethodWrap').hidden = !iPay;
     document.querySelectorAll('#fMethod [data-m]').forEach(x => x.classList.toggle('sel', x.dataset.m === F.method));
-    $('fMethodNote').textContent = F.paidBy !== 'me' ? '' : F.method === 'card' ? 'Card and online payments don’t touch your cash wallet.'
+    $('fMethodNote').textContent = !iPay ? '' : F.method === 'card' ? 'Card and online payments don’t touch your cash wallet.'
       : F.cur === 'VND' ? 'Comes out of the dong in your wallet.' : F.cur === 'USD' ? 'Comes out of your dollars.' : 'Rupee cash isn’t tracked in your wallet; it only counts toward spending.';
     $('fSplitBox').hidden = !hasFriends; $('fNoFriends').hidden = hasFriends || F.mode === 'edit';
     if (hasFriends) {
@@ -1735,7 +1776,9 @@ function out(o) {
       $('fSplitToggle').textContent = F.open ? 'Done' : 'Change';
       $('fSplitBody').hidden = !F.open;
       const people = [{ id:'me', name:'Me' }].concat(state.friends);
-      $('fPaidBy').innerHTML = people.map(p => '<button type="button" class="' + (F.paidBy === p.id ? 'sel' : '') + '" data-pay="' + esc(p.id) + '">' + esc(p.name) + '</button>').join('');
+      $('fPaidBy').innerHTML = people.map(p => '<button type="button" class="' + (F.paidBy === p.id ? 'sel' : '') + '" data-pay="' + esc(p.id) + '">' + esc(p.name) + '</button>').join('') +
+        '<button type="button" class="' + (F.paidBy === 'multi' ? 'sel' : '') + '" data-pay="multi">Several people</button>';
+      renderPayers(amt);
       $('fAmong').innerHTML = people.map(p => '<button type="button" class="' + (F.among.includes(p.id) ? 'sel' : '') + '" data-share="' + esc(p.id) + '" aria-pressed="' + F.among.includes(p.id) + '">' + esc(p.name) + '</button>').join('');
       document.querySelectorAll('#fMode [data-mode]').forEach(x => x.classList.toggle('sel', (x.dataset.mode === 'custom') === F.custom));
       renderCustom(amt);
@@ -1783,6 +1826,11 @@ function out(o) {
   }
   function validSplit() {
     if (!F.among.length) return 'Pick at least one person who shares it.';
+    if (F.paidBy === 'multi') {
+      const total = formAmount(), ps = payersSum();
+      if (!(ps > 0)) return 'Enter how much each person paid.';
+      if (Math.abs(total - ps) > Math.max(0.009, CURS[F.cur].unit / 2)) return 'The amounts paid add up to ' + fc(ps) + ', but the bill is ' + fc(total) + '.';
+    }
     if (F.custom) {
       const total = formAmount(), sum = F.among.reduce((a, p) => a + (Number(F.shares[p]) || 0), 0);
       if (Math.abs(total - sum) > Math.max(0.009, CURS[F.cur].unit / 2)) return 'Custom amounts add up to ' + fc(sum) + ', but the bill is ' + fc(total) + '.';
@@ -1792,7 +1840,7 @@ function out(o) {
   function openLog(manual) {
     tidy('ask'); tidy('paid');
     const amount = manual ? 0 : Number(vals.paid) || Number(vals.ask); if (!manual && !amount) return;
-    F = { mode:'log', fromDeal:!manual, cur:'VND', method:'cash', cat:state.lastCat, paidBy:'me', among:['me'], open:manual === 'shared', asked: manual ? null : Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
+    F = { mode:'log', fromDeal:!manual, cur:'VND', method:'cash', cat:state.lastCat, paidBy:'me', payers:{}, among:['me'], open:manual === 'shared', asked: manual ? null : Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
     customKey = '';
     $('fAmount').value = amount || '';
     $('fItem').value = manual ? '' : lastAdviceItem || '';
@@ -1803,7 +1851,9 @@ function out(o) {
     const e = state.entries.find(x => x.id === id); if (!e) return;
     const cur = curOf(e), factor = cur === 'VND' ? 1 : e.vnd / e.amt, sh = {};
     if (e.shares) Object.keys(e.shares).forEach(p => { sh[p] = Math.round(e.shares[p] / factor * 100) / 100; });
-    F = { mode:'edit', id, cur, origCur:cur, origFactor:factor, method:e.method || 'cash', cat:e.cat, paidBy:e.paidBy, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate,
+    const py = {}; if (e.paidBy === 'multi') Object.entries(payersOf(e)).forEach(([p, x]) => { py[p] = Math.round(x / factor * 100) / 100; });
+    payersKey = '';
+    F = { mode:'edit', id, cur, origCur:cur, origFactor:factor, method:e.method || 'cash', cat:e.cat, paidBy:e.paidBy, payers:py, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate,
       custom:!!e.shares, shares:sh, whenOpen:true };
     customKey = '';
     $('fAmount').value = cur === 'VND' ? e.vnd : e.amt; $('fItem').value = e.item; $('fWhen').value = toLocalInput(e.ts);
@@ -1823,7 +1873,15 @@ function out(o) {
   function amongChanged() { if (F.custom) { F.among.forEach(p => { if (!(p in F.shares)) F.shares[p] = 0; }); Object.keys(F.shares).forEach(p => { if (!F.among.includes(p)) delete F.shares[p]; }); } renderForm(); }
   $('fAll').onclick = () => { F.among = ['me'].concat(state.friends.map(f => f.id)); amongChanged(); };
   $('fPaidBy').addEventListener('click', e => { const b = e.target.closest('[data-pay]'); if (!b) return;
-    F.paidBy = b.dataset.pay; if (F.paidBy !== 'me' && !F.among.includes('me')) F.among.push('me'); amongChanged(); });
+    const was = F.paidBy; F.paidBy = b.dataset.pay;
+    if (F.paidBy === 'multi' && was !== 'multi') { F.payers = {}; if (was) F.payers[was] = formAmount() || ''; payersKey = ''; }
+    if (F.paidBy !== 'me' && F.paidBy !== 'multi' && !F.among.includes('me')) F.among.push('me'); amongChanged(); });
+  $('fPayers').addEventListener('input', e => {
+    const i = e.target.closest('[data-payer]'); if (!i) return;
+    F.payers[i.dataset.payer] = Math.max(0, Number(i.value) || 0);
+    renderPayers(formAmount()); $('fSplitTitle').textContent = splitTitle(); $('fSplitSum').textContent = splitSummary(formAmount());
+    $('fMethodWrap').hidden = !((Number(F.payers.me) || 0) > 0);
+  });
   $('fAmong').addEventListener('click', e => { const b = e.target.closest('[data-share]'); if (!b) return;
     const id = b.dataset.share; F.among = F.among.includes(id) ? F.among.filter(x => x !== id) : F.among.concat(id); amongChanged(); });
   $('fCats').addEventListener('click', e => {
@@ -1842,7 +1900,14 @@ function out(o) {
   }
   function amountFields(c) {
     const amt = formAmount(), factor = formFactor(c), v = Math.round(amt * factor);
-    return { vnd:v, cur: F.cur === 'VND' ? null : F.cur, amt: F.cur === 'VND' ? null : amt, method: F.paidBy === 'me' ? F.method : 'cash', shares: sharesOut(v, factor) };
+    let payers = null;
+    if (F.paidBy === 'multi') {
+      payers = {}; Object.keys(F.payers).forEach(p => { const x = Math.round((Number(F.payers[p]) || 0) * factor); if (x > 0) payers[p] = x; });
+      const ks = Object.keys(payers), gap = v - ks.reduce((a, k) => a + payers[k], 0);
+      if (ks.length && gap) payers[ks.includes('me') ? 'me' : ks[0]] += gap; // absorb rounding
+    }
+    const iPay = F.paidBy === 'me' || (payers && payers.me > 0);
+    return { vnd:v, cur: F.cur === 'VND' ? null : F.cur, amt: F.cur === 'VND' ? null : amt, method: iPay ? F.method : 'cash', shares: sharesOut(v, factor), payers };
   }
   function saveLog() {
     if (!(formAmount() > 0)) { $('fErr').textContent = 'Enter an amount above zero.'; $('fAmount').focus(); return; }
@@ -1942,8 +2007,8 @@ function out(o) {
     // list
     $('spentSearch').hidden = state.entries.length < 8 && !spentQuery;
     const qq = spentQuery.trim().toLowerCase();
-    const matches = e => !qq || [e.item, e.cat, e.city || '', friendName(e.paidBy), ...e.among.map(friendName)].join(' ').toLowerCase().includes(qq);
-    const list = state.entries.filter(e => (e.paidBy === 'me' || myShare(e) > 0) && (!filterCat || e.cat === filterCat) && (!filterDay || dayKey(e.ts) === filterDay) && matches(e)).sort((a,b2) => b2.ts.localeCompare(a.ts));
+    const matches = e => !qq || [e.item, e.cat, e.city || '', ...Object.keys(payersOf(e)).map(friendName), ...e.among.map(friendName)].join(' ').toLowerCase().includes(qq);
+    const list = state.entries.filter(e => (paidOf(e, 'me') > 0 || myShare(e) > 0) && (!filterCat || e.cat === filterCat) && (!filterDay || dayKey(e.ts) === filterDay) && matches(e)).sort((a,b2) => b2.ts.localeCompare(a.ts));
     $('dayFilter').hidden = !filterDay;
     if (filterDay) $('dayFilterTxt').textContent = new Date(filterDay + 'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}) + ' · ' + npr(list.reduce((a, e) => a + myNpr(e), 0));
     const shown = list.slice(0, spentLimit);
@@ -1959,7 +2024,7 @@ function out(o) {
           const mine = myShare(e);
           return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
             '<span class="mid"><b>' + esc(e.item) + (shared ? '<span class="tag">split</span>' : '') + '</b><small>' + sub + '</small></span>' +
-            '<span class="amt num"><b>' + esc(inOwn(e, shared ? mine : e.vnd)) + '</b><small>' + (shared ? 'of ' + esc(inOwn(e, e.vnd)) : esc(npr(myNpr(e)))) + (e.method === 'card' && e.paidBy === 'me' ? ' · 💳' : '') + '</small></span></button>'; }).join('') + '</div>';
+            '<span class="amt num"><b>' + esc(inOwn(e, shared ? mine : e.vnd)) + '</b><small>' + (shared ? 'of ' + esc(inOwn(e, e.vnd)) : esc(npr(myNpr(e)))) + (e.method === 'card' && paidOf(e, 'me') > 0 ? ' · 💳' : '') + '</small></span></button>'; }).join('') + '</div>';
     }).join('');
     $('spentEmpty').hidden = list.length > 0;
     $('spentEmpty').textContent = filterDay && !qq && !filterCat ? 'Nothing logged on this day.' : qq ? 'No purchases match “' + spentQuery.trim() + '”.' : filterCat ? 'Nothing in ' + filterCat + '.' : 'Nothing logged yet. Price something on the Deal tab and tap Log purchase.';
@@ -2120,7 +2185,7 @@ function out(o) {
   // ---------- group ----------
   function usedIds() {
     const s = new Set();
-    state.entries.forEach(e => { s.add(e.paidBy); e.among.forEach(p => s.add(p)); });
+    state.entries.forEach(e => { Object.keys(payersOf(e)).forEach(p => s.add(p)); e.among.forEach(p => s.add(p)); });
     state.settlements.forEach(t => { s.add(t.from); s.add(t.to); });
     return s;
   }
@@ -2160,7 +2225,7 @@ function out(o) {
     $('sharedList').innerHTML = shared.length ? '<div class="list">' + shared.slice(0, sharedLimit).map(e => {
       const m = CATS[e.cat], mine = myShare(e);
       return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span>' +
-        '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(who(e.paidBy)) + ' paid · ' + e.among.length + ' ' + (e.among.length === 1 ? 'person' : 'people') + ' · ' + esc(dateOf(e.ts)) + (entryRate(e) ? ' · ' + esc(entryRate(e)) : '') + '</small></span>' +
+        '<span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(payerText(e, who)) + ' paid · ' + e.among.length + ' ' + (e.among.length === 1 ? 'person' : 'people') + ' · ' + esc(dateOf(e.ts)) + (entryRate(e) ? ' · ' + esc(entryRate(e)) : '') + '</small></span>' +
         '<span class="amt num"><b>' + esc(inOwn(e, e.vnd)) + '</b><small>' + (mine ? 'you ' + esc(inOwn(e, mine)) : 'not you') + '</small></span></button>';
     }).join('') + '</div>' : '';
   }
@@ -2195,7 +2260,7 @@ function out(o) {
       const people = ['me'].concat(state.friends.map(f => f.id));
       if ($('inPeople').checked) {
         const used = {}, paid = {};
-        bills.forEach(e => { paid[e.paidBy] = (paid[e.paidBy] || 0) + e.vnd; e.among.forEach(p => { used[p] = (used[p] || 0) + shareOf(e, p); }); });
+        bills.forEach(e => { Object.entries(payersOf(e)).forEach(([p, x]) => { paid[p] = (paid[p] || 0) + x; }); e.among.forEach(p => { used[p] = (used[p] || 0) + shareOf(e, p); }); });
         const byUse = people.filter(p => used[p] > 0).sort((a, b) => used[b] - used[a]);
         if (byUse.length) { L.push('', '*Who spent what* _(their share)_'); byUse.forEach(p => L.push('• ' + name(p) + ': ' + ms(used[p]))); }
         const byPaid = people.filter(p => paid[p] > 0).sort((a, b) => paid[b] - paid[a]);
@@ -2208,7 +2273,7 @@ function out(o) {
       }
       if ($('inTop').checked) {
         const top = bills.slice().sort((a, b) => b.vnd - a.vnd).slice(0, 5);
-        L.push('', '*Biggest bills*'); top.forEach((e, i) => L.push((i + 1) + '. ' + e.item + ': ' + (curOf(e) === 'VND' ? ms(e.vnd) : inOwn(e, e.vnd) + ' ≈ ' + ms(e.vnd)) + ' _(' + name(e.paidBy) + ' paid)_'));
+        L.push('', '*Biggest bills*'); top.forEach((e, i) => L.push((i + 1) + '. ' + e.item + ': ' + (curOf(e) === 'VND' ? ms(e.vnd) : inOwn(e, e.vnd) + ' ≈ ' + ms(e.vnd)) + ' _(' + payerText(e, name) + ' paid)_'));
       }
     }
     if ($('inSettle').checked) {
@@ -2267,9 +2332,9 @@ function out(o) {
   let friendId = null, frFilter = 'all';
   function personRows(id) {
     const rows = [];
-    state.entries.filter(e => isShared(e) && (e.paidBy === id || e.among.includes(id))).forEach(e => {
-      const paid = e.paidBy === id ? e.vnd : 0, share = shareOf(e, id);
-      rows.push({ kind:'bill', ts:e.ts, e, paid, share, eff: paid - share, withMe: e.paidBy === 'me' || e.among.includes('me') });
+    state.entries.filter(e => isShared(e) && (paidOf(e, id) > 0 || e.among.includes(id))).forEach(e => {
+      const paid = paidOf(e, id), share = shareOf(e, id);
+      rows.push({ kind:'bill', ts:e.ts, e, paid, share, eff: paid - share, withMe: paidOf(e, 'me') > 0 || e.among.includes('me') });
     });
     state.settlements.filter(t => t.from === id || t.to === id).forEach(t =>
       rows.push({ kind:'pay', ts:t.ts, t, eff: t.from === id ? t.vnd : -t.vnd, withMe: t.from === 'me' || t.to === 'me' }));
@@ -2305,7 +2370,7 @@ function out(o) {
       if (r.kind === 'bill') {
         const e = r.e;
         title = e.item;
-        sub = (e.paidBy === id ? (isMe ? 'You' : 'They') + ' paid ' + inOwn(e, e.vnd) : who(e.paidBy) + ' paid') + ' · share ' + inOwn(e, r.share) + (entryRate(e) ? ' · ' + entryRate(e) : '');
+        sub = (r.paid > 0 ? (isMe ? 'You' : 'They') + ' paid ' + inOwn(e, r.paid) + (r.paid < e.vnd - 1 ? ' of ' + inOwn(e, e.vnd) : '') : payerText(e, who) + ' paid') + ' · share ' + inOwn(e, r.share) + (entryRate(e) ? ' · ' + entryRate(e) : '');
       } else {
         title = who(r.t.from) + ' → ' + who(r.t.to);
         sub = 'Payment' + (r.t.cur ? ' · ' + fmtCur(r.t.amt, r.t.cur) + ' (' + payRate(r.t) + ')' : ' in dong');
@@ -2323,7 +2388,7 @@ function out(o) {
     const L = ['*' + name + ': trip statement*', '_' + dateOf(new Date().toISOString()) + ' · ' + rows.length + ' item' + (rows.length === 1 ? '' : 's') + '_', ''];
     rows.forEach(r => {
       const sign = (r.eff >= 0 ? '+' : '−') + m(Math.abs(r.eff));
-      if (r.kind === 'bill') L.push('• ' + dateOf(r.ts) + ' ' + r.e.item + ': ' + (r.e.paidBy === id ? 'paid ' + inOwn(r.e, r.e.vnd) + ', ' : '') + 'share ' + inOwn(r.e, r.share) + ' → ' + sign);
+      if (r.kind === 'bill') L.push('• ' + dateOf(r.ts) + ' ' + r.e.item + ': ' + (r.paid > 0 ? 'paid ' + inOwn(r.e, r.paid) + ', ' : '') + 'share ' + inOwn(r.e, r.share) + ' → ' + sign);
       else L.push('• ' + dateOf(r.ts) + ' ' + shareName(r.t.from) + ' paid ' + shareName(r.t.to) + ' ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd)) + ' → ' + sign);
     });
     L.push('', '*Balance:* ' + (Math.abs(v) < 500 ? 'even ✅' : (v > 0 ? 'gets back ' : 'owes ') + m(Math.abs(v)) + (state.groupCur === 'NPR' ? '' : ' (' + npr(Math.abs(v) * c.nprPerVnd) + ')')));
@@ -2635,7 +2700,7 @@ function out(o) {
     const q = s => { const v = String(s ?? ''); return /[",\n\r]/.test(v) || /^[=+\-@]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
     const rows = [];
     state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', '', x.usd, '', '', Math.round(x.vnd/x.usd)]));
-    state.entries.forEach(e => rows.push(['Purchase' + (curOf(e) !== 'VND' ? ' (' + e.amt + ' ' + e.cur + ')' : '') + (e.paidBy === 'me' && e.method === 'card' ? ' [card]' : ''), dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', friendName(e.paidBy), e.among.map(p => friendName(p) + (e.shares ? ' ' + Math.round(shareOf(e, p)) : '')).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
+    state.entries.forEach(e => rows.push(['Purchase' + (curOf(e) !== 'VND' ? ' (' + e.amt + ' ' + e.cur + ')' : '') + (paidOf(e, 'me') > 0 && e.method === 'card' ? ' [card]' : ''), dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', payerText(e, friendName), e.among.map(p => friendName(p) + (e.shares ? ' ' + Math.round(shareOf(e, p)) : '')).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
     state.settlements.forEach(t => rows.push(['Payment' + (t.cur ? ' (' + t.amt + ' ' + t.cur + ')' : ''), dayKey(t.ts), timeOf(t.ts), who(t.from) + ' → ' + who(t.to), '', t.vnd, '', '', '', who(t.from), who(t.to), '']));
     rows.sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
     const head = ['Type','Date','Time','Item / where / who','Category','VND total','VND my share','NPR my share','USD','Paid by','Shared by','Rate VND/USD'];
@@ -2665,7 +2730,9 @@ function out(o) {
       if (Object.keys(idMap).length) {
         const m = id => idMap[id] || id;
         d.friends = d.friends.filter(f => !idMap[f.id]);
-        d.entries.forEach(e => { e.paidBy = m(e.paidBy); e.among = [...new Set(e.among.map(m))];
+        d.entries.forEach(e => { e.paidBy = m(e.paidBy);
+          if (e.payers) { const np = {}; Object.entries(e.payers).forEach(([k, v]) => { np[m(k)] = (np[m(k)] || 0) + v; }); e.payers = np; }
+          e.among = [...new Set(e.among.map(m))];
           if (e.shares) { const ns = {}; Object.entries(e.shares).forEach(([k, v]) => { ns[m(k)] = (ns[m(k)] || 0) + v; }); e.shares = ns; } });
         d.settlements.forEach(t => { t.from = m(t.from); t.to = m(t.to); });
       }
@@ -2704,9 +2771,9 @@ function out(o) {
     const tabs = {};
     tabs['Purchases'] = [['Date','Time','Item','Category','City','Amount','Currency','Rate (₫ per unit)','Total ₫','My share ₫','My share NPR','Paid by','Shared by','Paid with']]
       .concat(state.entries.slice().sort(byTs).map(e => [dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.city || '', curOf(e) === 'VND' ? e.vnd : e.amt, curOf(e), curOf(e) === 'VND' ? 1 : Math.round(e.vnd / e.amt * 100) / 100, e.vnd,
-        Math.round(myShare(e)), Math.round(myNpr(e)), n(e.paidBy), e.among.map(n).join(' + '), e.paidBy === 'me' ? (e.method === 'card' ? 'Card' : 'Cash') : '']));
+        Math.round(myShare(e)), Math.round(myNpr(e)), payerText(e, n), e.among.map(n).join(' + '), paidOf(e, 'me') > 0 ? (e.method === 'card' ? 'Card' : 'Cash') : '']));
     tabs['Group bills'] = [['Date','Item','Category','Paid by','Total ₫','Original amount','Rate used','Each person’s share (₫)']]
-      .concat(state.entries.filter(isShared).sort(byTs).map(e => [dayKey(e.ts), e.item, e.cat, n(e.paidBy), e.vnd, curOf(e) === 'VND' ? '' : fmtCur(e.amt, e.cur), entryRate(e),
+      .concat(state.entries.filter(isShared).sort(byTs).map(e => [dayKey(e.ts), e.item, e.cat, payerText(e, n), e.vnd, curOf(e) === 'VND' ? '' : fmtCur(e.amt, e.cur), entryRate(e),
         e.among.map(p => n(p) + ' ' + Math.round(shareOf(e, p))).join(', ')]));
     tabs['Payments'] = [['Date','Time','From','To','₫','Original amount','Rate used']]
       .concat(state.settlements.slice().sort(byTs).map(t => [dayKey(t.ts), timeOf(t.ts), n(t.from), n(t.to), t.vnd, t.cur ? fmtCur(t.amt, t.cur) : '', payRate(t)]));
