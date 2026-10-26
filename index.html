@@ -779,11 +779,11 @@ button.ck-row:active{background:var(--raised)}
   <div class="seg seg-sm" id="inPeriod"><button type="button" data-ip="trip">Whole trip</button><button type="button" data-ip="today">Today</button><button type="button" data-ip="yday">Yesterday</button></div>
   <span class="flabel">Include</span>
   <div class="checks">
+    <label><input type="checkbox" id="inSettle" checked> Settle up, shown first (covers all bills)</label>
     <label><input type="checkbox" id="inPeople" checked> Who spent what, and who paid</label>
     <label><input type="checkbox" id="inCats" checked> Spending by category</label>
     <label><input type="checkbox" id="inTop" checked> Biggest bills</label>
     <label><input type="checkbox" id="inDaily"> Daily breakdown per person</label>
-    <label><input type="checkbox" id="inSettle" checked> Settle up (all bills, not just this period)</label>
   </div>
   <pre class="preview" id="inPreview"></pre>
   <p class="status" id="inStatus"></p>
@@ -2396,52 +2396,70 @@ function out(o) {
     const c = calc(), today = dayKey(new Date()), yd = dayKey(new Date(Date.now() - 864e5));
     const inP = e => inPeriod === 'trip' || dayKey(e.ts) === (inPeriod === 'today' ? today : yd);
     const bills = state.entries.filter(e => isShared(e) && inP(e));
-    const m = v => state.groupCur === 'NPR' ? npr(v * c.nprPerVnd) : vnd(v) + ' (' + npr(v * c.nprPerVnd) + ')';
-    const ms = v => state.groupCur === 'NPR' ? npr(v * c.nprPerVnd) : short(v) + ' ₫';
-    const name = shareName;
-    const L = [];
-    const when = inPeriod === 'trip' ? (bills.length ? dateOf(bills.reduce((a, e) => e.ts < a ? e.ts : a, bills[0].ts)) + ' – ' + dateOf(new Date().toISOString()) : 'No bills yet')
+    const NPR = state.groupCur === 'NPR', rate = c.nprPerVnd;
+    // compact numbers: 2.21m, 437k (or NPR 13.2k)
+    const k = v => { const x = NPR ? v * rate : v, a = Math.abs(x);
+      return a >= 1e6 ? (Math.round(x / 1e4) / 100).toString().replace(/\.?0+$/, '') + 'm' : a >= 1e3 ? Math.round(x / 1e3) + 'k' : String(Math.round(x)); };
+    const unit = NPR ? 'NPR' : '₫';
+    const exact = v => NPR ? 'NPR ' + fmt(Math.round(v * rate)) : fmt(Math.round(v)) + ' ₫';
+    const alt = v => NPR ? fmt(Math.round(v)) + ' ₫' : 'NPR ' + fmt(Math.round(v * rate));
+    const name = shareName, pad = (t, n) => (t + ' '.repeat(n)).slice(0, n), lpad = (t, n) => (' '.repeat(n) + t).slice(-n);
+    const LINE = '━━━━━━━━━━━━━━━━';
+    const when = inPeriod === 'trip' ? (bills.length ? dateOf(bills.reduce((a, e) => e.ts < a ? e.ts : a, bills[0].ts)) + ' – ' + dateOf(new Date().toISOString()) : 'no bills yet')
       : (inPeriod === 'today' ? 'Today, ' : 'Yesterday, ') + dateOf(new Date(inPeriod === 'today' ? Date.now() : Date.now() - 864e5).toISOString());
-    L.push('*🇻🇳 Vietnam trip: group spending*');
-    L.push('_' + when + ' · ' + bills.length + ' shared bill' + (bills.length === 1 ? '' : 's') + '_');
-    if (!bills.length) { L.push('', 'Nothing shared ' + (inPeriod === 'trip' ? 'yet.' : inPeriod === 'today' ? 'today.' : 'yesterday.')); }
+    const L = ['🇻🇳 *VIETNAM TRIP*', '_Group spending · ' + when + '_'];
+
+    if ($('inSettle').checked) {
+      const tr = simplify(c.nets);
+      L.push('', LINE, '💸 *SETTLE UP*', LINE);
+      if (!tr.length) L.push('Everyone is even ✅');
+      else tr.forEach(t => L.push('*' + name(t.from) + ' → ' + name(t.to) + '*', '      ' + exact(t.vnd) + '  _(' + alt(t.vnd) + ')_'));
+    }
+    if (!bills.length) { L.push('', 'No shared bills ' + (inPeriod === 'trip' ? 'yet.' : inPeriod === 'today' ? 'today.' : 'yesterday.')); }
     else {
-      const total = bills.reduce((a, e) => a + e.vnd, 0);
-      L.push('', '*Total:* ' + m(total));
-      if (inPeriod === 'trip') { const days = new Set(bills.map(e => dayKey(e.ts))).size; if (days > 1) L.push('*Per day:* about ' + ms(total / days) + ' over ' + days + ' days'); }
+      const total = bills.reduce((a, e) => a + e.vnd, 0), days = new Set(bills.map(e => dayKey(e.ts))).size;
+      L.push('', LINE, '📊 *TOTAL*', LINE);
+      L.push('*' + k(total) + ' ' + unit + '*  _(' + alt(total) + ')_');
+      L.push(bills.length + ' shared bill' + (bills.length === 1 ? '' : 's') + (days > 1 ? ' · ' + days + ' days · ~' + k(total / days) + ' ' + unit + '/day' : ''));
       const people = ['me'].concat(state.friends.map(f => f.id));
       if ($('inPeople').checked) {
         const used = {}, paid = {};
         bills.forEach(e => { Object.entries(payersOf(e)).forEach(([p, x]) => { paid[p] = (paid[p] || 0) + x; }); e.among.forEach(p => { used[p] = (used[p] || 0) + shareOf(e, p); }); });
-        const byUse = people.filter(p => used[p] > 0).sort((a, b) => used[b] - used[a]);
-        if (byUse.length) { L.push('', '*Who spent what* _(their share)_'); byUse.forEach(p => L.push('• ' + name(p) + ': ' + ms(used[p]))); }
-        const byPaid = people.filter(p => paid[p] > 0).sort((a, b) => paid[b] - paid[a]);
-        if (byPaid.length) { L.push('', '*Who paid upfront*'); byPaid.forEach(p => L.push('• ' + name(p) + ': ' + ms(paid[p]))); }
+        const rows = people.filter(p => used[p] > 0 || paid[p] > 0).sort((a, b) => (used[b] || 0) - (used[a] || 0));
+        if (rows.length) {
+          const w = Math.min(9, Math.max(4, ...rows.map(p => name(p).length)) + 1);
+          L.push('', LINE, '👥 *WHO SPENT · WHO PAID*', LINE, '_' + unit + ', share = what each person used_', '```');
+          L.push(pad('', w) + lpad('share', 7) + lpad('paid', 8));
+          rows.forEach(p => L.push(pad(name(p), w) + lpad(k(used[p] || 0), 7) + lpad(paid[p] ? k(paid[p]) : '–', 8)));
+          L.push('```');
+        }
       }
       if ($('inCats').checked) {
         const cats = {}; bills.forEach(e => { cats[e.cat] = (cats[e.cat] || 0) + e.vnd; });
-        const list = Object.entries(cats).sort((a, b) => b[1] - a[1]);
-        L.push('', '*By category*'); list.forEach(([k, v]) => L.push(CATS[k].e + ' ' + k + ': ' + ms(v) + ' (' + Math.round(v / total * 100) + '%)'));
+        L.push('', LINE, '🗂️ *BY CATEGORY*', LINE);
+        Object.entries(cats).sort((a, b) => b[1] - a[1]).forEach(([cat, v]) => {
+          const pct = Math.round(v / total * 100), bar = '▰'.repeat(Math.max(1, Math.round(pct / 10))) + '▱'.repeat(Math.max(0, 10 - Math.max(1, Math.round(pct / 10))));
+          L.push(CATS[cat].e + ' *' + cat + '*  ' + k(v) + ' ' + unit + ' · ' + pct + '%', bar);
+        });
       }
       if ($('inTop').checked) {
-        const top = bills.slice().sort((a, b) => b.vnd - a.vnd).slice(0, 5);
-        L.push('', '*Biggest bills*'); top.forEach((e, i) => L.push((i + 1) + '. ' + e.item + ': ' + (curOf(e) === 'VND' ? ms(e.vnd) : inOwn(e, e.vnd) + ' ≈ ' + ms(e.vnd)) + ' _(' + payerText(e, name) + ' paid)_'));
+        L.push('', LINE, '🔝 *BIGGEST BILLS*', LINE);
+        bills.slice().sort((a, b) => b.vnd - a.vnd).slice(0, 5).forEach((e, i) =>
+          L.push((i + 1) + '. *' + e.item + '*', '      ' + (curOf(e) === 'VND' ? k(e.vnd) + ' ' + unit : inOwn(e, e.vnd) + ' ≈ ' + k(e.vnd) + ' ' + unit) + ' · paid by ' + payerText(e, name)));
+      }
+      if ($('inDaily').checked) {
+        const per = {}; bills.forEach(e => { const d = dayKey(e.ts); per[d] ||= {}; e.among.forEach(p => { per[d][p] = (per[d][p] || 0) + shareOf(e, p); }); });
+        L.push('', LINE, '📅 *DAY BY DAY*', LINE, '_each person’s share, ' + unit + '_');
+        Object.keys(per).sort().forEach(d => {
+          const list = Object.entries(per[d]).sort((a, b) => b[1] - a[1]), dayTotal = list.reduce((a, x) => a + x[1], 0);
+          L.push('', '*' + new Date(d + 'T12:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }) + '* · ' + k(dayTotal) + ' total');
+          for (let i = 0; i < list.length; i += 2) L.push('   ' + list.slice(i, i + 2).map(([p, v]) => name(p) + ' ' + k(v)).join('  ·  '));
+        });
       }
     }
-    if ($('inDaily').checked && bills.length) {
-      const per = {}; bills.forEach(e => { const d = dayKey(e.ts); per[d] ||= {}; e.among.forEach(p => { per[d][p] = (per[d][p] || 0) + shareOf(e, p); }); });
-      L.push('', '*Day by day* _(each person’s share)_');
-      Object.keys(per).sort().forEach(d => L.push('_' + dateOf(d + 'T12:00') + ':_ ' + Object.entries(per[d]).sort((a, b) => b[1] - a[1]).map(([p, v]) => name(p) + ' ' + ms(v)).join(' · ')));
-    }
-    if ($('inSettle').checked) {
-      const tr = simplify(c.nets);
-      L.push('', '*Settle up*');
-      if (!tr.length) L.push('Everyone is even ✅');
-      else tr.forEach(t => L.push('• ' + name(t.from) + ' → ' + name(t.to) + ': ' + m(t.vnd)));
-    }
-    const rn = ratesUsed(bills, $('inSettle').checked ? state.settlements : []) || ($('inSettle').checked ? ratesUsed(state.entries.filter(isShared), []) : '');
-    if (rn) L.push('', '_Rates used: ' + rn + '_');
-    L.push('', '_Sent from Deal Calc_');
+    const rn = ratesUsed(bills, $('inSettle').checked ? state.settlements : []);
+    if (rn) L.push('', '_Rates: ' + rn + '_');
+    L.push('', '_via Deal Calc_');
     return L.join('\n');
   }
   function renderInsights() {
