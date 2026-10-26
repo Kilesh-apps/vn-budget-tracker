@@ -356,6 +356,20 @@ button.ck-row:active{background:var(--raised)}
 .stmt span{display:block;font-size:.76rem;color:var(--muted);font-weight:600}
 .stmt b{display:block;font-size:1.02rem;overflow-wrap:anywhere}
 .stmt .wide{grid-column:1/-1}
+.gd-wrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.gd{border-collapse:collapse;width:100%;font-size:.84rem;font-variant-numeric:tabular-nums}
+.gd th,.gd td{padding:9px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.gd th{font-size:.76rem;color:var(--muted);font-weight:700;position:sticky;top:0;background:var(--surface)}
+.gd th:first-child,.gd td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
+.gd tr.today td{font-weight:700}
+.gd td.gd-top{color:var(--warn);font-weight:700}
+.gd td.zero{color:var(--muted)}
+.gd tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--line)}
+.gd tbody tr{cursor:pointer}
+.gd-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.gd-stats div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0}
+.gd-stats span{display:block;font-size:.72rem;color:var(--muted);font-weight:600}
+.gd-stats b{display:block;font-size:.98rem;overflow-wrap:anywhere}
 .preview{white-space:pre-wrap;font:.86rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0 0;max-height:42vh;overflow:auto;color:var(--ink)}
 .checks{display:grid;gap:4px;margin-top:6px}
 .checks label{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;font-size:.92rem;min-height:36px}
@@ -514,6 +528,11 @@ button.ck-row:active{background:var(--raised)}
       <div class="btn-pair" style="margin-top:10px">
         <button type="button" class="secondary" id="openPeople">People</button>
         <button type="button" class="primary" id="addShared" style="margin-top:0">＋ Shared bill</button>
+      </div>
+      <div id="gdBox" hidden>
+        <h3>Daily spending by person <small style="font-weight:500">· shared bills</small></h3>
+        <div class="seg seg-sm" id="gdWho"></div>
+        <div id="gdBody"></div>
       </div>
       <h3>Shared bills</h3>
       <div id="sharedList"></div>
@@ -763,6 +782,7 @@ button.ck-row:active{background:var(--raised)}
     <label><input type="checkbox" id="inPeople" checked> Who spent what, and who paid</label>
     <label><input type="checkbox" id="inCats" checked> Spending by category</label>
     <label><input type="checkbox" id="inTop" checked> Biggest bills</label>
+    <label><input type="checkbox" id="inDaily"> Daily breakdown per person</label>
     <label><input type="checkbox" id="inSettle" checked> Settle up (all bills, not just this period)</label>
   </div>
   <pre class="preview" id="inPreview"></pre>
@@ -2264,7 +2284,66 @@ function out(o) {
   function cashRound(v) { const u = RU(); return Math.abs(v) < u / 2 ? 0 : Math.round(v / u) * u; }
   function gm(v, c) { return state.groupCur === 'NPR' ? npr(v * c.nprPerVnd) : vnd(v); }
   function gmAlt(v, c) { return state.groupCur === 'NPR' ? vnd(v) : npr(v * c.nprPerVnd); }
+  // ---------- daily spending per person (shared bills only) ----------
+  let gdWho = 'all', gdDay = null;
+  function groupDaily() {
+    const people = ['me'].concat(state.friends.map(f => f.id)), per = {};
+    state.entries.filter(isShared).forEach(e => {
+      const d = dayKey(e.ts); per[d] ||= {};
+      e.among.forEach(p => { per[d][p] = (per[d][p] || 0) + shareOf(e, p); });
+    });
+    return { people, per, days: Object.keys(per).sort() };
+  }
+  function renderGroupDaily() {
+    const c = calc(), g = groupDaily(), today = dayKey(new Date());
+    $('gdBox').hidden = !state.friends.length || !g.days.length;
+    if ($('gdBox').hidden) return;
+    const sm = v => !v ? '–' : state.groupCur === 'NPR' ? (v * c.nprPerVnd >= 1000 ? (Math.round(v * c.nprPerVnd / 100) / 10).toString().replace(/\.0$/, '') + 'k' : String(Math.round(v * c.nprPerVnd))) : short(v);
+    const unit = state.groupCur === 'NPR' ? 'NPR' : '₫';
+    if (gdWho !== 'all' && !g.people.includes(gdWho)) gdWho = 'all';
+    $('gdWho').innerHTML = '<button type="button" data-gw="all" class="' + (gdWho === 'all' ? 'sel' : '') + '">Everyone</button>' +
+      g.people.map(p => '<button type="button" data-gw="' + esc(p) + '" class="' + (gdWho === p ? 'sel' : '') + '">' + esc(who(p)) + '</button>').join('');
+    const dayLabel = d => d === today ? 'Today' : new Date(d + 'T12:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric' });
+    if (gdWho === 'all') {
+      const rows = g.days.slice().reverse();
+      const tot = p => g.days.reduce((a, d) => a + (g.per[d][p] || 0), 0);
+      $('gdBody').innerHTML = '<div class="gd-wrap"><table class="gd"><thead><tr><th>Day (' + unit + ')</th>' + g.people.map(p => '<th>' + esc(who(p)) + '</th>').join('') + '<th>Total</th></tr></thead><tbody>' +
+        rows.map(d => {
+          const vals = g.people.map(p => g.per[d][p] || 0), max = Math.max(...vals), sum = vals.reduce((a, x) => a + x, 0);
+          return '<tr class="' + (d === today ? 'today' : '') + '" data-gd="' + d + '"><td>' + esc(dayLabel(d)) + '</td>' +
+            vals.map(v => '<td class="' + (!v ? 'zero' : v === max && vals.filter(x => x === max).length === 1 && vals.filter(x => x > 0).length > 1 ? 'gd-top' : '') + '">' + esc(sm(v)) + '</td>').join('') + '<td>' + esc(sm(sum)) + '</td></tr>';
+        }).join('') +
+        '</tbody><tfoot><tr><td>Total</td>' + g.people.map(p => '<td>' + esc(sm(tot(p))) + '</td>').join('') + '<td>' + esc(sm(g.people.reduce((a, p) => a + tot(p), 0))) + '</td></tr></tfoot></table></div>' +
+        '<p class="small" style="margin:6px 2px 0">Each person’s share of shared bills per day. Red = biggest spender that day. Tap a day for its bills, or a name above for their own chart.</p>' + dayBills(gdDay, null, c);
+      return;
+    }
+    const p = gdWho, vals = g.days.map(d => g.per[d][p] || 0), total = vals.reduce((a, x) => a + x, 0);
+    const active = vals.filter(x => x > 0).length, maxV = Math.max(...vals, 1), maxDay = g.days[vals.indexOf(Math.max(...vals))];
+    const elapsed = Math.max(1, tripDays().filter(d => d <= today).length || g.days.length);
+    $('gdBody').innerHTML = '<div class="gd-stats num"><div><span>Total share</span><b>' + esc(gm(total, c)) + '</b></div>' +
+      '<div><span>Per trip day</span><b>' + esc(gm(total / elapsed, c)) + '</b></div>' +
+      '<div><span>Biggest day</span><b>' + esc(total ? dayLabel(maxDay) : '–') + '</b></div></div>' +
+      '<div class="card" style="margin-top:8px"><div class="days" id="gdBars" style="margin-top:4px">' + g.days.map((d, i) =>
+        '<button type="button" class="day-b' + (vals[i] ? '' : ' empty') + (d === gdDay ? ' sel' : '') + '" data-gd="' + d + '" aria-label="' + esc(dayLabel(d) + ': ' + gm(vals[i], c)) + '"><b>' + (vals[i] ? esc(sm(vals[i])) : '') + '</b><i style="height:' + Math.max(2, vals[i] / maxV * 100) + '%"></i></button>').join('') +
+      '</div><div class="days-l">' + g.days.map(d => '<span class="' + (d === today ? 'today' : '') + '">' + Number(d.slice(8)) + '</span>').join('') + '</div>' +
+      '<p class="small" style="margin:6px 0 0">' + esc(who(p)) + '’s share of shared bills on ' + active + ' day' + (active === 1 ? '' : 's') + ' (' + unit + '). Tap a day for its bills.</p></div>' + dayBills(gdDay, p, c);
+  }
+  function dayBills(d, p, c) {
+    if (!d) return '';
+    const bills = state.entries.filter(e => isShared(e) && dayKey(e.ts) === d && (!p || e.among.includes(p) || paidOf(e, p) > 0)).sort((a, b) => a.ts.localeCompare(b.ts));
+    const label = new Date(d + 'T12:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'short' });
+    return '<p class="small" style="margin:14px 2px 6px;font-weight:700">' + esc(label) + (p ? ' · ' + esc(who(p)) : '') + '</p>' + (bills.length ? '<div class="list">' + bills.map(e =>
+      '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + CATS[e.cat].c + '22">' + CATS[e.cat].e + '</span><span class="mid"><b>' + esc(e.item) + '</b><small>' + esc(payerText(e, who)) + ' paid ' + esc(inOwn(e, e.vnd)) + '</small></span>' +
+      '<span class="amt num"><b>' + esc(p ? inOwn(e, shareOf(e, p)) : inOwn(e, e.vnd)) + '</b><small>' + (p ? 'share' : e.among.length + ' people') + '</small></span></button>').join('') + '</div>' : '<p class="empty-msg">No shared bills.</p>');
+  }
+  $('gdWho').addEventListener('click', e => { const b = e.target.closest('[data-gw]'); if (!b) return; gdWho = b.dataset.gw; gdDay = null; renderGroupDaily(); });
+  $('gdBody').addEventListener('click', e => {
+    const en = e.target.closest('[data-entry]'); if (en) { openEdit(en.dataset.entry); return; }
+    const d = e.target.closest('[data-gd]'); if (!d) return; gdDay = gdDay === d.dataset.gd ? null : d.dataset.gd; renderGroupDaily();
+  });
+
   function renderGroup() {
+    renderGroupDaily();
     const c = calc(), n = c.nets, me = cashRound(n.me || 0);
     document.querySelectorAll('#grpCur [data-gc]').forEach(b => b.classList.toggle('sel', b.dataset.gc === (state.groupCur || 'VND')));
     document.querySelectorAll('#grpRound [data-ru]').forEach(b => b.classList.toggle('sel', Number(b.dataset.ru) === RU()));
@@ -2349,6 +2428,11 @@ function out(o) {
         L.push('', '*Biggest bills*'); top.forEach((e, i) => L.push((i + 1) + '. ' + e.item + ': ' + (curOf(e) === 'VND' ? ms(e.vnd) : inOwn(e, e.vnd) + ' ≈ ' + ms(e.vnd)) + ' _(' + payerText(e, name) + ' paid)_'));
       }
     }
+    if ($('inDaily').checked && bills.length) {
+      const per = {}; bills.forEach(e => { const d = dayKey(e.ts); per[d] ||= {}; e.among.forEach(p => { per[d][p] = (per[d][p] || 0) + shareOf(e, p); }); });
+      L.push('', '*Day by day* _(each person’s share)_');
+      Object.keys(per).sort().forEach(d => L.push('_' + dateOf(d + 'T12:00') + ':_ ' + Object.entries(per[d]).sort((a, b) => b[1] - a[1]).map(([p, v]) => name(p) + ' ' + ms(v)).join(' · ')));
+    }
     if ($('inSettle').checked) {
       const tr = simplify(c.nets);
       L.push('', '*Settle up*');
@@ -2367,7 +2451,7 @@ function out(o) {
   $('shareSettle').onclick = () => { if (!state.myName) $('inStatus').textContent = ''; renderInsights(); openSheet('sheet-insights');
     if (!state.myName) $('inStatus').textContent = 'Tip: set your name under People so the message doesn’t say “Me”.'; };
   $('inPeriod').addEventListener('click', e => { const b = e.target.closest('[data-ip]'); if (!b) return; inPeriod = b.dataset.ip; renderInsights(); });
-  ['inPeople','inCats','inTop','inSettle'].forEach(id => $(id).addEventListener('change', renderInsights));
+  ['inPeople','inCats','inTop','inDaily','inSettle'].forEach(id => $(id).addEventListener('change', renderInsights));
   $('inWa').onclick = () => {
     if (!navigator.onLine) { $('inStatus').textContent = 'You’re offline. WhatsApp will send it when you’re back online, or use Other apps / copy.'; }
     window.open('https://wa.me/?text=' + encodeURIComponent(insightsText()), '_blank', 'noopener');
