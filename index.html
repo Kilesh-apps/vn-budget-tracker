@@ -449,11 +449,12 @@ button.ck-row:active{background:var(--raised)}
       <p class="status" id="rateStatus"></p>
       <div class="btn-pair">
         <button type="button" class="primary" id="openExchange">Exchange money</button>
-        <button type="button" class="secondary" id="openCount">Count my wallet</button>
+        <button type="button" class="secondary" id="openCount">Count &amp; fix wallet</button>
       </div>
       <h3>Exchanges</h3>
       <div id="xList"></div>
       <p class="empty-msg" id="xEmpty">No exchanges yet. Log each one as you change dollars into dong.</p>
+      <div id="adjBox" hidden><h3>Wallet corrections</h3><div id="adjList"></div><p class="small">Tap a correction to undo it.</p></div>
       <h3>Know your notes</h3>
       <div class="note warn" style="margin:0 0 8px">20,000 and 500,000 are both blue. The 500,000 is longer, has five zeros, and shows a house among trees on the back; the 20,000 shows a covered bridge. Check before you hand one over.
         <div class="cmp" id="notesCmp" hidden></div>
@@ -496,6 +497,8 @@ button.ck-row:active{background:var(--raised)}
           <div class="seg seg-sm" id="grpCur"><button type="button" data-gc="VND">₫</button><button type="button" data-gc="NPR">NPR</button></div></div>
         <p class="val num" id="myNet" style="margin:6px 0 2px"></p>
         <p class="sub num" id="myNetSub" style="margin:0"></p>
+        <div class="pack-top" style="margin-top:12px"><span class="small">Round splits &amp; settle-ups to</span>
+          <div class="seg seg-sm" id="grpRound"><button type="button" data-ru="1000">1k</button><button type="button" data-ru="2000">2k</button><button type="button" data-ru="5000">5k</button><button type="button" data-ru="10000">10k</button></div></div>
       </div>
       <h3>Settle up · fewest payments</h3>
       <div id="settleList"></div>
@@ -691,15 +694,28 @@ button.ck-row:active{background:var(--raised)}
   <button type="button" class="primary" id="xSave">Save exchange</button>
 </div>
 
-<!-- count wallet -->
+<!-- count & fix wallet -->
 <div class="sheet" id="sheet-count" role="dialog" aria-modal="true" aria-labelledby="cTitle">
   <div class="grab"></div>
-  <h2 id="cTitle">Count my wallet</h2>
-  <p class="lead num" id="cLead"></p>
-  <label for="cVnd">Dong you actually have (₫)</label>
-  <input id="cVnd" type="number" inputmode="numeric" min="0" step="1000">
+  <h2 id="cTitle">Count &amp; fix wallet</h2>
+  <p class="lead">Count your cash and type what you really have. Leave a box empty to skip it.</p>
+  <label for="cVnd">Dong you have (₫)</label>
+  <input id="cVnd" type="number" inputmode="numeric" min="0" step="1000" class="num">
+  <p class="status num" id="cVndNote"></p>
+  <label for="cUsd">Dollars you have ($)</label>
+  <input id="cUsd" type="number" inputmode="decimal" min="0" step="any" class="num">
+  <p class="status num" id="cUsdNote"></p>
   <div class="note num" id="cPreview"></div>
-  <button type="button" class="primary" id="cFix" hidden></button>
+  <div id="cChoices" hidden>
+    <span class="flabel" id="cAskWhy">What happened to the missing dong?</span>
+    <div class="seg seg-sm" id="cWhy">
+      <button type="button" data-why="spent">I spent it, forgot to log</button>
+      <button type="button" data-why="fix">Just fix the number</button>
+    </div>
+    <p class="small" id="cWhyNote"></p>
+  </div>
+  <p class="status" id="cErr" style="color:var(--warn)"></p>
+  <button type="button" class="primary" id="cFix" hidden>Fix wallet</button>
 </div>
 
 <!-- people -->
@@ -1044,7 +1060,7 @@ function out(o) {
   function fresh() {
     return { v:3, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
       nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, rateFetchedAt:null, rateSource:null,
-      exchanges:[], entries:[], settlements:[], friends:[], myName:'', groupCur:'VND', lastCat:'Shopping', city:'Ho Chi Minh City',
+      exchanges:[], entries:[], settlements:[], adjustments:[], friends:[], myName:'', roundUnit:1000, groupCur:'VND', lastCat:'Shopping', city:'Ho Chi Minh City',
       theme:'auto', lastBackup:null, ttsSlow:false, phrases:[], checklist:[], ai:{ key:'', place:'Market stall', search:false } };
   }
   function payersOf(e) { return e.paidBy === 'multi' && e.payers ? e.payers : { [e.paidBy || 'me']: e.vnd }; }
@@ -1081,7 +1097,7 @@ function out(o) {
     if (!raw || typeof raw !== 'object') return b;
     if (raw.rates) { b.nprPerUsd = Number(raw.rates.nprPerUsd) || b.nprPerUsd; b.marketVndPerUsd = Number(raw.rates.vndPerUsd) || b.marketVndPerUsd; }
     if (raw.budgetNpr) b.targetNpr = Number(raw.budgetNpr) || null;
-    ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','lastCat','city','theme','lastBackup','ttsSlow','myName','groupCur']
+    ['startUsd','targetNpr','tripStart','tripEnd','nprPerUsd','marketVndPerUsd','rateFetchedAt','rateSource','lastCat','city','theme','lastBackup','ttsSlow','myName','groupCur','roundUnit']
       .forEach(k => { if (raw[k] !== undefined && raw[k] !== null) b[k] = raw[k]; });
     b.phrases = (raw.phrases || []).filter(x => x && x.id && x.vi).map(x => ({ id:String(x.id), en:String(x.en || '').slice(0,200), vi:String(x.vi).slice(0,300) }));
     if (raw.ai && typeof raw.ai === 'object') {
@@ -1103,6 +1119,8 @@ function out(o) {
       return { id:String(t.id), ts:validTs(t.ts), from:String(from), to:String(to), vnd:Number(t.vnd), cur, amt: cur ? Number(t.amt) : null };
     }).filter(Boolean);
     b.phrases = uniqById(b.phrases);
+    b.adjustments = uniqById((raw.adjustments || []).filter(a => a && a.id && (a.cur === 'VND' || a.cur === 'USD') && Number(a.amt))
+      .map(a => ({ id:String(a.id), ts:validTs(a.ts), cur:a.cur, amt:Number(a.amt), note:String(a.note || '').slice(0, 80) })));
     if (Array.isArray(raw.checklist)) {
       b.checklist = uniqById(raw.checklist.filter(c => c && c.id).map(c => ({ id:String(c.id), name:String(c.name || 'List').slice(0,60),
         items: uniqById((Array.isArray(c.items) ? c.items : []).filter(i => i && i.id && String(i.text || '').trim())
@@ -1138,7 +1156,21 @@ function out(o) {
   else save(); // writes the migrated shape once
 
   // ---------- money model ----------
-  const shareOf = (e, p) => !e.among.includes(p) ? 0 : (e.shares && Number.isFinite(e.shares[p]) ? e.shares[p] : e.vnd / e.among.length);
+  const RU = () => [1000, 2000, 5000, 10000].includes(state.roundUnit) ? state.roundUnit : 1000;
+  // Split an amount into cash-friendly shares that add up exactly: everyone pays a rounded amount, the anchor (usually whoever paid) takes the leftover.
+  function cashSplit(total, people, anchor, unit) {
+    const n = people.length, base = total / n, out = {};
+    if (!people.includes(anchor)) anchor = people[0];
+    const make = f => { let sum = 0; people.forEach(p => { if (p !== anchor) { out[p] = f(base / unit) * unit; sum += out[p]; } }); out[anchor] = total - sum; };
+    make(Math.round); if (out[anchor] < 0) make(Math.floor);
+    return out;
+  }
+  function anchorOf(e) {
+    if (e.paidBy !== 'multi') return e.paidBy;
+    const ps = Object.entries(payersOf(e)).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    return ps.find(p => e.among.includes(p)) || e.among[0];
+  }
+  const shareOf = (e, p) => !e.among.includes(p) ? 0 : (e.shares && Number.isFinite(e.shares[p]) ? e.shares[p] : (e.among.length === 1 ? e.vnd : cashSplit(e.vnd, e.among, anchorOf(e), RU())[p]));
   const myShare = e => shareOf(e, 'me');
   const myNpr = e => myShare(e) * e.rate;
   function vndPer(cur, c) { c = c || calc(); return cur === 'USD' ? c.vndPerUsd : cur === 'NPR' ? c.vndPerUsd / state.nprPerUsd : cur === 'INR' ? INR_TO_NPR * c.vndPerUsd / state.nprPerUsd : 1; }
@@ -1178,14 +1210,17 @@ function out(o) {
   // fewest payments that make everyone even (largest debtor pays largest creditor first)
   function simplify(n) {
     const cred = [], debt = [];
-    Object.entries(n).forEach(([p, v]) => { v = Math.round(v); if (v >= 500) cred.push([p, v]); else if (v <= -500) debt.push([p, -v]); });
+    const u = RU(), r = {}; let tot = 0;
+    Object.entries(n).forEach(([p, v]) => { r[p] = Math.round(v / u) * u; tot += r[p]; });
+    if (tot) { const k = Object.keys(r).sort((a, b) => Math.abs(n[b]) - Math.abs(n[a]))[0]; r[k] -= tot; } // keep the total at zero
+    Object.entries(r).forEach(([p, v]) => { if (v >= u) cred.push([p, v]); else if (v <= -u) debt.push([p, -v]); });
     cred.sort((a, b) => b[1] - a[1]); debt.sort((a, b) => b[1] - a[1]);
     const out = []; let i = 0, j = 0;
     while (i < debt.length && j < cred.length) {
       const x = Math.min(debt[i][1], cred[j][1]);
       out.push({ from:debt[i][0], to:cred[j][0], vnd:x });
       debt[i][1] -= x; cred[j][1] -= x;
-      if (debt[i][1] < 500) i++; if (cred[j][1] < 500) j++;
+      if (debt[i][1] < u) i++; if (cred[j][1] < u) j++;
     }
     return out;
   }
@@ -1199,8 +1234,9 @@ function out(o) {
     const spentNpr = state.entries.reduce((a,e) => a + myNpr(e), 0);
     const vndPerUsd = usdEx > 0 ? vndIn / usdEx : state.marketVndPerUsd;
     const nprPerVnd = state.nprPerUsd / vndPerUsd;
-    const usdLeft = state.startUsd - usdEx - state.entries.reduce((a,e) => a + usdCashOut(e), 0) + usdSet;
-    const vndLeft = vndIn - out + setIn - setOut;
+    const adj = cur => state.adjustments.filter(a => a.cur === cur).reduce((x, a) => x + a.amt, 0);
+    const usdLeft = state.startUsd - usdEx - state.entries.reduce((a,e) => a + usdCashOut(e), 0) + usdSet + adj('USD');
+    const vndLeft = vndIn - out + setIn - setOut + adj('VND');
     const all = nets();
     const net = all.me || 0;
     const cashLeftNpr = usdLeft * state.nprPerUsd + vndLeft * nprPerVnd;
@@ -1683,7 +1719,14 @@ function out(o) {
   }
   const toLocalInput = d => { d = new Date(d); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
   const fc = a => fmtCur(a, F.cur);
-  function formShare(p, total) { return F.custom ? (Number(F.shares[p]) || 0) : total / F.among.length; }
+  function formShare(p, total) {
+    if (F.custom) return Number(F.shares[p]) || 0;
+    if (!F.among.includes(p)) return 0;
+    if (F.among.length === 1) return total;
+    const unit = F.cur === 'VND' ? RU() : CURS[F.cur].unit;
+    const anchor = F.paidBy === 'multi' ? (Object.entries(F.payers || {}).sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0)).map(x => x[0]).find(x => F.among.includes(x)) || F.among[0]) : F.paidBy;
+    return cashSplit(total, F.among, anchor, unit)[p];
+  }
   function evenShares(total) {
     const u = CURS[F.cur].unit, n = F.among.length, each = Math.floor(total / n / u) * u, sh = {};
     F.among.forEach(p => { sh[p] = each; });
@@ -2058,6 +2101,11 @@ function out(o) {
       '<span class="mid"><b>' + esc(usd(x.usd)) + ' → ' + esc(short(x.vnd)) + ' ₫</b><small>' + esc(x.where ? x.where + ' · ' : '') + esc(dateOf(x.ts)) + '</small></span>' +
       '<span class="amt num"><b>' + esc(fmt(x.vnd / x.usd)) + '</b><small>₫ per $</small></span></button>').join('') + '</div>' : '';
     $('xEmpty').hidden = xs.length > 0;
+    const adjs = [...state.adjustments].sort((a, b) => b.ts.localeCompare(a.ts));
+    $('adjBox').hidden = !adjs.length;
+    $('adjList').innerHTML = adjs.length ? '<div class="list">' + adjs.map(a => '<button type="button" class="row" data-adj-id="' + esc(a.id) + '"><span class="emo" style="background:var(--raised)">🧮</span>' +
+      '<span class="mid"><b>' + esc(a.note || 'Wallet correction') + '</b><small>' + esc(dateOf(a.ts) + ' · ' + timeOf(a.ts)) + '</small></span>' +
+      '<span class="amt num"><b class="' + (a.amt > 0 ? 'good' : 'over') + '">' + (a.amt > 0 ? '+' : '−') + esc(a.cur === 'USD' ? usd(Math.abs(a.amt)) : vnd(Math.abs(a.amt))) + '</b></span></button>').join('') + '</div>' : '';
     $('notesList').innerHTML = NOTES.map(n => {
       const img = notePhotos[n.v];
       const pic = img ? '<img class="bill-img" src="' + img + '" alt="Your photo of the ' + short(n.v) + ' note">'
@@ -2157,28 +2205,50 @@ function out(o) {
     save(); closeSheet(); renderAll(); bump();
   };
 
-  // count sheet
-  function cPreview() {
-    const c = calc(), raw = $('cVnd').value, have = raw === '' ? NaN : Number(raw), p = $('cPreview'), fix = $('cFix');
-    p.classList.remove('warn'); fix.hidden = true;
-    if (!Number.isFinite(have)) { p.textContent = 'Count your notes and enter the total.'; return; }
-    const gap = c.vndLeft - have;
-    if (Math.abs(gap) < 1000) { p.textContent = 'Matches. Every dong is accounted for.'; return; }
-    if (gap > 0) {
-      p.textContent = vnd(gap) + ' (≈ ' + npr(gap * c.nprPerVnd) + ') is missing from your log.';
-      p.classList.add('warn'); fix.hidden = false; fix.textContent = 'Log ' + short(gap) + ' ₫ as unlogged spending'; fix.dataset.gap = Math.round(gap);
-    } else p.textContent = 'You have ' + vnd(-gap) + ' more than expected. An exchange or a payback may be missing, or a purchase was logged twice.';
+  $('adjList').addEventListener('click', e => {
+    const b = e.target.closest('[data-adj-id]'); if (!b) return;
+    const a = state.adjustments.find(x => x.id === b.dataset.adjId); if (!a) return;
+    if (!confirm('Undo this correction (' + (a.amt > 0 ? '+' : '−') + (a.cur === 'USD' ? usd(Math.abs(a.amt)) : vnd(Math.abs(a.amt))) + ')?')) return;
+    state.adjustments = state.adjustments.filter(x => x.id !== a.id); save(); renderAll();
+  });
+  // count & fix wallet
+  let cWhy = 'spent';
+  function cRead() {
+    const c = calc(), rv = $('cVnd').value, ru = $('cUsd').value;
+    const haveV = rv === '' ? null : Math.max(0, Number(rv) || 0), haveU = ru === '' ? null : Math.max(0, Number(ru) || 0);
+    return { c, gapV: haveV === null ? 0 : Math.round(haveV - c.vndLeft), gapU: haveU === null ? 0 : Math.round((haveU - c.usdLeft) * 100) / 100, haveV, haveU };
   }
-  $('cVnd').addEventListener('input', cPreview);
-  $('openCount').onclick = () => {
-    const c = calc();
-    $('cLead').textContent = 'The app expects ' + (c.vndLeft < 0 ? '−' + vnd(-c.vndLeft) : vnd(c.vndLeft)) + ' in your wallet.';
-    $('cVnd').value = ''; cPreview(); openSheet('sheet-count');
-  };
+  function cPreview() {
+    const { c, gapV, gapU, haveV, haveU } = cRead(), p = $('cPreview'), fix = $('cFix');
+    $('cVndNote').textContent = 'App expects ' + (c.vndLeft < 0 ? '−' + vnd(-c.vndLeft) : vnd(c.vndLeft)) + (haveV !== null && Math.abs(gapV) >= 1000 ? (gapV < 0 ? ' · ' + vnd(-gapV) + ' missing' : ' · ' + vnd(gapV) + ' extra') : '');
+    $('cUsdNote').textContent = 'App expects ' + usd(c.usdLeft) + (haveU !== null && Math.abs(gapU) >= 0.01 ? (gapU < 0 ? ' · ' + usd(-gapU) + ' missing' : ' · ' + usd(gapU) + ' extra') : '');
+    const vOff = haveV !== null && Math.abs(gapV) >= 1000, uOff = haveU !== null && Math.abs(gapU) >= 0.01;
+    $('cChoices').hidden = !(vOff && gapV < 0);
+    document.querySelectorAll('#cWhy [data-why]').forEach(b => b.classList.toggle('sel', b.dataset.why === cWhy));
+    $('cWhyNote').textContent = cWhy === 'spent' ? 'Adds an “Unlogged cash” purchase, so it counts toward your spending.' : 'Corrects the wallet only, e.g. you miscounted or lost money. Spending stays the same.';
+    $('cErr').textContent = '';
+    p.classList.remove('warn');
+    if (haveV === null && haveU === null) { p.textContent = 'Count your notes, then type the totals above.'; fix.hidden = true; return; }
+    if (!vOff && !uOff) { p.textContent = '✓ Matches. Your wallet is right.'; fix.hidden = true; return; }
+    const parts = [];
+    if (vOff) parts.push('dong ' + (gapV > 0 ? '+' : '−') + vnd(Math.abs(gapV)));
+    if (uOff) parts.push('dollars ' + (gapU > 0 ? '+' : '−') + usd(Math.abs(gapU)));
+    p.textContent = 'The wallet will be set to what you counted: ' + parts.join(', ') + '.' + (vOff && gapV > 0 ? ' Extra dong usually means an exchange or payback wasn’t logged.' : '');
+    p.classList.toggle('warn', (vOff && gapV < 0) || (uOff && gapU < 0));
+    fix.hidden = false; fix.textContent = vOff && gapV < 0 && cWhy === 'spent' ? 'Log ' + short(-gapV) + ' ₫ as spending & fix wallet' : 'Fix wallet to match';
+  }
+  ['cVnd','cUsd'].forEach(id => $(id).addEventListener('input', cPreview));
+  $('cWhy').addEventListener('click', e => { const b = e.target.closest('[data-why]'); if (!b) return; cWhy = b.dataset.why; cPreview(); });
+  $('openCount').onclick = () => { $('cVnd').value = ''; $('cUsd').value = ''; cWhy = 'spent'; cPreview(); openSheet('sheet-count'); };
   $('cFix').onclick = () => {
-    const gap = Number($('cFix').dataset.gap); if (!(gap > 0)) return;
-    const c = calc();
-    state.entries.push({ id:uid(), ts:new Date().toISOString(), item:'Unlogged cash', cat:'Other', vnd:gap, rate:c.nprPerVnd, paidBy:'me', among:['me'], asked:null, city:state.city });
+    const { c, gapV, gapU, haveV, haveU } = cRead(), now = new Date().toISOString();
+    if (haveV !== null && Math.abs(gapV) >= 1000) {
+      if (gapV < 0 && cWhy === 'spent')
+        state.entries.push({ id:uid(), ts:now, item:'Unlogged cash', cat:'Other', vnd:-gapV, rate:c.nprPerVnd, paidBy:'me', among:['me'], asked:null, city:state.city });
+      else state.adjustments.push({ id:uid(), ts:now, cur:'VND', amt:gapV, note: gapV > 0 ? 'Counted more dong than expected' : 'Counted less dong than expected' });
+    }
+    if (haveU !== null && Math.abs(gapU) >= 0.01)
+      state.adjustments.push({ id:uid(), ts:now, cur:'USD', amt:gapU, note: gapU > 0 ? 'Counted more dollars than expected' : 'Counted fewer dollars than expected' });
     save(); closeSheet(); renderAll(); bump();
   };
 
@@ -2191,14 +2261,16 @@ function out(o) {
   }
   const who = id => id === 'me' ? 'You' : friendName(id);
   const shareName = id => id === 'me' ? (state.myName || 'Me') : friendName(id);
+  function cashRound(v) { const u = RU(); return Math.abs(v) < u / 2 ? 0 : Math.round(v / u) * u; }
   function gm(v, c) { return state.groupCur === 'NPR' ? npr(v * c.nprPerVnd) : vnd(v); }
   function gmAlt(v, c) { return state.groupCur === 'NPR' ? vnd(v) : npr(v * c.nprPerVnd); }
   function renderGroup() {
-    const c = calc(), n = c.nets, me = Math.round(n.me || 0);
+    const c = calc(), n = c.nets, me = cashRound(n.me || 0);
     document.querySelectorAll('#grpCur [data-gc]').forEach(b => b.classList.toggle('sel', b.dataset.gc === (state.groupCur || 'VND')));
-    $('myNet').textContent = Math.abs(me) < 500 ? 'All even' : (me > 0 ? 'You get back ' : 'You owe ') + gm(Math.abs(me), c);
-    $('myNet').className = 'val num' + (me <= -500 ? ' over' : '');
-    $('myNetSub').textContent = Math.abs(me) < 500 ? 'Nothing to settle for you.' : '≈ ' + gmAlt(Math.abs(me), c) + ' · see who to settle with below';
+    document.querySelectorAll('#grpRound [data-ru]').forEach(b => b.classList.toggle('sel', Number(b.dataset.ru) === RU()));
+    $('myNet').textContent = !me ? 'All even' : (me > 0 ? 'You get back ' : 'You owe ') + gm(Math.abs(me), c);
+    $('myNet').className = 'val num' + (me < 0 ? ' over' : '');
+    $('myNetSub').textContent = !me ? 'Nothing to settle for you.' : '≈ ' + gmAlt(Math.abs(me), c) + ' · see who to settle with below';
     const tr = simplify(n);
     settleTr = tr;
     $('settleEmpty').hidden = tr.length > 0 || !state.friends.length;
@@ -2213,7 +2285,7 @@ function out(o) {
     $('friendEmpty').hidden = state.friends.length > 0;
     const people = state.friends.length ? ['me'].concat(state.friends.map(f => f.id)) : [];
     $('friendList').innerHTML = people.length ? '<div class="list">' + people.map(id => {
-      const v = Math.round(n[id] || 0), even = Math.abs(v) < 500, name = who(id);
+      const v = cashRound(n[id] || 0), even = !v, name = who(id);
       return '<button type="button" class="row" data-friend="' + esc(id) + '"><span class="emo" style="background:var(--accent-soft)">' + esc((name.trim()[0] || '?').toUpperCase()) + '</span>' +
         '<span class="mid"><b>' + esc(name) + '</b><small>' + (even ? 'Even' : v > 0 ? 'gets back' : 'owes the group') + '</small></span>' +
         '<span class="amt num"><b class="' + (even ? '' : v > 0 ? 'good' : 'over') + '">' + (even ? '—' : esc(gm(Math.abs(v), c))) + '</b>' + (even ? '' : '<small>' + esc(gmAlt(Math.abs(v), c)) + '</small>') + '</span></button>';
@@ -2232,6 +2304,7 @@ function out(o) {
   let sharedLimit = 30, settleTr = [], personTr = [];
   $('sharedMore').onclick = () => { sharedLimit = Infinity; renderGroup(); };
   $('sharedList').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
+  $('grpRound').addEventListener('click', e => { const b = e.target.closest('[data-ru]'); if (!b) return; state.roundUnit = Number(b.dataset.ru); save(); renderAll(); });
   $('grpCur').addEventListener('click', e => { const b = e.target.closest('[data-gc]'); if (!b) return; state.groupCur = b.dataset.gc; save(); renderGroup(); });
   $('settleList').addEventListener('click', e => {
     const b = e.target.closest('[data-settle-k]'); if (!b) return;
@@ -2344,9 +2417,9 @@ function out(o) {
   }
   function renderFriend() {
     const c = calc(), id = friendId; if (id !== 'me' && !state.friends.some(f => f.id === id)) return;
-    const v = Math.round(c.nets[id] || 0), name = who(id), isMe = id === 'me';
+    const v = cashRound(c.nets[id] || 0), name = who(id), isMe = id === 'me';
     $('frName').textContent = isMe ? 'Your statement' : name + '’s statement';
-    $('frLead').textContent = Math.abs(v) < 500 ? 'Even with the group.' : name + (v > 0 ? (isMe ? ' get back ' : ' gets back ') : (isMe ? ' owe ' : ' owes ')) + gm(Math.abs(v), c) + ' (' + gmAlt(Math.abs(v), c) + ').';
+    $('frLead').textContent = !v ? 'Even with the group.' : name + (v > 0 ? (isMe ? ' get back ' : ' gets back ') : (isMe ? ' owe ' : ' owes ')) + gm(Math.abs(v), c) + ' (' + gmAlt(Math.abs(v), c) + ').';
     const rows = personRows(id);
     const sum = f => rows.reduce((a, r) => a + f(r), 0);
     const paidBills = sum(r => r.kind === 'bill' ? r.paid : 0), share = sum(r => r.kind === 'bill' ? r.share : 0);
@@ -2357,8 +2430,8 @@ function out(o) {
       '<div><span>' + (isMe ? 'Your share' : 'Their share') + ' (' + nBills + ' bill' + (nBills === 1 ? '' : 's') + ')</span><b>' + esc(gm(share, c)) + '</b></div>' +
       '<div><span>Paid back to others</span><b>' + esc(gm(gave, c)) + '</b></div>' +
       '<div><span>Received back</span><b>' + esc(gm(got, c)) + '</b></div>' +
-      '<div class="wide"><span>Balance = paid − share + paid back − received</span><b class="' + (v >= 500 ? 'good' : v <= -500 ? 'over' : '') + '" style="color:' + (v >= 500 ? 'var(--good)' : v <= -500 ? 'var(--warn)' : 'inherit') + '">' +
-        (Math.abs(v) < 500 ? 'Even' : (v > 0 ? '+' : '−') + esc(gm(Math.abs(v), c))) + '</b></div>';
+      '<div class="wide"><span>Balance = paid − share + paid back − received</span><b class="' + (v > 0 ? 'good' : v < 0 ? 'over' : '') + '" style="color:' + (v > 0 ? 'var(--good)' : v < 0 ? 'var(--warn)' : 'inherit') + '">' +
+        (!v ? 'Even' : (v > 0 ? '+' : '−') + esc(gm(Math.abs(v), c))) + '</b></div>';
     personTr = simplify(c.nets).filter(t => t.from === id || t.to === id);
     $('frSuggest').innerHTML = personTr.length ? '<p class="small" style="margin:12px 2px 6px">To settle up</p><div class="list">' + personTr.map((t, k) => '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>' + esc(gmAlt(t.vnd, c)) + '</small></span><span class="amt num"><b>' + esc(gm(t.vnd, c)) + '</b></span><button type="button" class="mini" data-fs="' + k + '" style="flex:none">Paid</button></div>').join('') + '</div>' : '';
     $('frWithMe').hidden = isMe;
@@ -2375,15 +2448,15 @@ function out(o) {
         title = who(r.t.from) + ' → ' + who(r.t.to);
         sub = 'Payment' + (r.t.cur ? ' · ' + fmtCur(r.t.amt, r.t.cur) + ' (' + payRate(r.t) + ')' : ' in dong');
       }
-      const b = Math.round(r.bal);
+      const b = cashRound(r.bal);
       return '<button type="button" class="row" ' + (r.kind === 'bill' ? 'data-entry="' + esc(r.e.id) + '"' : 'data-settle="' + esc(r.t.id) + '"') + '>' +
         '<span class="mid"><b>' + esc(title) + '</b><small>' + esc(sub) + ' · ' + esc(dateOf(r.ts)) + '</small></span>' +
         '<span class="amt num"><b class="' + (r.eff > 0 ? 'good' : r.eff < 0 ? 'over' : '') + '">' + (r.eff > 0 ? '+' : r.eff < 0 ? '−' : '') + esc(short(Math.abs(r.eff))) + ' ₫</b>' +
-        '<small>bal ' + (Math.abs(b) < 500 ? '0' : (b > 0 ? '+' : '−') + esc(short(Math.abs(b)))) + '</small></span></button>';
+        '<small>bal ' + (!b ? '0' : (b > 0 ? '+' : '−') + esc(short(Math.abs(b)))) + '</small></span></button>';
     }).join('') + '</div>' : '<p class="empty-msg">' + (rows.length ? 'Nothing in this filter.' : 'Nothing shared yet.') + '</p>';
   }
   function statementText(id) {
-    const c = calc(), rows = personRows(id), name = shareName(id), v = Math.round(c.nets[id] || 0);
+    const c = calc(), rows = personRows(id), name = shareName(id), v = cashRound(c.nets[id] || 0);
     const m = x => state.groupCur === 'NPR' ? npr(x * c.nprPerVnd) : vnd(x);
     const L = ['*' + name + ': trip statement*', '_' + dateOf(new Date().toISOString()) + ' · ' + rows.length + ' item' + (rows.length === 1 ? '' : 's') + '_', ''];
     rows.forEach(r => {
@@ -2391,7 +2464,7 @@ function out(o) {
       if (r.kind === 'bill') L.push('• ' + dateOf(r.ts) + ' ' + r.e.item + ': ' + (r.paid > 0 ? 'paid ' + inOwn(r.e, r.paid) + ', ' : '') + 'share ' + inOwn(r.e, r.share) + ' → ' + sign);
       else L.push('• ' + dateOf(r.ts) + ' ' + shareName(r.t.from) + ' paid ' + shareName(r.t.to) + ' ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd)) + ' → ' + sign);
     });
-    L.push('', '*Balance:* ' + (Math.abs(v) < 500 ? 'even ✅' : (v > 0 ? 'gets back ' : 'owes ') + m(Math.abs(v)) + (state.groupCur === 'NPR' ? '' : ' (' + npr(Math.abs(v) * c.nprPerVnd) + ')')));
+    L.push('', '*Balance:* ' + (!v ? 'even ✅' : (v > 0 ? 'gets back ' : 'owes ') + m(Math.abs(v)) + (state.groupCur === 'NPR' ? '' : ' (' + npr(Math.abs(v) * c.nprPerVnd) + ')')));
     simplify(c.nets).filter(t => t.from === id || t.to === id).forEach(t => L.push('→ ' + shareName(t.from) + ' pays ' + shareName(t.to) + ' ' + m(t.vnd)));
     const rn = ratesUsed(rows.filter(r => r.kind === 'bill').map(r => r.e), rows.filter(r => r.kind === 'pay').map(r => r.t));
     if (rn) L.push('', '_Rates used: ' + rn + '_');
@@ -2701,6 +2774,7 @@ function out(o) {
     const rows = [];
     state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', '', x.usd, '', '', Math.round(x.vnd/x.usd)]));
     state.entries.forEach(e => rows.push(['Purchase' + (curOf(e) !== 'VND' ? ' (' + e.amt + ' ' + e.cur + ')' : '') + (paidOf(e, 'me') > 0 && e.method === 'card' ? ' [card]' : ''), dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', payerText(e, friendName), e.among.map(p => friendName(p) + (e.shares ? ' ' + Math.round(shareOf(e, p)) : '')).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
+    state.adjustments.forEach(a => rows.push(['Wallet correction', dayKey(a.ts), timeOf(a.ts), a.note, '', a.cur === 'VND' ? a.amt : '', '', '', a.cur === 'USD' ? a.amt : '', '', '', '']));
     state.settlements.forEach(t => rows.push(['Payment' + (t.cur ? ' (' + t.amt + ' ' + t.cur + ')' : ''), dayKey(t.ts), timeOf(t.ts), who(t.from) + ' → ' + who(t.to), '', t.vnd, '', '', '', who(t.from), who(t.to), '']));
     rows.sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
     const head = ['Type','Date','Time','Item / where / who','Category','VND total','VND my share','NPR my share','USD','Paid by','Shared by','Rate VND/USD'];
@@ -2737,7 +2811,7 @@ function out(o) {
         d.settlements.forEach(t => { t.from = m(t.from); t.to = m(t.to); });
       }
       const merge = (key) => { const have = new Set(state[key].map(x => x.id)); const add = d[key].filter(x => !have.has(x.id)); state[key] = state[key].concat(add); return add.length; };
-      const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements'); merge('phrases');
+      const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements'); merge('phrases'); merge('adjustments');
       // packing list: add categories and items this phone doesn't have yet
       d.checklist.forEach(dc => { const mc = state.checklist.find(c => c.id === dc.id);
         if (!mc) state.checklist.push(dc); else dc.items.forEach(i => { if (!mc.items.some(x => x.id === i.id)) mc.items.push(i); }); });
@@ -2778,10 +2852,11 @@ function out(o) {
     tabs['Payments'] = [['Date','Time','From','To','₫','Original amount','Rate used']]
       .concat(state.settlements.slice().sort(byTs).map(t => [dayKey(t.ts), timeOf(t.ts), n(t.from), n(t.to), t.vnd, t.cur ? fmtCur(t.amt, t.cur) : '', payRate(t)]));
     tabs['Exchanges'] = [['Date','Dollars','₫ received','Rate ₫ per $','Where']]
-      .concat(state.exchanges.slice().sort(byTs).map(x => [dayKey(x.ts), x.usd, x.vnd, Math.round(x.vnd / x.usd), x.where || '']));
+      .concat(state.exchanges.slice().sort(byTs).map(x => [dayKey(x.ts), x.usd, x.vnd, Math.round(x.vnd / x.usd), x.where || '']))
+      .concat(state.adjustments.slice().sort(byTs).map(a => [dayKey(a.ts), a.cur === 'USD' ? a.amt : '', a.cur === 'VND' ? a.amt : '', '', 'Wallet correction: ' + a.note]));
     const people = ['me'].concat(state.friends.map(f => f.id));
     tabs['Balances'] = [['Person','Net ₫ (+ gets back, − owes)','Net NPR','']]
-      .concat(people.map(p => { const v = Math.round(c.nets[p] || 0); return [n(p), v, Math.round(v * c.nprPerVnd), Math.abs(v) < 500 ? 'even' : v > 0 ? 'gets back' : 'owes']; }))
+      .concat(people.map(p => { const v = cashRound(c.nets[p] || 0); return [n(p), v, Math.round(v * c.nprPerVnd), !v ? 'even' : v > 0 ? 'gets back' : 'owes']; }))
       .concat([['','','',''], ['Settle up: who pays whom','₫','NPR','']])
       .concat(simplify(c.nets).map(t => [n(t.from) + ' → ' + n(t.to), t.vnd, Math.round(t.vnd * c.nprPerVnd), '']))
       .concat([['','','',''], ['Dollars left', Math.round(c.usdLeft * 100) / 100, '', ''], ['Dong in wallet', Math.round(c.vndLeft), '', ''], ['Updated', new Date().toLocaleString('en-GB'), '', '']]);
