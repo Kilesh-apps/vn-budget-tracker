@@ -1,6 +1,6 @@
 // Bump this whenever you change any file, or the phone keeps the old copy.
-const CACHE = 'vdc-v27';
-const ASSETS = ['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-192-maskable.png','./icon-512-maskable.png'];
+const CACHE = 'vdc-v28';
+const ASSETS = ['./','./index.html','./report.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-192-maskable.png','./icon-512-maskable.png'];
 const FONT_HOSTS = ['fonts.googleapis.com','fonts.gstatic.com'];
 
 self.addEventListener('install', e => {

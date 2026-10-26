@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vietnam trip · group spending</title>
+<meta name="description" content="Who spent what, who paid, and who owes whom on our Vietnam trip.">
+<meta property="og:title" content="🇻🇳 Vietnam trip · group spending">
+<meta property="og:description" content="Settle-up, spending per person, per day and per category.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#1a1d1c">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f3f0;--surface:#fbfbf9;--raised:#e8ebe6;--ink:#252a27;--muted:#626c66;--line:#dce0da;--accent:#2f6f5e;--accent-soft:#e2ede7;--good:#2b7449;--warn:#a4473a;--num:#1e2320;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#1a1d1c;--surface:#222625;--raised:#2c312f;--ink:#dde2de;--muted:#9aa39e;--line:#323836;--accent:#86bea8;--accent-soft:#263430;--good:#90cfa7;--warn:#e39a8a;--num:#eceeeb;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Be Vietnam Pro",system-ui,-apple-system,Roboto,sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+main{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+.num{font-variant-numeric:tabular-nums}
+header h1{margin:0;font-size:1.6rem;font-weight:700;line-height:1.2}
+header p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;margin-top:12px;background:var(--surface)}
+.toggle button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.85rem;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
+.toggle button.on{background:var(--accent);color:var(--surface)}
+h2{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:28px 2px 10px;font-weight:700}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px}
+.settle{display:grid;gap:10px}
+.pay{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.pay .who{flex:1;min-width:0;font-weight:600}
+.pay .who span{color:var(--muted);font-weight:400;margin:0 6px}
+.pay .amt{text-align:right}
+.pay .amt b{display:block;font-size:1.15rem;color:var(--num)}
+.pay .amt small{color:var(--muted);font-size:.8rem}
+.even{text-align:center;padding:20px;font-weight:600;color:var(--good)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;min-width:0}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-weight:600}
+.stat b{display:block;font-size:1.15rem;color:var(--num);overflow-wrap:anywhere}
+.big{font-size:2.2rem;font-weight:700;color:var(--num);line-height:1.1;margin:0}
+.person{padding:12px 0;border-top:1px solid var(--line)}
+.person:first-child{border-top:0;padding-top:0}
+.prow{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.prow b{font-size:1rem}
+.net{font-size:.85rem;font-weight:700}
+.net.pos{color:var(--good)} .net.neg{color:var(--warn)} .net.zero{color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--raised);overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.meta{font-size:.8rem;color:var(--muted)}
+.cat{display:grid;grid-template-columns:28px 1fr auto;gap:6px 10px;align-items:center;padding:8px 0}
+.cat .e{font-size:1.3rem}
+.cat .n{font-weight:600}
+.cat .v{text-align:right;font-weight:600}
+.cat .bar{grid-column:2/4;margin:0}
+.days{display:flex;align-items:flex-end;gap:6px;height:150px;margin-top:6px}
+.days .d{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;cursor:pointer;border:0;background:transparent;font:inherit;color:inherit;padding:0}
+.days .d b{font-size:.68rem;color:var(--muted);font-weight:600;white-space:nowrap;margin-bottom:3px}
+.days .d i{display:block;width:100%;max-width:34px;border-radius:6px 6px 2px 2px;background:var(--accent);min-height:3px}
+.days .d.sel i{box-shadow:0 0 0 2px var(--ink)}
+.dl{display:flex;gap:6px;margin-top:6px}
+.dl span{flex:1;text-align:center;font-size:.72rem;color:var(--muted);min-width:0}
+.tbl{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{padding:9px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:.74rem;color:var(--muted);font-weight:700;background:var(--surface)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+td{background:var(--surface)}
+td.z{color:var(--muted)} td.top{color:var(--warn);font-weight:700}
+tfoot td{font-weight:700;border-bottom:0}
+.bill{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.bill:first-child{border-top:0}
+.bill .rank{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:.85rem;flex:none}
+.bill .mid{flex:1;min-width:0}
+.bill .mid b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bill .mid small{color:var(--muted);font-size:.8rem}
+.bill .v{font-weight:700;text-align:right}
+footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
+.err{text-align:center;padding:60px 20px}
+@media (max-width:380px){.stats{grid-template-columns:1fr 1fr}.big{font-size:1.9rem}}
+</style>
+</head>
+<body>
+<main id="app"><p class="err">Loading the report…</p></main>
+<script>
+(async function () {
+  'use strict';
+  const app = document.getElementById('app');
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  function fail(msg) { app.innerHTML = '<div class="err"><h1>🇻🇳</h1><p>' + esc(msg) + '</p><p class="meta">Ask for a fresh link from the Deal Calc app.</p></div>'; }
+  async function decode(h) {
+    const raw = h.replace(/^#/, '');
+    const m = /^(z|j)\.(.+)$/.exec(raw); if (!m) throw new Error('no data');
+    const b64 = m[2].replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64 + '==='.slice((b64.length + 3) % 4));
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    if (m[1] === 'j') return JSON.parse(new TextDecoder().decode(bytes));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return JSON.parse(await new Response(stream).text());
+  }
+  let D;
+  try { D = await decode(location.hash); } catch (e) { fail('This link doesn’t contain a report, or it was cut off.'); return; }
+  const CAT = { Shopping:'🛍️', Food:'🍜', Drinks:'🍺', Transport:'🛵', Stay:'🏨', Activities:'🎟️', Other:'✨' };
+  const P = D.people, n = P.length;
+  let cur = D.cur === 'NPR' ? 'NPR' : 'VND';
+  const money = v => cur === 'NPR' ? 'NPR ' + fmt(v * D.r) : fmt(v) + ' ₫';
+  const alt = v => cur === 'NPR' ? fmt(v) + ' ₫' : 'NPR ' + fmt(v * D.r);
+  const k = v => { const x = cur === 'NPR' ? v * D.r : v, a = Math.abs(x);
+    return a >= 1e6 ? (Math.round(x / 1e4) / 100).toString().replace(/\.?0+$/, '') + 'm' : a >= 1e3 ? Math.round(x / 1e3) + 'k' : String(Math.round(x)); };
+  // totals per person
+  const used = Array(n).fill(0), paid = Array(n).fill(0), days = {}, cats = {};
+  D.bills.forEach(b => {
+    b[4].forEach(([i, v]) => { paid[i] += v; });
+    b[5].forEach(([i, v]) => { used[i] += v; (days[b[0]] ||= Array(n).fill(0))[i] += v; });
+    cats[b[2]] = (cats[b[2]] || 0) + b[3];
+  });
+  const total = D.bills.reduce((a, b) => a + b[3], 0), dayKeys = Object.keys(days).sort();
+  const dayName = d => new Date(d.slice(0,4) + '-' + d.slice(4,6) + '-' + d.slice(6) + 'T12:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+  let selDay = null;
+
+  function render() {
+    const order = P.map((_, i) => i).filter(i => used[i] || paid[i]).sort((a, b) => used[b] - used[a]);
+    const maxUse = Math.max(1, ...used), maxCat = Math.max(1, ...Object.values(cats));
+    const dayTot = dayKeys.map(d => days[d].reduce((a, x) => a + x, 0)), maxDay = Math.max(1, ...dayTot);
+    let h = '<header><h1>🇻🇳 ' + esc(D.t) + '</h1><p>' + esc(D.p) + ' · snapshot from ' + esc(new Date(D.g).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })) + '</p>' +
+      '<div class="toggle" role="group" aria-label="Currency"><button type="button" data-c="VND" class="' + (cur === 'VND' ? 'on' : '') + '">₫ Dong</button><button type="button" data-c="NPR" class="' + (cur === 'NPR' ? 'on' : '') + '">NPR</button></div></header>';
+    h += '<h2>💸 Settle up</h2>';
+    h += D.settle.length ? '<div class="settle">' + D.settle.map(([f, t, v]) => '<div class="pay"><div class="who">' + esc(P[f]) + '<span>→</span>' + esc(P[t]) + '</div><div class="amt num"><b>' + esc(money(v)) + '</b><small>' + esc(alt(v)) + '</small></div></div>').join('') + '</div>'
+      : '<div class="card even">Everyone is even ✅</div>';
+    h += '<h2>📊 Total</h2><div class="card"><p class="big num">' + esc(money(total)) + '</p><p class="meta num" style="margin:4px 0 12px">' + esc(alt(total)) + '</p>' +
+      '<div class="stats num"><div class="stat"><span>Shared bills</span><b>' + D.bills.length + '</b></div><div class="stat"><span>Days</span><b>' + dayKeys.length + '</b></div><div class="stat"><span>Per day</span><b>' + esc(k(total / Math.max(1, dayKeys.length))) + '</b></div></div></div>';
+    h += '<h2>👥 Who spent · who paid</h2><div class="card">' + order.map(i => {
+      const net = paid[i] - used[i], cls = Math.abs(net) < (D.ru || 1000) / 2 ? 'zero' : net > 0 ? 'pos' : 'neg';
+      return '<div class="person"><div class="prow"><b>' + esc(P[i]) + '</b><span class="net num ' + cls + '">' + (cls === 'zero' ? 'even' : (net > 0 ? 'paid ' + esc(k(net)) + ' extra' : 'used ' + esc(k(-net)) + ' more')) + '</span></div>' +
+        '<div class="bar"><i style="width:' + (used[i] / maxUse * 100) + '%"></i></div><div class="meta num">Share ' + esc(money(used[i])) + ' · paid ' + esc(money(paid[i])) + '</div></div>';
+    }).join('') + '</div>';
+    h += '<h2>🗂️ By category</h2><div class="card">' + Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([c, v]) =>
+      '<div class="cat"><span class="e">' + (CAT[c] || '✨') + '</span><span class="n">' + esc(c) + '</span><span class="v num">' + esc(k(v)) + ' · ' + Math.round(v / total * 100) + '%</span><div class="bar"><i style="width:' + (v / maxCat * 100) + '%"></i></div></div>').join('') + '</div>';
+    if (dayKeys.length) {
+      h += '<h2>📅 Day by day</h2><div class="card"><div class="days">' + dayKeys.map((d, j) => '<button type="button" class="d' + (selDay === d ? ' sel' : '') + '" data-d="' + d + '"><b>' + esc(k(dayTot[j])) + '</b><i style="height:' + Math.max(2, dayTot[j] / maxDay * 100) + '%"></i></button>').join('') + '</div>' +
+        '<div class="dl">' + dayKeys.map(d => '<span>' + Number(d.slice(6)) + '</span>').join('') + '</div>' +
+        '<div class="tbl"><table class="num"><thead><tr><th>Day</th>' + order.map(i => '<th>' + esc(P[i]) + '</th>').join('') + '<th>Total</th></tr></thead><tbody>' +
+        dayKeys.slice().reverse().map(d => { const row = order.map(i => days[d][i]), mx = Math.max(...row), top = row.filter(x => x === mx).length === 1 && row.filter(x => x > 0).length > 1;
+          return '<tr' + (selDay === d ? ' style="outline:2px solid var(--accent)"' : '') + '><td>' + esc(dayName(d)) + '</td>' + row.map(v => '<td class="' + (!v ? 'z' : top && v === mx ? 'top' : '') + '">' + (v ? esc(k(v)) : '–') + '</td>').join('') + '<td>' + esc(k(row.reduce((a, x) => a + x, 0))) + '</td></tr>'; }).join('') +
+        '</tbody><tfoot><tr><td>Total</td>' + order.map(i => '<td>' + esc(k(used[i])) + '</td>').join('') + '<td>' + esc(k(total)) + '</td></tr></tfoot></table></div>' +
+        '<p class="meta" style="margin:8px 2px 0">Each person’s share per day. Red = the day’s biggest spender.</p></div>';
+    }
+    const top = D.bills.slice().sort((a, b) => b[3] - a[3]).slice(0, 8);
+    h += '<h2>🔝 Biggest bills</h2><div class="card">' + top.map((b, i) => '<div class="bill"><span class="rank">' + (i + 1) + '</span><div class="mid"><b>' + esc(b[1]) + '</b><small>' + esc(dayName(b[0])) + ' · paid by ' + esc(b[4].map(([j]) => P[j]).join(' + ')) + ' · ' + b[5].length + ' people</small></div><div class="v num">' + esc(b[6] ? b[6] : k(b[3])) + '</div></div>').join('') + '</div>';
+    if (D.rates) h += '<p class="meta" style="margin:14px 2px 0">Rates used: ' + esc(D.rates) + '</p>';
+    h += '<footer>Snapshot made with Deal Calc · it doesn’t update by itself</footer>';
+    app.innerHTML = h;
+  }
+  app.addEventListener('click', e => {
+    const c = e.target.closest('[data-c]'); if (c) { cur = c.dataset.c; render(); return; }
+    const d = e.target.closest('[data-d]'); if (d) { selDay = selDay === d.dataset.d ? null : d.dataset.d; render(); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

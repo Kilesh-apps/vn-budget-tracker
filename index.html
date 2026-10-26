@@ -785,7 +785,10 @@ button.ck-row:active{background:var(--raised)}
     <label><input type="checkbox" id="inTop" checked> Biggest bills</label>
     <label><input type="checkbox" id="inDaily"> Daily breakdown per person</label>
   </div>
-  <pre class="preview" id="inPreview"></pre>
+  <button type="button" class="secondary" id="inWeb" style="margin-top:12px">🔗 Share as a web page (charts &amp; tables)</button>
+  <p class="small" style="margin:6px 2px 0">Sends a link to a nicely designed page. The data travels inside the link itself; nothing is uploaded anywhere.</p>
+  <span class="flabel">Text message preview</span>
+  <pre class="preview" id="inPreview" style="margin-top:4px"></pre>
   <p class="status" id="inStatus"></p>
   <div class="sheet-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
     <button type="button" class="secondary" id="inOther">Other apps / copy</button>
@@ -2470,6 +2473,43 @@ function out(o) {
     if (!state.myName) $('inStatus').textContent = 'Tip: set your name under People so the message doesn’t say “Me”.'; };
   $('inPeriod').addEventListener('click', e => { const b = e.target.closest('[data-ip]'); if (!b) return; inPeriod = b.dataset.ip; renderInsights(); });
   ['inPeople','inCats','inTop','inDaily','inSettle'].forEach(id => $(id).addEventListener('change', renderInsights));
+  // ---------- web-page report: data is packed into the link (after #, never sent to any server) ----------
+  function b64url(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  async function reportLink() {
+    const c = calc(), today = dayKey(new Date()), yd = dayKey(new Date(Date.now() - 864e5));
+    const inP = e => inPeriod === 'trip' || dayKey(e.ts) === (inPeriod === 'today' ? today : yd);
+    const bills = state.entries.filter(e => isShared(e) && inP(e)).sort((a, b) => a.ts.localeCompare(b.ts));
+    const ids = ['me'].concat(state.friends.map(f => f.id)), idx = {}; ids.forEach((id, i) => { idx[id] = i; });
+    const period = inPeriod === 'trip' ? (bills.length ? dateOf(bills[0].ts) + ' – ' + dateOf(new Date().toISOString()) : 'Whole trip')
+      : (inPeriod === 'today' ? 'Today, ' : 'Yesterday, ') + dateOf(new Date(inPeriod === 'today' ? Date.now() : Date.now() - 864e5).toISOString());
+    const data = { v:1, t:'Vietnam trip', p:period, g:new Date().toISOString(), cur: state.groupCur === 'NPR' ? 'NPR' : 'VND', r:c.nprPerVnd, ru:RU(),
+      people: ids.map(shareName),
+      settle: simplify(c.nets).map(t => [idx[t.from], idx[t.to], Math.round(t.vnd)]).filter(t => t[0] !== undefined && t[1] !== undefined),
+      bills: bills.map(e => [dayKey(e.ts).replace(/-/g, ''), String(e.item).slice(0, 60), e.cat, Math.round(e.vnd),
+        Object.entries(payersOf(e)).filter(([p]) => p in idx).map(([p, v]) => [idx[p], Math.round(v)]),
+        e.among.filter(p => p in idx).map(p => [idx[p], Math.round(shareOf(e, p))]),
+        curOf(e) === 'VND' ? 0 : fmtCur(e.amt, e.cur)]),
+      rates: ratesUsed(bills, state.settlements) };
+    const json = new TextEncoder().encode(JSON.stringify(data));
+    let code;
+    try {
+      const out = await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
+      code = 'z.' + b64url(new Uint8Array(out));
+    } catch (e) { code = 'j.' + b64url(json); }
+    const onSite = /github\.io$|^localhost$|^127\./.test(location.hostname);
+    const base = onSite ? new URL('report.html', location.href).href.split('#')[0].split('?')[0] : 'https://kilesh-apps.github.io/vn-budget-tracker/report.html';
+    return base + '#' + code;
+  }
+  $('inWeb').onclick = async () => {
+    const st = $('inStatus');
+    try {
+      const link = await reportLink();
+      const msg = '🇻🇳 *Vietnam trip: spending report*\nSettle-up, who spent what, day by day 👇\n' + link;
+      st.innerHTML = 'Link ready (' + Math.round(link.length / 100) / 10 + ' k characters). <a href="' + esc(link) + '" target="_blank" rel="noopener">Preview it</a>';
+      if (navigator.onLine) window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+      else { try { await navigator.clipboard.writeText(msg); st.innerHTML += ' · copied, paste it when you’re online.'; } catch (e) {} }
+    } catch (e) { st.textContent = 'Couldn’t build the link: ' + ((e && e.message) || 'unknown error'); }
+  };
   $('inWa').onclick = () => {
     if (!navigator.onLine) { $('inStatus').textContent = 'You’re offline. WhatsApp will send it when you’re back online, or use Other apps / copy.'; }
     window.open('https://wa.me/?text=' + encodeURIComponent(insightsText()), '_blank', 'noopener');
