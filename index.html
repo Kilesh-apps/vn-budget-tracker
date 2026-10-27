@@ -520,7 +520,7 @@ button.ck-row:active{background:var(--raised)}
       <p class="small num" id="ratesNote" hidden></p>
       <div class="btn-pair" style="margin-top:10px">
         <button type="button" class="secondary" id="shareSettle">📊 Share insights…</button>
-        <button type="button" class="secondary" id="recordPay">Record a payment</button>
+        <button type="button" class="secondary" id="recordPay">💸 Lend / pay back</button>
       </div>
       <h3>Everyone’s balance <small style="font-weight:500">· tap a person for their statement</small></h3>
       <div id="friendList"></div>
@@ -765,7 +765,7 @@ button.ck-row:active{background:var(--raised)}
   </div>
   <div id="frHist" style="margin-top:10px"></div>
   <div class="sheet-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-    <button type="button" class="secondary" id="frRecord">Record payment</button>
+    <button type="button" class="secondary" id="frRecord">💸 Lend / pay back</button>
     <button type="button" class="primary wa" id="frShare" style="margin-top:0">Share statement</button>
   </div>
 </div>
@@ -862,13 +862,16 @@ function out(o) {
 <!-- record a payment -->
 <div class="sheet" id="sheet-paym" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
   <div class="grab"></div>
-  <h2 id="pmTitle">Record a payment</h2>
-  <p class="lead">Money one person handed to another to settle up.</p>
-  <span class="flabel">Who paid</span><div class="seg" id="pmFrom"></div>
-  <span class="flabel">Who received it</span><div class="seg" id="pmTo"></div>
+  <h2 id="pmTitle">Lend or pay back</h2>
+  <div class="seg" id="pmKind" style="margin-top:6px"><button type="button" data-k="loan">💸 Lend / borrow</button><button type="button" data-k="pay">✅ Pay back</button></div>
+  <p class="lead" id="pmLead" style="margin-top:8px"></p>
+  <span class="flabel" id="pmFromLbl">Who paid</span><div class="seg" id="pmFrom"></div>
+  <span class="flabel" id="pmToLbl">Who received it</span><div class="seg" id="pmTo"></div>
   <label for="pmAmt">Amount</label>
   <input id="pmAmt" type="number" inputmode="decimal" min="0" step="any" class="num">
   <div class="seg seg-sm" id="pmCur" style="margin-top:8px"></div>
+  <label for="pmText">Note (optional)</label>
+  <input id="pmText" type="text" maxlength="60" placeholder="e.g. for SIM card, taxi money" autocomplete="off">
   <p class="status num" id="pmNote"></p>
   <p class="status" id="pmErr" style="color:var(--warn)"></p>
   <button type="button" class="primary" id="pmSave">Save payment</button>
@@ -1139,7 +1142,8 @@ function out(o) {
       if (!from && t.friend && (t.dir === 'in' || t.dir === 'out')) { from = t.dir === 'in' ? String(t.friend) : 'me'; to = t.dir === 'in' ? 'me' : String(t.friend); } // older format
       if (!from || !to || from === to) return null;
       const cur = CURS[t.cur] && t.cur !== 'VND' && Number(t.amt) > 0 ? t.cur : null;
-      return { id:String(t.id), ts:validTs(t.ts), from:String(from), to:String(to), vnd:Number(t.vnd), cur, amt: cur ? Number(t.amt) : null };
+      return { id:String(t.id), ts:validTs(t.ts), from:String(from), to:String(to), vnd:Number(t.vnd), cur, amt: cur ? Number(t.amt) : null,
+        kind: t.kind === 'loan' ? 'loan' : 'pay', note: String(t.note || '').slice(0, 60) };
     }).filter(Boolean);
     b.phrases = uniqById(b.phrases);
     b.adjustments = uniqById((raw.adjustments || []).filter(a => a && a.id && (a.cur === 'VND' || a.cur === 'USD') && Number(a.amt))
@@ -2392,7 +2396,7 @@ function out(o) {
     const b = e.target.closest('[data-settle-k]'); if (!b) return;
     const t = settleTr[Number(b.dataset.settleK)]; if (t) openPayment(t.from, t.to, t.vnd);
   });
-  $('recordPay').onclick = () => openPayment(null, null, 0);
+  $('recordPay').onclick = () => openPayment(null, null, 0, 'loan');
   // ---------- group insights for WhatsApp ----------
   let inPeriod = 'trip';
   function insightsText() {
@@ -2570,9 +2574,9 @@ function out(o) {
     $('frStats').innerHTML =
       '<div><span>Paid for bills</span><b>' + esc(gm(paidBills, c)) + '</b></div>' +
       '<div><span>' + (isMe ? 'Your share' : 'Their share') + ' (' + nBills + ' bill' + (nBills === 1 ? '' : 's') + ')</span><b>' + esc(gm(share, c)) + '</b></div>' +
-      '<div><span>Paid back to others</span><b>' + esc(gm(gave, c)) + '</b></div>' +
-      '<div><span>Received back</span><b>' + esc(gm(got, c)) + '</b></div>' +
-      '<div class="wide"><span>Balance = paid − share + paid back − received</span><b class="' + (v > 0 ? 'good' : v < 0 ? 'over' : '') + '" style="color:' + (v > 0 ? 'var(--good)' : v < 0 ? 'var(--warn)' : 'inherit') + '">' +
+      '<div><span>Money given (loans, paybacks)</span><b>' + esc(gm(gave, c)) + '</b></div>' +
+      '<div><span>Money received</span><b>' + esc(gm(got, c)) + '</b></div>' +
+      '<div class="wide"><span>Balance = paid − share + given − received</span><b class="' + (v > 0 ? 'good' : v < 0 ? 'over' : '') + '" style="color:' + (v > 0 ? 'var(--good)' : v < 0 ? 'var(--warn)' : 'inherit') + '">' +
         (!v ? 'Even' : (v > 0 ? '+' : '−') + esc(gm(Math.abs(v), c))) + '</b></div>';
     personTr = simplify(c.nets).filter(t => t.from === id || t.to === id);
     $('frSuggest').innerHTML = personTr.length ? '<p class="small" style="margin:12px 2px 6px">To settle up</p><div class="list">' + personTr.map((t, k) => '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>' + esc(gmAlt(t.vnd, c)) + '</small></span><span class="amt num"><b>' + esc(gm(t.vnd, c)) + '</b></span><button type="button" class="mini" data-fs="' + k + '" style="flex:none">Paid</button></div>').join('') + '</div>' : '';
@@ -2587,8 +2591,8 @@ function out(o) {
         title = e.item;
         sub = (r.paid > 0 ? (isMe ? 'You' : 'They') + ' paid ' + inOwn(e, r.paid) + (r.paid < e.vnd - 1 ? ' of ' + inOwn(e, e.vnd) : '') : payerText(e, who) + ' paid') + ' · share ' + inOwn(e, r.share) + (entryRate(e) ? ' · ' + entryRate(e) : '');
       } else {
-        title = who(r.t.from) + ' → ' + who(r.t.to);
-        sub = 'Payment' + (r.t.cur ? ' · ' + fmtCur(r.t.amt, r.t.cur) + ' (' + payRate(r.t) + ')' : ' in dong');
+        title = r.t.kind === 'loan' ? who(r.t.to) + ' borrowed from ' + who(r.t.from) : who(r.t.from) + ' paid back ' + who(r.t.to);
+        sub = (r.t.kind === 'loan' ? '💸 Loan' : '✅ Payback') + (r.t.note ? ' · ' + r.t.note : '') + (r.t.cur ? ' · ' + fmtCur(r.t.amt, r.t.cur) + ' (' + payRate(r.t) + ')' : '');
       }
       const b = cashRound(r.bal);
       return '<button type="button" class="row" ' + (r.kind === 'bill' ? 'data-entry="' + esc(r.e.id) + '"' : 'data-settle="' + esc(r.t.id) + '"') + '>' +
@@ -2604,7 +2608,7 @@ function out(o) {
     rows.forEach(r => {
       const sign = (r.eff >= 0 ? '+' : '−') + m(Math.abs(r.eff));
       if (r.kind === 'bill') L.push('• ' + dateOf(r.ts) + ' ' + r.e.item + ': ' + (r.paid > 0 ? 'paid ' + inOwn(r.e, r.paid) + ', ' : '') + 'share ' + inOwn(r.e, r.share) + ' → ' + sign);
-      else L.push('• ' + dateOf(r.ts) + ' ' + shareName(r.t.from) + ' paid ' + shareName(r.t.to) + ' ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd)) + ' → ' + sign);
+      else L.push('• ' + dateOf(r.ts) + ' ' + (r.t.kind === 'loan' ? shareName(r.t.to) + ' borrowed ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd)) + ' from ' + shareName(r.t.from) : shareName(r.t.from) + ' paid back ' + shareName(r.t.to) + ' ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd))) + (r.t.note ? ' (' + r.t.note + ')' : '') + ' → ' + sign);
     });
     L.push('', '*Balance:* ' + (!v ? 'even ✅' : (v > 0 ? 'gets back ' : 'owes ') + m(Math.abs(v)) + (state.groupCur === 'NPR' ? '' : ' (' + npr(Math.abs(v) * c.nprPerVnd) + ')')));
     simplify(c.nets).filter(t => t.from === id || t.to === id).forEach(t => L.push('→ ' + shareName(t.from) + ' pays ' + shareName(t.to) + ' ' + m(t.vnd)));
@@ -2626,7 +2630,7 @@ function out(o) {
   });
   $('frSuggest').addEventListener('click', e => { const b = e.target.closest('[data-fs]'); if (!b) return;
     const t = personTr[Number(b.dataset.fs)]; if (t) openPayment(t.from, t.to, t.vnd); });
-  $('frRecord').onclick = () => { const v = calc().nets[friendId] || 0; openPayment(v < 0 ? friendId : null, v > 0 ? friendId : null, 0); };
+  $('frRecord').onclick = () => openPayment(friendId === 'me' ? 'me' : null, friendId === 'me' ? null : friendId, 0, 'loan');
   $('frHist').addEventListener('click', e => {
     const s = e.target.closest('[data-settle]');
     if (s) { const t = state.settlements.find(x => x.id === s.dataset.settle);
@@ -2637,7 +2641,13 @@ function out(o) {
   // record a payment between any two people
   let PM = null;
   function renderPayment() {
-    const c = calc(), people = [{ id:'me', name:'You' }].concat(state.friends);
+    const c = calc(), people = [{ id:'me', name:'You' }].concat(state.friends), loan = PM.kind === 'loan';
+    document.querySelectorAll('#pmKind [data-k]').forEach(b => b.classList.toggle('sel', b.dataset.k === PM.kind));
+    $('pmTitle').textContent = loan ? 'Lend money' : 'Pay back';
+    $('pmLead').textContent = loan ? 'Someone handed money to another person, who now owes it back.' : 'Someone paid back what they owed.';
+    $('pmFromLbl').textContent = loan ? 'Who gave the money' : 'Who paid back';
+    $('pmToLbl').textContent = loan ? 'Who borrowed it' : 'Who received it';
+    $('pmSave').textContent = loan ? 'Save loan' : 'Save payment';
     $('pmFrom').innerHTML = people.map(p => '<button type="button" class="' + (PM.from === p.id ? 'sel' : '') + '" data-pf="' + esc(p.id) + '">' + esc(p.name) + '</button>').join('');
     $('pmTo').innerHTML = people.map(p => '<button type="button" class="' + (PM.to === p.id ? 'sel' : '') + '" data-pt="' + esc(p.id) + '"' + (p.id === PM.from ? ' disabled' : '') + '>' + esc(p.name) + '</button>').join('');
     $('pmCur').innerHTML = Object.entries(CURS).map(([k, v]) => '<button type="button" class="' + (k === PM.cur ? 'sel' : '') + '" data-pc="' + k + '">' + v.label + '</button>').join('');
@@ -2648,13 +2658,15 @@ function out(o) {
       : PM.cur === 'VND' ? (PM.to === 'me' ? 'Adds to the dong in your wallet.' : 'Comes out of the dong in your wallet.')
       : PM.cur === 'USD' ? (PM.to === 'me' ? 'Adds to your dollars.' : 'Comes out of your dollars.') : 'Rupee payments don’t change your trip wallet.');
   }
-  function openPayment(from, to, vndAmt) {
-    PM = { from: from || null, to: to || null, cur: state.groupCur === 'NPR' && vndAmt ? 'NPR' : 'VND' };
+  function openPayment(from, to, vndAmt, kind) {
+    PM = { from: from || null, to: to || null, cur: state.groupCur === 'NPR' && vndAmt ? 'NPR' : 'VND', kind: kind || 'pay' };
+    $('pmText').value = '';
     const c = calc();
     $('pmAmt').value = vndAmt ? (PM.cur === 'NPR' ? Math.round(vndAmt * c.nprPerVnd) : Math.round(vndAmt)) : '';
     $('pmErr').textContent = '';
     renderPayment(); openSheet('sheet-paym');
   }
+  $('pmKind').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; PM.kind = b.dataset.k; renderPayment(); });
   $('pmFrom').addEventListener('click', e => { const b = e.target.closest('[data-pf]'); if (!b) return; PM.from = b.dataset.pf; if (PM.to === PM.from) PM.to = null; renderPayment(); });
   $('pmTo').addEventListener('click', e => { const b = e.target.closest('[data-pt]'); if (!b || b.disabled) return; PM.to = b.dataset.pt; renderPayment(); });
   $('pmCur').addEventListener('click', e => { const b = e.target.closest('[data-pc]'); if (!b) return; PM.cur = b.dataset.pc; renderPayment(); });
@@ -2664,7 +2676,8 @@ function out(o) {
     if (!PM.from || !PM.to) { $('pmErr').textContent = 'Pick who paid and who received it.'; return; }
     if (!(amt > 0)) { $('pmErr').textContent = 'Enter an amount above zero.'; $('pmAmt').focus(); return; }
     const v = Math.round(amt * vndPer(PM.cur));
-    state.settlements.push({ id:uid(), ts:new Date().toISOString(), from:PM.from, to:PM.to, vnd:v, cur: PM.cur === 'VND' ? null : PM.cur, amt: PM.cur === 'VND' ? null : amt });
+    state.settlements.push({ id:uid(), ts:new Date().toISOString(), from:PM.from, to:PM.to, vnd:v, cur: PM.cur === 'VND' ? null : PM.cur, amt: PM.cur === 'VND' ? null : amt,
+      kind: PM.kind === 'loan' ? 'loan' : 'pay', note: $('pmText').value.trim().slice(0, 60) });
     save(); closeSheet(); renderAll(); bump();
   };
 
@@ -2917,7 +2930,7 @@ function out(o) {
     state.exchanges.forEach(x => rows.push(['Exchange', dayKey(x.ts), timeOf(x.ts), x.where, '', x.vnd, '', '', x.usd, '', '', Math.round(x.vnd/x.usd)]));
     state.entries.forEach(e => rows.push(['Purchase' + (curOf(e) !== 'VND' ? ' (' + e.amt + ' ' + e.cur + ')' : '') + (paidOf(e, 'me') > 0 && e.method === 'card' ? ' [card]' : ''), dayKey(e.ts), timeOf(e.ts), e.item, e.cat, e.vnd, Math.round(myShare(e)), Math.round(myNpr(e)), '', payerText(e, friendName), e.among.map(p => friendName(p) + (e.shares ? ' ' + Math.round(shareOf(e, p)) : '')).join(' + '), Math.round(state.nprPerUsd / e.rate)]));
     state.adjustments.forEach(a => rows.push(['Wallet correction', dayKey(a.ts), timeOf(a.ts), a.note, '', a.cur === 'VND' ? a.amt : '', '', '', a.cur === 'USD' ? a.amt : '', '', '', '']));
-    state.settlements.forEach(t => rows.push(['Payment' + (t.cur ? ' (' + t.amt + ' ' + t.cur + ')' : ''), dayKey(t.ts), timeOf(t.ts), who(t.from) + ' → ' + who(t.to), '', t.vnd, '', '', '', who(t.from), who(t.to), '']));
+    state.settlements.forEach(t => rows.push([(t.kind === 'loan' ? 'Loan' : 'Payback') + (t.cur ? ' (' + t.amt + ' ' + t.cur + ')' : ''), dayKey(t.ts), timeOf(t.ts), who(t.from) + ' → ' + who(t.to) + (t.note ? ' · ' + t.note : ''), '', t.vnd, '', '', '', who(t.from), who(t.to), '']));
     rows.sort((a,b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
     const head = ['Type','Date','Time','Item / where / who','Category','VND total','VND my share','NPR my share','USD','Paid by','Shared by','Rate VND/USD'];
     return '\ufeff' + [head].concat(rows).map(r => r.map(q).join(',')).join('\r\n') + '\r\n';
@@ -2991,8 +3004,8 @@ function out(o) {
     tabs['Group bills'] = [['Date','Item','Category','Paid by','Total ₫','Original amount','Rate used','Each person’s share (₫)']]
       .concat(state.entries.filter(isShared).sort(byTs).map(e => [dayKey(e.ts), e.item, e.cat, payerText(e, n), e.vnd, curOf(e) === 'VND' ? '' : fmtCur(e.amt, e.cur), entryRate(e),
         e.among.map(p => n(p) + ' ' + Math.round(shareOf(e, p))).join(', ')]));
-    tabs['Payments'] = [['Date','Time','From','To','₫','Original amount','Rate used']]
-      .concat(state.settlements.slice().sort(byTs).map(t => [dayKey(t.ts), timeOf(t.ts), n(t.from), n(t.to), t.vnd, t.cur ? fmtCur(t.amt, t.cur) : '', payRate(t)]));
+    tabs['Payments'] = [['Date','Time','Type','From','To','₫','Original amount','Rate used','Note']]
+      .concat(state.settlements.slice().sort(byTs).map(t => [dayKey(t.ts), timeOf(t.ts), t.kind === 'loan' ? 'Loan' : 'Payback', n(t.from), n(t.to), t.vnd, t.cur ? fmtCur(t.amt, t.cur) : '', payRate(t), t.note || '']));
     tabs['Exchanges'] = [['Date','Dollars','₫ received','Rate ₫ per $','Where']]
       .concat(state.exchanges.slice().sort(byTs).map(x => [dayKey(x.ts), x.usd, x.vnd, Math.round(x.vnd / x.usd), x.where || '']))
       .concat(state.adjustments.slice().sort(byTs).map(a => [dayKey(a.ts), a.cur === 'USD' ? a.amt : '', a.cur === 'VND' ? a.amt : '', '', 'Wallet correction: ' + a.note]));
