@@ -1,25 +1,13 @@
-# Vietnam Deal Calc (PWA) — version 3
+# Vietnam Deal Calc (PWA) — version 30
 
-Files: index.html, sw.js, manifest.webmanifest, 4 icons. Upload all of them to the repo root (replace the old ones).
+Upload to the GitHub repo root: index.html, report.html, sw.js (plus manifest and icons if they're not there yet).
+Code.gs is the Google Sheets script; paste it into Apps Script (it isn't needed on GitHub).
 
-## Updating your installed app
-1. Upload these files to the GitHub repo, replacing the old ones, and commit.
-2. Wait 1–2 minutes for Pages to publish.
-3. Open the installed app online, close it fully, open it again. Version 3 shows a Group tab.
-Your records stay: same site, same storage, and old records are converted automatically.
+## Layout
+Home (converter + dashboard) · Spent · ＋ (add anything) · Group · Cash.
+Bargain tools and the packing list open from Home or the ＋ menu.
 
-## Tabs
-- Deal: keypad (tap digits to move the cursor), offer tiles, Show seller (big number + Vietnamese phrases, keeps the screen on), Price advice, Log.
-- Spent: money left, today vs daily allowance, a bar per trip day, category filter, tap any purchase to edit or delete.
-- Cash: dollars left, dong in wallet, exchanges, Count my wallet, banknote guide.
-- Group: people on the trip, who owes whom, record cash paybacks.
-
-## Data
-Stored only on the phone. Save a backup every day or two (Settings, or the reminder on the Spent tab).
-After changing any file, bump `CACHE` in sw.js so phones pick up the update.
-
-## Price advice without an API key
-https://claude.ai/artifact/9QYn1kZcDn5FWXV1HBNkFf — uses your Claude account. In the installed app, Price advice opens it with your prices filled in.
-
-## Google Sheets backup (v19)
-Code.gs is the Apps Script for the sheet. You don't need to upload it to GitHub; the app has a "Copy the script" button (Settings → Google Sheets backup) with set-up steps.
+## Live group link
+Needs Google Sheets backup with script version 2: paste the new Code.gs over the old one, then
+Deploy → Manage deployments → ✏️ → Version: New version → Deploy. The web-app link stays the same.
+Then Group → Share with group → Live link.

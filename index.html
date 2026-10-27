@@ -202,7 +202,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .person-edit button:disabled{opacity:.35}
 
 /* tabs */
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);align-items:end;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 .tabs button{border:0;background:transparent;padding:8px 0 10px;display:grid;justify-items:center;gap:2px;font-size:.78rem;font-weight:600;color:var(--muted)}
 .tabs svg{width:24px;height:24px}
 .tabs button[aria-selected=true]{color:var(--accent)}
@@ -240,6 +240,7 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .small a,.note a{color:var(--accent)}
 .rate-wrap{display:flex;gap:8px}
 .rate-wrap input{flex:1}
+.k000{flex:none;min-width:58px;font-size:.9rem}
 .mini{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:0 12px;min-height:40px;font-size:.82rem;font-weight:600;white-space:nowrap}
 .seg{display:flex;flex-wrap:wrap;gap:8px}
 .seg button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 13px;font-size:.88rem;font-weight:600}
@@ -305,6 +306,35 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .add-box label{display:block;font-size:.84rem;font-weight:600;margin:10px 0 6px}
 
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* center plus */
+.tabs .plus{position:relative}
+.tabs .plus span{width:56px;height:56px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin-top:-22px;box-shadow:0 6px 18px rgba(0,0,0,.25);font-size:2rem;font-weight:400;line-height:1}
+.tabs .plus:active span{transform:scale(.95)}
+#backBtn{margin-left:-8px;font-size:1.6rem;line-height:1}
+/* home */
+.conv-cur{display:flex;gap:6px}
+.conv-in{font-size:2.3rem;font-weight:700;color:var(--num);margin:8px 0 2px;line-height:1.15;overflow-wrap:anywhere}
+.conv-in .ph{color:var(--muted);font-weight:500}
+.conv-out{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 10px}
+.conv-out div{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:8px 10px;min-width:0}
+.conv-out span{display:block;font-size:.72rem;color:var(--muted);font-weight:600}
+.conv-out b{display:block;font-size:1rem;overflow-wrap:anywhere}
+.keypad.sm .key{height:46px;font-size:1.3rem}
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.hcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;text-align:left;min-width:0;width:100%;display:block;font:inherit;color:inherit}
+.hcard:active{background:var(--raised)}
+.hcard .lbl{display:block}
+.hcard .hv{display:block;font-size:1.25rem;font-weight:700;color:var(--num);margin-top:2px;overflow-wrap:anywhere}
+.hcard .hs{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
+.hcard .hs.good{color:var(--good)} .hcard .hs.over{color:var(--warn)}
+.hcard.wide{margin-top:10px}
+.plus-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.plus-grid button{border:1px solid var(--line);background:var(--bg);border-radius:18px;padding:16px 12px;text-align:left;font:inherit;color:inherit;min-height:84px}
+.plus-grid button:active{background:var(--raised)}
+.plus-grid b{display:block;font-size:1rem;margin-top:4px}
+.plus-grid small{display:block;color:var(--muted);font-size:.78rem;line-height:1.3}
+.plus-grid .e{font-size:1.5rem}
+.runway{margin-top:10px}
 /* pay & change */
 #sheet-pay>*{flex-shrink:0}
 #sheet-pay .seller-view{position:fixed}
@@ -370,6 +400,24 @@ button.ck-row:active{background:var(--raised)}
 .gd-stats div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0}
 .gd-stats span{display:block;font-size:.72rem;color:var(--muted);font-weight:600}
 .gd-stats b{display:block;font-size:.98rem;overflow-wrap:anywhere}
+.share-opt{border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-top:10px;background:var(--bg)}
+.share-opt summary{cursor:pointer;min-height:36px;display:flex;align-items:center;gap:6px;list-style:none}
+.share-opt summary::-webkit-details-marker{display:none}
+.share-opt > p.small{margin:4px 0 0}
+.explain{margin:8px 2px 0;line-height:1.45}
+.explain button{margin-top:8px}
+.hist{border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-top:10px;background:var(--bg)}
+.hist-h b{display:block;font-size:.98rem}
+.hist-h small{color:var(--muted);font-size:.8rem}
+.hist-sec{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px}
+.hist-row{display:flex;justify-content:space-between;gap:10px;font-size:.88rem;padding:3px 0}
+.hist-row span:first-child{font-weight:600;flex:none}
+.hist-row span:last-child{text-align:right;min-width:0}
+.hist-row .d{font-weight:700}
+.hist-row .d.good{color:var(--good)} .hist-row .d.over{color:var(--warn)}
+.hist-route{font-size:.84rem;padding:3px 0}
+.hist-route b{font-weight:600}
+.hist.focus{border-color:var(--sel)}
 .preview{white-space:pre-wrap;font:.86rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0 0;max-height:42vh;overflow:auto;color:var(--ink)}
 .checks{display:grid;gap:4px;margin-top:6px}
 .checks label{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;font-size:.92rem;min-height:36px}
@@ -381,7 +429,8 @@ button.ck-row:active{background:var(--raised)}
 <body>
 <div class="app">
   <header class="top">
-    <h1 id="title">Deal</h1>
+    <button type="button" class="icon-btn" id="backBtn" aria-label="Back" hidden>‹</button>
+    <h1 id="title">Home</h1>
     <button type="button" class="chip" id="installBtn" hidden>Install</button>
     <button type="button" class="chip num" id="walletChip" aria-label="Wallet"></button>
     <button type="button" class="icon-btn" id="openSettings" aria-label="Settings">
@@ -393,7 +442,40 @@ button.ck-row:active{background:var(--raised)}
     <div class="errbar" id="errBar" hidden><span id="errText"></span><button type="button" id="errClose" aria-label="Dismiss">✕</button></div>
 
     <!-- DEAL -->
-    <section class="view" id="view-deal">
+    <!-- HOME -->
+    <section class="view" id="view-home">
+      <div class="card">
+        <div class="pack-top"><span class="lbl">Convert</span><div class="seg seg-sm" id="cvCur"></div></div>
+        <p class="conv-in num" id="cvIn"></p>
+        <div class="conv-out num" id="cvOut"></div>
+        <div class="keypad sm" id="cvPad">
+          <button type="button" class="key" data-ck="1">1</button><button type="button" class="key" data-ck="2">2</button><button type="button" class="key" data-ck="3">3</button>
+          <button type="button" class="key" data-ck="4">4</button><button type="button" class="key" data-ck="5">5</button><button type="button" class="key" data-ck="6">6</button>
+          <button type="button" class="key" data-ck="7">7</button><button type="button" class="key" data-ck="8">8</button><button type="button" class="key" data-ck="9">9</button>
+          <button type="button" class="key" data-ck="000">000</button><button type="button" class="key" data-ck="0">0</button>
+          <button type="button" class="key alt" data-ck="back" aria-label="Delete, hold to clear">⌫</button>
+        </div>
+        <div class="btn-pair" style="margin-top:10px">
+          <button type="button" class="secondary" id="cvBargain">🗣️ Bargain</button>
+          <button type="button" class="primary" id="cvLog" style="margin-top:0">＋ Log this</button>
+        </div>
+        <p class="small num" id="cvRate" style="margin:8px 2px 0"></p>
+      </div>
+      <div class="hgrid">
+        <button type="button" class="hcard" id="hToday"><span class="lbl">Today</span><span class="hv num" id="hTodayV"></span><span class="hs num" id="hTodayS"></span></button>
+        <button type="button" class="hcard" id="hWallet"><span class="lbl">Wallet</span><span class="hv num" id="hWalletV"></span><span class="hs num" id="hWalletS"></span></button>
+      </div>
+      <button type="button" class="hcard wide" id="hGroup"><span class="lbl">Group</span><span class="hv num" id="hGroupV"></span><span class="hs num" id="hGroupS"></span></button>
+      <h3>Recent</h3>
+      <div id="hRecent"></div>
+      <p class="empty-msg" id="hRecentEmpty">Nothing logged yet. Tap ＋ to add your first expense.</p>
+      <div class="btn-pair" style="margin-top:12px">
+        <button type="button" class="secondary" id="hPack">🎒 Packing</button>
+        <button type="button" class="secondary" id="hDeal">🗣️ Bargain tools</button>
+      </div>
+    </section>
+
+    <section class="view" id="view-deal" hidden>
       <div class="display">
         <div class="amt-row active" data-field="ask" role="button" tabindex="0" aria-label="Asking price">
           <div class="lbl-row"><span class="lbl" id="askLbl">Asking price</span><button type="button" class="clr" data-clear="ask" aria-label="Clear asking price">✕</button></div>
@@ -469,13 +551,15 @@ button.ck-row:active{background:var(--raised)}
       <div id="xList"></div>
       <p class="empty-msg" id="xEmpty">No exchanges yet. Log each one as you change dollars into dong.</p>
       <div id="adjBox" hidden><h3>Wallet corrections</h3><div id="adjList"></div><p class="small">Tap a correction to undo it.</p></div>
-      <h3>Know your notes</h3>
+      <div class="card runway num" id="runway" hidden></div>
+      <div hidden>
       <div class="note warn" style="margin:0 0 8px">20,000 and 500,000 are both blue. The 500,000 is longer, has five zeros, and shows a house among trees on the back; the 20,000 shows a covered bridge. Check before you hand one over.
         <div class="cmp" id="notesCmp" hidden></div>
       </div>
       <div class="list notes" id="notesList"></div>
       <p class="small">Tap a note to add a photo of your own. Photograph the back (the picture side): that’s where they differ most. Photos stay on this phone and aren’t included in backups.</p>
       <input type="file" id="notePhoto" accept="image/*" capture="environment" hidden>
+      </div>
     </section>
 
     <!-- PACK -->
@@ -516,10 +600,12 @@ button.ck-row:active{background:var(--raised)}
       </div>
       <h3>Settle up · fewest payments</h3>
       <div id="settleList"></div>
+      <div class="explain small" id="settleExplain">Fewest payments only decides <b>who pays whom</b>. Each person’s <b>total</b> (in Everyone’s balance below) only changes when a bill or payment involves them.
+        <button type="button" class="secondary" id="openHist">🕘 What changed, and why?</button></div>
       <p class="empty-msg" id="settleEmpty">Everyone is even. 🎉</p>
       <p class="small num" id="ratesNote" hidden></p>
       <div class="btn-pair" style="margin-top:10px">
-        <button type="button" class="secondary" id="shareSettle">📊 Share insights…</button>
+        <button type="button" class="primary" id="shareSettle" style="margin-top:0">📤 Share with group</button>
         <button type="button" class="secondary" id="recordPay">💸 Lend / pay back</button>
       </div>
       <h3>Everyone’s balance <small style="font-weight:500">· tap a person for their statement</small></h3>
@@ -543,16 +629,15 @@ button.ck-row:active{background:var(--raised)}
   </main>
 
   <nav class="tabs" role="tablist">
-    <button type="button" role="tab" data-tab="deal" aria-selected="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Deal</button>
+    <button type="button" role="tab" data-tab="home" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
     <button type="button" role="tab" data-tab="spent" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Spent</button>
-    <button type="button" role="tab" data-tab="cash" aria-selected="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>Cash</button>
+    <button type="button" class="plus" id="plusBtn" aria-label="Add or log something"><span>＋</span></button>
     <button type="button" role="tab" data-tab="group" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.7c2 .7 3.2 2.5 3.5 5.3"/></svg>Group</button>
-    <button type="button" role="tab" data-tab="pack" aria-selected="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8.5 9 1.5 1.5 3-3M8.5 15.5l1.5 1.5 3-3M15.5 10h1M15.5 16.5h1"/></svg>Pack</button>
+    <button type="button" role="tab" data-tab="cash" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>Cash</button>
   </nav>
 </div>
 
@@ -565,7 +650,7 @@ button.ck-row:active{background:var(--raised)}
   <p class="lead num" id="fLead"></p>
   <div id="fAmountWrap">
     <label for="fAmount">Amount</label>
-    <div class="rate-wrap"><input id="fAmount" type="number" inputmode="decimal" min="0" step="any" class="num"></div>
+    <div class="rate-wrap"><input id="fAmount" type="text" inputmode="decimal" autocomplete="off" class="num money" placeholder="0"><button type="button" class="mini k000" data-k000="fAmount" aria-label="Add three zeros">000</button></div>
     <div class="seg seg-sm" id="fCur" style="margin-top:8px" aria-label="Currency"></div>
     <div id="fRateRow" hidden>
       <div class="rate-wrap" style="align-items:center;margin-top:10px">
@@ -653,6 +738,20 @@ button.ck-row:active{background:var(--raised)}
   </div>
 </div>
 
+<!-- plus menu -->
+<div class="sheet" id="sheet-plus" role="dialog" aria-modal="true" aria-labelledby="plusTitle">
+  <div class="grab"></div>
+  <h2 id="plusTitle">Add</h2>
+  <div class="plus-grid">
+    <button type="button" data-plus="shared"><span class="e">🧾</span><b>Shared bill</b><small>Split with the group</small></button>
+    <button type="button" data-plus="mine"><span class="e">🛍️</span><b>My expense</b><small>Just for me, any currency</small></button>
+    <button type="button" data-plus="lend"><span class="e">💸</span><b>Lend / pay back</b><small>Money between people</small></button>
+    <button type="button" data-plus="exchange"><span class="e">💱</span><b>Exchange money</b><small>Dollars into dong</small></button>
+    <button type="button" data-plus="deal"><span class="e">🗣️</span><b>Bargain at a stall</b><small>Offers, show seller, pay &amp; change</small></button>
+    <button type="button" data-plus="count"><span class="e">🧮</span><b>Count wallet</b><small>Fix cash to what you have</small></button>
+  </div>
+</div>
+
 <!-- pay & check change -->
 <div class="sheet full" id="sheet-pay" role="dialog" aria-modal="true" aria-labelledby="payTitle" style="overflow-y:auto">
   <div class="show-top">
@@ -705,7 +804,7 @@ button.ck-row:active{background:var(--raised)}
   </div>
   <p class="status" id="xRateNote"></p>
   <label for="xVnd">Dong you get (₫)</label>
-  <input id="xVnd" type="number" inputmode="numeric" min="0" step="1000">
+  <div class="rate-wrap"><input id="xVnd" type="text" inputmode="numeric" autocomplete="off" class="num money"><button type="button" class="mini k000" data-k000="xVnd" aria-label="Add three zeros">000</button></div>
   <p class="status">Worked out from the rate. If they hand you a different amount, type what you actually got.</p>
   <label for="xWhere">Where (optional)</label>
   <input id="xWhere" type="text" maxlength="60" placeholder="e.g. Gold shop, District 1" autocomplete="off">
@@ -719,7 +818,7 @@ button.ck-row:active{background:var(--raised)}
   <h2 id="cTitle">Count &amp; fix wallet</h2>
   <p class="lead">Count your cash and type what you really have. Leave a box empty to skip it.</p>
   <label for="cVnd">Dong you have (₫)</label>
-  <input id="cVnd" type="number" inputmode="numeric" min="0" step="1000" class="num">
+  <div class="rate-wrap"><input id="cVnd" type="text" inputmode="numeric" autocomplete="off" class="num money"><button type="button" class="mini k000" data-k000="cVnd" aria-label="Add three zeros">000</button></div>
   <p class="status num" id="cVndNote"></p>
   <label for="cUsd">Dollars you have ($)</label>
   <input id="cUsd" type="number" inputmode="decimal" min="0" step="any" class="num">
@@ -765,6 +864,7 @@ button.ck-row:active{background:var(--raised)}
   </div>
   <div id="frHist" style="margin-top:10px"></div>
   <div class="sheet-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button type="button" class="secondary" id="frHistBtn" style="margin-top:10px">🕘 How their settle-up changed</button>
     <button type="button" class="secondary" id="frRecord">💸 Lend / pay back</button>
     <button type="button" class="primary wa" id="frShare" style="margin-top:0">Share statement</button>
   </div>
@@ -773,11 +873,21 @@ button.ck-row:active{background:var(--raised)}
 <!-- share group insights -->
 <div class="sheet" id="sheet-insights" role="dialog" aria-modal="true" aria-labelledby="inTitle">
   <div class="grab"></div>
-  <h2 id="inTitle">Share group insights</h2>
-  <p class="lead">Built from shared bills only. Your personal purchases are never included.</p>
-  <span class="flabel">Period</span>
+  <h2 id="inTitle">Share with the group</h2>
+  <p class="lead">Only shared bills and money between people. Your personal purchases are never included.</p>
+  <div class="share-opt" id="liveBox">
+    <b>🟢 Live link <span class="small">· always up to date</span></b>
+    <p class="small" id="liveNote">Friends open one link that always shows the latest balances, whenever your phone has backed up.</p>
+    <button type="button" class="primary wa" id="inLive" style="margin-top:8px">Share live link on WhatsApp</button>
+  </div>
+  <div class="share-opt">
+    <b>🔗 Snapshot page <span class="small">· charts &amp; tables, as of now</span></b>
+    <p class="small">The data travels inside the link itself; nothing is uploaded anywhere. Uses the period below.</p>
+    <button type="button" class="secondary" id="inWeb" style="margin-top:8px">Share snapshot page</button>
+  </div>
+  <span class="flabel">Period (snapshot &amp; text)</span>
   <div class="seg seg-sm" id="inPeriod"><button type="button" data-ip="trip">Whole trip</button><button type="button" data-ip="today">Today</button><button type="button" data-ip="yday">Yesterday</button></div>
-  <span class="flabel">Include</span>
+  <span class="flabel">Include in the text</span>
   <div class="checks">
     <label><input type="checkbox" id="inSettle" checked> Settle up, shown first (covers all bills)</label>
     <label><input type="checkbox" id="inPeople" checked> Who spent what, and who paid</label>
@@ -785,24 +895,28 @@ button.ck-row:active{background:var(--raised)}
     <label><input type="checkbox" id="inTop" checked> Biggest bills</label>
     <label><input type="checkbox" id="inDaily"> Daily breakdown per person</label>
   </div>
-  <button type="button" class="secondary" id="inWeb" style="margin-top:12px">🔗 Share as a web page (charts &amp; tables)</button>
-  <p class="small" style="margin:6px 2px 0">Sends a link to a nicely designed page. The data travels inside the link itself; nothing is uploaded anywhere.</p>
-  <span class="flabel">Text message preview</span>
+  <details class="share-opt" id="textBox"><summary><b>💬 Text message</b> <span class="small">· plain WhatsApp text</span></summary>
+
+  <span class="flabel">Preview</span>
   <pre class="preview" id="inPreview" style="margin-top:4px"></pre>
-  <p class="status" id="inStatus"></p>
-  <div class="sheet-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <div class="btn-pair" style="margin-top:10px">
     <button type="button" class="secondary" id="inOther">Other apps / copy</button>
-    <button type="button" class="primary wa" id="inWa" style="margin-top:0">WhatsApp</button>
+    <button type="button" class="primary wa" id="inWa" style="margin-top:0">Send on WhatsApp</button>
   </div>
+  </details>
+  <p class="status" id="inStatus"></p>
 </div>
 
-<script type="text/plain" id="gsCode">// Deal Calc → Google Sheets backup.
+<script type="text/plain" id="gsCode">// Deal Calc → Google Sheets backup + live group link (script version 2).
 // Paste this into Extensions → Apps Script, save, then Deploy → New deployment →
 // Web app (Execute as: Me, Who has access: Anyone). Copy the web-app link into the app.
-// The first phone that connects becomes the only one allowed to write or read.
+// Updating from version 1? Deploy → Manage deployments → ✏️ → Version: New version → Deploy.
+// The first phone that connects becomes the only one allowed to write or read the backup.
+// Friends with the live link can only read the group summary (shared bills), never the backup.
 
 const TABS = ['Purchases', 'Group bills', 'Payments', 'Exchanges', 'Balances'];
 const BACKUP_TAB = 'Backup (do not edit)';
+const LIVE_TAB = 'Group live (do not edit)';
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
@@ -816,11 +930,13 @@ function doPost(e) {
     else if (saved !== body.secret) return out({ ok: false, error: 'This sheet is already linked to another phone.' });
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     TABS.forEach(name => writeTab(ss, name, (body.tabs && body.tabs[name]) || []));
-    const json = String(body.backup || '');
-    const rows = [['Full backup for the app, saved ' + new Date().toISOString() + '. Do not edit.']];
-    for (let i = 0; i < json.length; i += 45000) rows.push(['~' + json.slice(i, i + 45000)]);
-    writeTab(ss, BACKUP_TAB, rows, true);
-    return out({ ok: true, at: new Date().toISOString() });
+    writeChunks(ss, BACKUP_TAB, 'Full backup for the app', String(body.backup || ''));
+    if (body.group && body.groupToken && String(body.groupToken).length >= 16) {
+      props.setProperty('GROUP_TOKEN', String(body.groupToken));
+      props.setProperty('GROUP_AT', new Date().toISOString());
+      writeChunks(ss, LIVE_TAB, 'Live group summary for the shared link', String(body.group));
+    }
+    return out({ ok: true, v: 2, at: new Date().toISOString() });
   } catch (err) {
     return out({ ok: false, error: String(err) });
   } finally {
@@ -829,12 +945,35 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  const saved = PropertiesService.getScriptProperties().getProperty('SECRET');
-  if (!saved || !e.parameter || e.parameter.secret !== saved) return out({ ok: false, error: 'Not allowed.' });
-  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BACKUP_TAB);
-  if (!sh || sh.getLastRow() < 2) return out({ ok: false, error: 'No backup in this sheet yet.' });
-  const cells = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
-  return out({ ok: true, backup: cells.map(r => String(r[0]).slice(1)).join('') });
+  const p = (e && e.parameter) || {};
+  const props = PropertiesService.getScriptProperties();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (p.group) { // read-only group summary for friends
+    const token = props.getProperty('GROUP_TOKEN');
+    if (!token || p.group !== token) return out({ ok: false, error: 'This live link is not valid any more.' });
+    const report = readChunks(ss, LIVE_TAB);
+    if (!report) return out({ ok: false, error: 'Nothing shared yet.' });
+    return out({ ok: true, report: report, at: props.getProperty('GROUP_AT') });
+  }
+  const saved = props.getProperty('SECRET');
+  if (!saved || p.secret !== saved) return out({ ok: false, error: 'Not allowed.', v: 2 });
+  const backup = readChunks(ss, BACKUP_TAB);
+  if (!backup) return out({ ok: false, error: 'No backup in this sheet yet.' });
+  return out({ ok: true, backup: backup, v: 2 });
+}
+
+function writeChunks(ss, name, title, json) {
+  const rows = [[title + ', saved ' + new Date().toISOString() + '. Do not edit.']];
+  for (let i = 0; i < json.length; i += 45000) rows.push(['~' + json.slice(i, i + 45000)]);
+  writeTab(ss, name, rows, true);
+  const sh = ss.getSheetByName(name);
+  if (sh && !sh.isSheetHidden() && ss.getSheets().length > 1) sh.hideSheet();
+}
+
+function readChunks(ss, name) {
+  const sh = ss.getSheetByName(name);
+  if (!sh || sh.getLastRow() < 2) return '';
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(r => String(r[0]).slice(1)).join('');
 }
 
 function writeTab(ss, name, rows, raw) {
@@ -859,6 +998,15 @@ function out(o) {
 }
 </script>
 
+<!-- settle-up history -->
+<div class="sheet" id="sheet-hist" role="dialog" aria-modal="true" aria-labelledby="hTitle">
+  <div class="grab"></div>
+  <h2 id="hTitle">What changed, and why?</h2>
+  <p class="lead">Each step is a bill or payment, newest first. <b>Totals</b> only change for people involved in it. Other lines are the app re-routing payments to keep them as few as possible; those people’s totals stay the same.</p>
+  <div class="seg seg-sm" id="hWho"></div>
+  <div id="hList"></div>
+</div>
+
 <!-- record a payment -->
 <div class="sheet" id="sheet-paym" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
   <div class="grab"></div>
@@ -868,7 +1016,7 @@ function out(o) {
   <span class="flabel" id="pmFromLbl">Who paid</span><div class="seg" id="pmFrom"></div>
   <span class="flabel" id="pmToLbl">Who received it</span><div class="seg" id="pmTo"></div>
   <label for="pmAmt">Amount</label>
-  <input id="pmAmt" type="number" inputmode="decimal" min="0" step="any" class="num">
+  <div class="rate-wrap"><input id="pmAmt" type="text" inputmode="decimal" autocomplete="off" class="num money" placeholder="0"><button type="button" class="mini k000" data-k000="pmAmt" aria-label="Add three zeros">000</button></div>
   <div class="seg seg-sm" id="pmCur" style="margin-top:8px"></div>
   <label for="pmText">Note (optional)</label>
   <input id="pmText" type="text" maxlength="60" placeholder="e.g. for SIM card, taxi money" autocomplete="off">
@@ -1086,13 +1234,29 @@ function out(o) {
   function fresh() {
     return { v:3, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
       nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, rateFetchedAt:null, rateSource:null,
-      exchanges:[], entries:[], settlements:[], adjustments:[], friends:[], myName:'', roundUnit:1000, groupCur:'VND', lastCat:'Shopping', city:'Ho Chi Minh City',
+      exchanges:[], entries:[], settlements:[], adjustments:[], friends:[], myName:'', roundUnit:1000,  groupCur:'VND', lastCat:'Shopping', city:'Ho Chi Minh City',
       theme:'auto', lastBackup:null, ttsSlow:false, phrases:[], checklist:[], ai:{ key:'', place:'Market stall', search:false } };
   }
   function payersOf(e) { return e.paidBy === 'multi' && e.payers ? e.payers : { [e.paidBy || 'me']: e.vnd }; }
   function paidOf(e, p) { return payersOf(e)[p] || 0; }
   function payerText(e, nameFn) {
     return e.paidBy === 'multi' ? Object.entries(payersOf(e)).map(([p, v]) => nameFn(p) + ' ' + short(v)).join(' + ') : nameFn(e.paidBy);
+  }
+  // amount boxes: show commas while typing, read back as numbers
+  function moneyStr(v) {
+    let t = String(v).replace(/[^\d.]/g, ''); const dot = t.indexOf('.');
+    if (dot >= 0) t = t.slice(0, dot + 1) + t.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+    const [i, d] = t.split('.'); const int = (i || '').replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return d !== undefined ? (int || '0') + '.' + d : int;
+  }
+  function moneyNum(el) { return Number(String(el && el.value || '').replace(/[^\d.]/g, '')) || 0; }
+  function setMoney(el, v) { el.value = v === '' || v == null || v === 0 ? '' : moneyStr(v); }
+  function formatMoneyEl(el) {
+    const pos = el.selectionStart == null ? el.value.length : el.selectionStart;
+    const digitsBefore = el.value.slice(0, pos).replace(/[^\d.]/g, '').length;
+    el.value = moneyStr(el.value);
+    let n = 0, i = 0; while (i < el.value.length && n < digitsBefore) { if (/[\d.]/.test(el.value[i])) n++; i++; }
+    try { el.setSelectionRange(i, i); } catch (e) {}
   }
   function validTs(t) { const d = new Date(t); return t && !isNaN(d) ? d.toISOString() : new Date().toISOString(); }
   function uniqById(arr) { const seen = new Set(); return arr.filter(x => !seen.has(x.id) && seen.add(x.id)); }
@@ -1234,6 +1398,9 @@ function out(o) {
     for (const t of state.settlements) { n[t.from] = (n[t.from] || 0) + t.vnd; n[t.to] = (n[t.to] || 0) - t.vnd; }
     return n;
   }
+  // settle-up is always the fewest payments from current balances
+  function settleLeft() { return simplify(nets()); }
+
   // fewest payments that make everyone even (largest debtor pays largest creditor first)
   function simplify(n) {
     const cred = [], debt = [];
@@ -1283,6 +1450,16 @@ function out(o) {
     return out;
   }
 
+  // commas while typing in any amount box; the 000 buttons append three zeros
+  document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('money')) formatMoneyEl(e.target); }, true);
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-k000]'); if (!b) return;
+    const el = $(b.dataset.k000); if (!el) return;
+    const raw = el.value.replace(/[^\d.]/g, ''); if (!raw || raw.includes('.') || raw.length > 9) return;
+    el.value = moneyStr(raw + '000'); el.dispatchEvent(new Event('input', { bubbles:true }));
+    try { el.focus({ preventScroll:true }); el.setSelectionRange(el.value.length, el.value.length); } catch (err) {}
+  });
+
   // ---------- sheets (Android back closes them) ----------
   let openId = null, wakeLock = null, afterClose = null;
   function openSheet(id) {
@@ -1326,15 +1503,32 @@ function out(o) {
   });
 
   // ---------- tabs ----------
-  const TITLES = { deal:'Deal', spent:'Spent', cash:'Cash', group:'Group', pack:'Packing' };
-  let tab = 'deal';
+  const TITLES = { home:'Home', deal:'Bargain', spent:'Spent', cash:'Cash', group:'Group', pack:'Packing' };
+  const SUB = { deal:1, pack:1 }; // screens reached from Home or ＋, with a back button
+  let tab = 'home';
   function showTab(t) {
     tab = t;
     document.querySelectorAll('.view').forEach(v => { v.hidden = v.id !== 'view-' + t; });
     document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
     $('title').textContent = TITLES[t];
+    $('backBtn').hidden = !SUB[t];
     $('main').scrollTop = 0;
+    if (t === 'home' && typeof renderHome === 'function') renderHome();
   }
+  $('backBtn').onclick = () => showTab('home');
+  $('plusBtn').onclick = () => openSheet('sheet-plus');
+  $('sheet-plus').addEventListener('click', e => {
+    const b = e.target.closest('[data-plus]'); if (!b) return;
+    const a = b.dataset.plus;
+    closeSheet(() => {
+      if (a === 'shared') openLog('shared');
+      else if (a === 'mine') openLog('manual');
+      else if (a === 'lend') openPayment(null, null, 0, 'loan');
+      else if (a === 'exchange') $('openExchange').click();
+      else if (a === 'deal') showTab('deal');
+      else if (a === 'count') $('openCount').click();
+    });
+  });
   document.querySelectorAll('[data-tab]').forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
   $('walletChip').onclick = () => showTab('cash');
 
@@ -1387,7 +1581,7 @@ function out(o) {
     vals[active] = v; caret[active] = c; renderDeal();
   }
   let holdTimer = null, held = false;
-  document.querySelectorAll('.key').forEach(btn => {
+  document.querySelectorAll('#keypad .key').forEach(btn => {
     const k = btn.dataset.k;
     if (k === 'back') {
       btn.addEventListener('pointerdown', () => { held = false; holdTimer = setTimeout(() => { held = true; press('clear'); if (navigator.vibrate) navigator.vibrate(15); }, 450); });
@@ -1800,7 +1994,7 @@ function out(o) {
     if (key !== payersKey) {
       payersKey = key;
       box.innerHTML = '<p class="small" style="margin:8px 0 0">How much did each person put in?</p>' + people.map(p => '<div class="share-row"><span>' + esc(p.name) + '</span>' +
-        '<input type="number" inputmode="decimal" min="0" step="any" data-payer="' + esc(p.id) + '" value="' + (Number(F.payers[p.id]) ? Math.round(F.payers[p.id] * 100) / 100 : '') + '" placeholder="0" aria-label="' + esc(p.name) + ' paid"></div>').join('') +
+        '<input type="text" inputmode="decimal" autocomplete="off" class="money" data-payer="' + esc(p.id) + '" value="' + (Number(F.payers[p.id]) ? moneyStr(Math.round(F.payers[p.id] * 100) / 100) : '') + '" placeholder="0" aria-label="' + esc(p.name) + ' paid"></div>').join('') +
         '<p class="status num" id="fPayersLeft" style="margin-bottom:0"></p>';
     }
     const ok = Math.abs(total - payersSum()) <= Math.max(0.009, CURS[F.cur].unit / 2), gap = total - payersSum(), el = $('fPayersLeft');
@@ -1812,7 +2006,7 @@ function out(o) {
     const n = F.among.length;
     return (F.paidBy === 'me' ? 'I paid' : friendName(F.paidBy) + ' paid') + (F.custom ? ' · custom split' : ' · split ' + n + ' way' + (n === 1 ? '' : 's'));
   }
-  function formAmount() { return Math.max(0, Number($('fAmount').value) || 0); }
+  function formAmount() { return Math.max(0, moneyNum($('fAmount'))); }
   // VND per unit of the form's currency: keep the original rate when editing an entry in its own currency
   function formFactor(c) {
     if (F.cur === 'VND') return 1;
@@ -1870,13 +2064,13 @@ function out(o) {
     if (key === customKey) return; // keep focus while typing
     customKey = key;
     box.innerHTML = F.among.map(p => '<div class="share-row"><span>' + esc(p === 'me' ? 'Me' : friendName(p)) + '</span>' +
-      '<input type="number" inputmode="decimal" min="0" step="any" data-amt="' + esc(p) + '" value="' + (Math.round(F.shares[p] || 0) || '') + '" aria-label="Amount for ' + esc(friendName(p)) + '"></div>').join('') +
+      '<input type="text" inputmode="decimal" autocomplete="off" class="money" data-amt="' + esc(p) + '" value="' + (Math.round(F.shares[p] || 0) ? moneyStr(Math.round(F.shares[p])) : '') + '" aria-label="Amount for ' + esc(friendName(p)) + '"></div>').join('') +
       '<button type="button" class="mini" id="fEven" style="margin-top:10px">Reset to equal</button>';
     $('fEven').onclick = () => { F.shares = evenShares(formAmount()); customKey = ''; renderForm(); };
   }
   $('fCustom').addEventListener('input', e => {
     const i = e.target.closest('[data-amt]'); if (!i) return;
-    F.shares[i.dataset.amt] = Math.max(0, Number(i.value) || 0);
+    F.shares[i.dataset.amt] = Math.max(0, moneyNum(i));
     $('fSplitTitle').textContent = splitTitle();
     $('fSplitSum').textContent = splitSummary(formAmount());
   });
@@ -1907,15 +2101,17 @@ function out(o) {
     }
     return '';
   }
-  function openLog(manual) {
+  function openLog(manual, preset) {
     tidy('ask'); tidy('paid');
-    const amount = manual ? 0 : Number(vals.paid) || Number(vals.ask); if (!manual && !amount) return;
-    F = { mode:'log', fromDeal:!manual, cur:'VND', method:'cash', cat:state.lastCat, paidBy:'me', payers:{}, among:['me'], open:manual === 'shared', asked: manual ? null : Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
+    const amount = preset ? preset.amt : manual ? 0 : Number(vals.paid) || Number(vals.ask); if (!manual && !amount) return;
+    F = { mode:'log', fromDeal:!manual, cur: preset && preset.cur ? preset.cur : 'VND', method:'cash', cat:state.lastCat, paidBy:'me', payers:{}, among:['me'], open:manual === 'shared', asked: manual ? null : Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
     customKey = '';
-    $('fAmount').value = amount || '';
+    setMoney($('fAmount'), amount || '');
     $('fItem').value = manual ? '' : lastAdviceItem || '';
     renderForm(); openSheet('sheet-form');
-    if (manual) setTimeout(() => $('fAmount').focus(), 260);
+    if (preset && F.cur !== 'VND') F.method = F.cur === 'USD' ? 'cash' : 'card';
+    if (preset) renderForm();
+    if (manual && !preset) setTimeout(() => $('fAmount').focus(), 260);
   }
   function openEdit(id) {
     const e = state.entries.find(x => x.id === id); if (!e) return;
@@ -1926,7 +2122,7 @@ function out(o) {
     F = { mode:'edit', id, cur, origCur:cur, origFactor:factor, method:e.method || 'cash', cat:e.cat, paidBy:e.paidBy, payers:py, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate,
       custom:!!e.shares, shares:sh, whenOpen:true };
     customKey = '';
-    $('fAmount').value = cur === 'VND' ? e.vnd : e.amt; $('fItem').value = e.item; $('fWhen').value = toLocalInput(e.ts);
+    setMoney($('fAmount'), cur === 'VND' ? e.vnd : e.amt); $('fItem').value = e.item; $('fWhen').value = toLocalInput(e.ts);
     renderForm(); openSheet('sheet-form');
   }
   $('logBtn').onclick = () => openLog();
@@ -1948,7 +2144,7 @@ function out(o) {
     if (F.paidBy !== 'me' && F.paidBy !== 'multi' && !F.among.includes('me')) F.among.push('me'); amongChanged(); });
   $('fPayers').addEventListener('input', e => {
     const i = e.target.closest('[data-payer]'); if (!i) return;
-    F.payers[i.dataset.payer] = Math.max(0, Number(i.value) || 0);
+    F.payers[i.dataset.payer] = Math.max(0, moneyNum(i));
     renderPayers(formAmount()); $('fSplitTitle').textContent = splitTitle(); $('fSplitSum').textContent = splitSummary(formAmount());
     $('fMethodWrap').hidden = !((Number(F.payers.me) || 0) > 0);
   });
@@ -2133,17 +2329,18 @@ function out(o) {
     $('adjList').innerHTML = adjs.length ? '<div class="list">' + adjs.map(a => '<button type="button" class="row" data-adj-id="' + esc(a.id) + '"><span class="emo" style="background:var(--raised)">🧮</span>' +
       '<span class="mid"><b>' + esc(a.note || 'Wallet correction') + '</b><small>' + esc(dateOf(a.ts) + ' · ' + timeOf(a.ts)) + '</small></span>' +
       '<span class="amt num"><b class="' + (a.amt > 0 ? 'good' : 'over') + '">' + (a.amt > 0 ? '+' : '−') + esc(a.cur === 'USD' ? usd(Math.abs(a.amt)) : vnd(Math.abs(a.amt))) + '</b></span></button>').join('') + '</div>' : '';
-    $('notesList').innerHTML = NOTES.map(n => {
-      const img = notePhotos[n.v];
-      const pic = img ? '<img class="bill-img" src="' + img + '" alt="Your photo of the ' + short(n.v) + ' note">'
-        : '<span class="bill' + (n.v === 500000 ? ' long' : '') + '" style="background:' + n.c + '">' + short(n.v) + '</span>';
-      return '<button type="button" class="row" data-note="' + n.v + '">' + pic +
-        '<span class="mid"><b>' + esc(vnd(n.v)) + (n.warn ? '<span class="tag" style="color:var(--warn);border-color:var(--warn)">check</span>' : '') + '</b><small>' + esc(n.name) + ' · back: ' + esc(n.back) + (img ? '' : ' · 📷 add photo') + '</small></span>' +
-        '<span class="amt num"><b>' + esc(npr(n.v * c.nprPerVnd)) + '</b><small>' + esc(usd(Math.round(n.v / c.vndPerUsd * 100) / 100)) + '</small></span></button>';
-    }).join('');
-    const both = notePhotos[20000] && notePhotos[500000];
-    $('notesCmp').hidden = !both;
-    if (both) $('notesCmp').innerHTML = [20000, 500000].map(v => '<figure><img src="' + notePhotos[v] + '" alt="Your ' + short(v) + ' note"><figcaption>' + short(v) + ' ₫</figcaption></figure>').join('');
+    const rw = cashRunway(c), rb = $('runway');
+    rb.hidden = !rw;
+    if (rw) {
+      const until = d => new Date(Date.now() + d * 864e5).toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+      const short1 = rw.dongDays < 1.5 && rw.tripLeft > rw.dongDays;
+      rb.innerHTML = '<span class="lbl">Cash runway</span>' +
+        '<p class="pace ' + (short1 ? 'over' : 'good') + '" style="margin:4px 0 2px">' + (rw.dongDays < 0.5 ? 'Dong almost gone: exchange soon' : 'Your dong lasts ~' + (Math.round(rw.dongDays * 10) / 10) + ' day' + (rw.dongDays >= 0.95 && rw.dongDays < 1.05 ? '' : 's') + ' (to ' + esc(until(rw.dongDays)) + ')') + '</p>' +
+        '<p class="small" style="margin:0">You use about ' + esc(vnd(rw.avg)) + ' cash a day. With your dollars too, cash lasts ~' + Math.floor(rw.totalDays) + ' days' + (rw.tripLeft != null ? '; the trip has ' + rw.tripLeft + ' day' + (rw.tripLeft === 1 ? '' : 's') + ' left' : '') + '.' +
+        (rw.tripLeft != null && rw.totalDays < rw.tripLeft ? ' <b style="color:var(--warn)">At this pace you’ll run short of cash before the trip ends.</b>' : '') + '</p>';
+    }
+    if (xs.length > 1) { const best = xs.slice().sort((p, q) => q.vnd / q.usd - p.vnd / p.usd)[0];
+      $('rateLine').textContent += ' Best rate so far: ' + fmt(best.vnd / best.usd) + ' ₫/$' + (best.where ? ' at ' + best.where : '') + '.'; }
     const chip = $('walletChip');
     chip.textContent = c.real ? short(c.vndLeft) + ' ₫ · ' + usd(c.usdLeft) : usd(c.usdLeft) + ' cash';
     chip.classList.toggle('low', c.real && c.vndLeft < 0);
@@ -2157,7 +2354,7 @@ function out(o) {
     try { localStorage.setItem(NOTE_KEY, JSON.stringify(notePhotos)); return true; }
     catch (e) { showError('the photo didn’t fit in storage; try removing another'); return false; }
   }
-  $('notesList').addEventListener('click', e => {
+  if (false) $('notesList').addEventListener('click', e => {
     const b = e.target.closest('[data-note]'); if (!b) return;
     noteTarget = Number(b.dataset.note);
     if (!notePhotos[noteTarget]) { $('notePhoto').click(); return; }
@@ -2202,10 +2399,10 @@ function out(o) {
   }
   function xUpdate(from) {
     const u = Number($('xUsd').value), r = Number($('xRate').value);
-    if (from === 'vnd') { const v = Number($('xVnd').value); if (u > 0 && v > 0) $('xRate').value = Math.round(v / u); }
-    else if (u > 0 && r > 0) $('xVnd').value = Math.round(u * r);
+    if (from === 'vnd') { const v = moneyNum($('xVnd')); if (u > 0 && v > 0) $('xRate').value = Math.round(v / u); }
+    else if (u > 0 && r > 0) setMoney($('xVnd'), Math.round(u * r));
     else $('xVnd').value = '';
-    const v = Number($('xVnd').value), rate = u > 0 && v > 0 ? v / u : NaN, p = $('xPreview');
+    const v = moneyNum($('xVnd')), rate = u > 0 && v > 0 ? v / u : NaN, p = $('xPreview');
     p.classList.remove('warn');
     if (!Number.isFinite(rate)) { p.textContent = 'Enter the dollars to see what you’ll get.'; return; }
     const diff = (rate / refRate() - 1) * 100;
@@ -2226,7 +2423,7 @@ function out(o) {
     xUpdate('usd'); openSheet('sheet-exchange');
   };
   $('xSave').onclick = () => {
-    const u = Number($('xUsd').value), v = Number($('xVnd').value);
+    const u = Number($('xUsd').value), v = moneyNum($('xVnd'));
     if (!(u > 0 && v > 0)) { $('xPreview').textContent = 'Enter the dollars and the rate (or the dong you got) first.'; $('xPreview').classList.add('warn'); return; }
     state.exchanges.push({ id:uid(), ts:new Date().toISOString(), usd:u, vnd:v, where:$('xWhere').value.trim() });
     save(); closeSheet(); renderAll(); bump();
@@ -2241,8 +2438,8 @@ function out(o) {
   // count & fix wallet
   let cWhy = 'spent';
   function cRead() {
-    const c = calc(), rv = $('cVnd').value, ru = $('cUsd').value;
-    const haveV = rv === '' ? null : Math.max(0, Number(rv) || 0), haveU = ru === '' ? null : Math.max(0, Number(ru) || 0);
+    const c = calc(), rv = $('cVnd').value.trim(), ru = $('cUsd').value;
+    const haveV = rv === '' ? null : Math.max(0, moneyNum($('cVnd'))), haveU = ru === '' ? null : Math.max(0, Number(ru) || 0);
     return { c, gapV: haveV === null ? 0 : Math.round(haveV - c.vndLeft), gapU: haveU === null ? 0 : Math.round((haveU - c.usdLeft) * 100) / 100, haveV, haveU };
   }
   function cPreview() {
@@ -2357,11 +2554,11 @@ function out(o) {
     $('myNet').textContent = !me ? 'All even' : (me > 0 ? 'You get back ' : 'You owe ') + gm(Math.abs(me), c);
     $('myNet').className = 'val num' + (me < 0 ? ' over' : '');
     $('myNetSub').textContent = !me ? 'Nothing to settle for you.' : '≈ ' + gmAlt(Math.abs(me), c) + ' · see who to settle with below';
-    const tr = simplify(n);
+    const tr = simplify(n), u = RU();
     settleTr = tr;
     $('settleEmpty').hidden = tr.length > 0 || !state.friends.length;
     $('settleList').innerHTML = tr.length ? '<div class="list">' + tr.map((t, k) =>
-      '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>' + esc(gmAlt(t.vnd, c)) + '</small></span>' +
+      '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>' + esc(gmAlt(t.vnd, c)) +  '</small></span>' +
       '<span class="amt num"><b class="' + (t.from === 'me' ? 'over' : t.to === 'me' ? 'good' : '') + '">' + esc(gm(t.vnd, c)) + '</b></span>' +
       '<button type="button" class="mini" data-settle-k="' + k + '" style="flex:none">Paid</button></div>').join('') + '</div>' : '';
     const rn = ratesUsed(state.entries.filter(isShared), state.settlements);
@@ -2417,7 +2614,7 @@ function out(o) {
     const L = ['🇻🇳 *VIETNAM TRIP*', '_Group spending · ' + when + '_'];
 
     if ($('inSettle').checked) {
-      const tr = simplify(c.nets);
+      const tr = settleLeft();
       L.push('', LINE, '💸 *SETTLE UP*', LINE);
       if (!tr.length) L.push('Everyone is even ✅');
       else tr.forEach(t => L.push('*' + name(t.from) + ' → ' + name(t.to) + '*', '      ' + exact(t.vnd) + '  _(' + alt(t.vnd) + ')_'));
@@ -2473,37 +2670,57 @@ function out(o) {
     document.querySelectorAll('#inPeriod [data-ip]').forEach(b => b.classList.toggle('sel', b.dataset.ip === inPeriod));
     $('inPreview').textContent = insightsText(); $('inStatus').textContent = '';
   }
-  $('shareSettle').onclick = () => { if (!state.myName) $('inStatus').textContent = ''; renderInsights(); openSheet('sheet-insights');
+  $('shareSettle').onclick = () => { renderLiveBox(); if (!state.myName) $('inStatus').textContent = ''; renderInsights(); openSheet('sheet-insights');
     if (!state.myName) $('inStatus').textContent = 'Tip: set your name under People so the message doesn’t say “Me”.'; };
   $('inPeriod').addEventListener('click', e => { const b = e.target.closest('[data-ip]'); if (!b) return; inPeriod = b.dataset.ip; renderInsights(); });
   ['inPeople','inCats','inTop','inDaily','inSettle'].forEach(id => $(id).addEventListener('change', renderInsights));
   // ---------- web-page report: data is packed into the link (after #, never sent to any server) ----------
   function b64url(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
-  async function reportLink() {
+  function reportData(per) {
     const c = calc(), today = dayKey(new Date()), yd = dayKey(new Date(Date.now() - 864e5));
-    const inP = e => inPeriod === 'trip' || dayKey(e.ts) === (inPeriod === 'today' ? today : yd);
+    const inP = e => per === 'trip' || dayKey(e.ts) === (per === 'today' ? today : yd);
     const bills = state.entries.filter(e => isShared(e) && inP(e)).sort((a, b) => a.ts.localeCompare(b.ts));
     const ids = ['me'].concat(state.friends.map(f => f.id)), idx = {}; ids.forEach((id, i) => { idx[id] = i; });
-    const period = inPeriod === 'trip' ? (bills.length ? dateOf(bills[0].ts) + ' – ' + dateOf(new Date().toISOString()) : 'Whole trip')
-      : (inPeriod === 'today' ? 'Today, ' : 'Yesterday, ') + dateOf(new Date(inPeriod === 'today' ? Date.now() : Date.now() - 864e5).toISOString());
+    const period = per === 'trip' ? (bills.length ? dateOf(bills[0].ts) + ' – ' + dateOf(new Date().toISOString()) : 'Whole trip')
+      : (per === 'today' ? 'Today, ' : 'Yesterday, ') + dateOf(new Date(per === 'today' ? Date.now() : Date.now() - 864e5).toISOString());
     const data = { v:1, t:'Vietnam trip', p:period, g:new Date().toISOString(), cur: state.groupCur === 'NPR' ? 'NPR' : 'VND', r:c.nprPerVnd, ru:RU(),
       people: ids.map(shareName),
-      settle: simplify(c.nets).map(t => [idx[t.from], idx[t.to], Math.round(t.vnd)]).filter(t => t[0] !== undefined && t[1] !== undefined),
+      settle: settleLeft().map(t => [idx[t.from], idx[t.to], Math.round(t.vnd)]).filter(t => t[0] !== undefined && t[1] !== undefined),
       bills: bills.map(e => [dayKey(e.ts).replace(/-/g, ''), String(e.item).slice(0, 60), e.cat, Math.round(e.vnd),
         Object.entries(payersOf(e)).filter(([p]) => p in idx).map(([p, v]) => [idx[p], Math.round(v)]),
         e.among.filter(p => p in idx).map(p => [idx[p], Math.round(shareOf(e, p))]),
         curOf(e) === 'VND' ? 0 : fmtCur(e.amt, e.cur)]),
       rates: ratesUsed(bills, state.settlements) };
-    const json = new TextEncoder().encode(JSON.stringify(data));
+    return data;
+  }
+  const reportBase = () => /github\.io$|^localhost$|^127\./.test(location.hostname) ? new URL('report.html', location.href).href.split('#')[0].split('?')[0] : 'https://kilesh-apps.github.io/vn-budget-tracker/report.html';
+  async function reportLink() {
+    const json = new TextEncoder().encode(JSON.stringify(reportData(inPeriod)));
     let code;
     try {
       const out = await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
       code = 'z.' + b64url(new Uint8Array(out));
     } catch (e) { code = 'j.' + b64url(json); }
-    const onSite = /github\.io$|^localhost$|^127\./.test(location.hostname);
-    const base = onSite ? new URL('report.html', location.href).href.split('#')[0].split('?')[0] : 'https://kilesh-apps.github.io/vn-budget-tracker/report.html';
-    return base + '#' + code;
+    return reportBase() + '#' + code;
   }
+  const liveReady = () => SYNC && validUrl(SYNC.url) && SYNC.v >= 2 && SYNC.last;
+  function liveLink() { return reportBase() + '#live.' + b64url(new TextEncoder().encode(SYNC.url)) + '.' + SYNC.groupToken; }
+  function renderLiveBox() {
+    const ok = liveReady();
+    $('inLive').disabled = !ok;
+    $('liveNote').innerHTML = ok ? 'One link that always shows the latest balances. Last updated ' + esc(ago(SYNC.last)) + '; it refreshes whenever your phone backs up to Google Sheets.'
+      : !validUrl(SYNC.url) ? 'Needs Google Sheets backup. Set it up in Settings → Google Sheets backup, then come back here.'
+      : SYNC.v >= 2 ? 'Tap <b>Back up now</b> in Settings once, then the live link is ready.'
+      : 'Needs the updated sheet script (version 2). Settings → Google Sheets backup → How to set it up → Copy the script, paste it over the old one, then Deploy → Manage deployments → ✏️ → New version.';
+  }
+  $('inLive').onclick = async () => {
+    if (!liveReady()) return;
+    if (SYNC.dirty && navigator.onLine) { $('inStatus').textContent = 'Updating the live data first…'; await pushToSheet(false); }
+    const link = liveLink();
+    const msg = '🇻🇳 *Vietnam trip: live balances*\nAlways up to date: settle-up, who spent what, day by day 👇\n' + link;
+    $('inStatus').innerHTML = 'Live link ready. <a href="' + esc(link) + '" target="_blank" rel="noopener">Preview it</a>';
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+  };
   $('inWeb').onclick = async () => {
     const st = $('inStatus');
     try {
@@ -2525,6 +2742,54 @@ function out(o) {
     try { await navigator.clipboard.writeText(text); $('inStatus').textContent = 'Copied. Paste it into your group chat.'; }
     catch (err) { $('inStatus').textContent = 'Couldn’t copy automatically. Long-press the preview to select and copy it.'; }
   };
+
+  // ---------- settle-up history: replay every bill and payment, and show what each one changed ----------
+  let histWho = 'all';
+  function settleHistory() {
+    const ids = ['me'].concat(state.friends.map(f => f.id)), n = {}; ids.forEach(p => { n[p] = 0; });
+    const ev = [];
+    state.entries.filter(isShared).forEach(e => ev.push({ ts:e.ts, kind:'bill', e }));
+    state.settlements.forEach(t => ev.push({ ts:t.ts, kind: t.kind === 'loan' ? 'loan' : 'pay', t }));
+    ev.sort((a, b) => a.ts.localeCompare(b.ts));
+    const route = (list, p) => {
+      const out = list.filter(t => t.from === p).map(t => [t.to, t.vnd]), inn = list.filter(t => t.to === p).map(t => [t.from, t.vnd]);
+      return out.length ? 'pays ' + out.map(([q, v]) => who(q) + ' ' + short(v)).join(' + ') : inn.length ? 'gets from ' + inn.map(([q, v]) => who(q) + ' ' + short(v)).join(' + ') : 'nothing to settle';
+    };
+    let prevTr = []; const steps = [];
+    ev.forEach(x => {
+      const before = Object.assign({}, n);
+      if (x.kind === 'bill') { Object.entries(payersOf(x.e)).forEach(([p, v]) => { n[p] = (n[p] || 0) + v; }); x.e.among.forEach(p => { n[p] = (n[p] || 0) - shareOf(x.e, p); }); }
+      else { n[x.t.from] = (n[x.t.from] || 0) + x.t.vnd; n[x.t.to] = (n[x.t.to] || 0) - x.t.vnd; }
+      const tr = simplify(n);
+      const changes = ids.map(p => ({ p, tb: cashRound(before[p] || 0), ta: cashRound(n[p] || 0), rb: route(prevTr, p), ra: route(tr, p) })).filter(c => c.tb !== c.ta || c.rb !== c.ra);
+      steps.push({ x, changes });
+      prevTr = tr;
+    });
+    return steps.reverse();
+  }
+  const totText = v => !v ? 'even' : v > 0 ? 'gets back ' + short(v) : 'owes ' + short(-v);
+  function renderHist() {
+    const people = ['me'].concat(state.friends.map(f => f.id));
+    $('hWho').innerHTML = '<button type="button" data-hw="all" class="' + (histWho === 'all' ? 'sel' : '') + '">Everyone</button>' + people.map(p => '<button type="button" data-hw="' + esc(p) + '" class="' + (histWho === p ? 'sel' : '') + '">' + esc(who(p)) + '</button>').join('');
+    const steps = settleHistory().map(st => ({ ...st, changes: histWho === 'all' ? st.changes : st.changes.filter(c => c.p === histWho) })).filter(st => st.changes.length).slice(0, 60);
+    $('hList').innerHTML = steps.length ? steps.map(st => {
+      const x = st.x, when = dateOf(x.ts) + ' ' + timeOf(x.ts);
+      const head = x.kind === 'bill'
+        ? (CATS[x.e.cat] || CATS.Other).e + ' ' + esc(x.e.item) + '</b><small>' + esc(when) + ' · ' + esc(payerText(x.e, who)) + ' paid ' + esc(inOwn(x.e, x.e.vnd)) + ' · ' + x.e.among.length + ' people</small>'
+        : x.kind === 'loan' ? '💸 ' + esc(who(x.t.to)) + ' borrowed ' + esc(short(x.t.vnd)) + ' ₫ from ' + esc(who(x.t.from)) + '</b><small>' + esc(when) + (x.t.note ? ' · ' + esc(x.t.note) : '') + '</small>'
+        : '✅ ' + esc(who(x.t.from)) + ' paid ' + esc(who(x.t.to)) + ' ' + esc(short(x.t.vnd)) + ' ₫</b><small>' + esc(when) + (x.t.note ? ' · ' + esc(x.t.note) : '') + '</small>';
+      const tot = st.changes.filter(c => c.tb !== c.ta), rt = st.changes.filter(c => c.tb === c.ta);
+      return '<div class="hist' + (histWho !== 'all' ? ' focus' : '') + '"><div class="hist-h"><b>' + head + '</div>' +
+        (tot.length ? '<p class="hist-sec">Totals changed</p>' + tot.map(c => { const d = c.ta - c.tb;
+          return '<div class="hist-row num"><span>' + esc(who(c.p)) + '</span><span>' + esc(totText(c.tb)) + ' → ' + esc(totText(c.ta)) + ' <span class="d ' + (d > 0 ? 'good' : 'over') + '">(' + (d > 0 ? '+' : '−') + esc(short(Math.abs(d))) + ')</span></span></div>' +
+            (c.rb !== c.ra ? '<div class="hist-route num small">now ' + esc(c.ra) + '</div>' : ''); }).join('') : '') +
+        (rt.length ? '<p class="hist-sec">Only who-pays-whom changed · totals the same</p>' + rt.map(c =>
+          '<div class="hist-route num"><b>' + esc(who(c.p)) + '</b> (' + esc(totText(c.ta)) + '): ' + esc(c.rb) + ' → <b>' + esc(c.ra) + '</b></div>').join('') : '') + '</div>';
+    }).join('') : '<p class="empty-msg">' + (histWho === 'all' ? 'No shared bills or payments yet.' : 'Nothing has changed for ' + esc(who(histWho)) + ' yet.') + '</p>';
+  }
+  $('openHist').onclick = () => { histWho = 'all'; renderHist(); openSheet('sheet-hist'); $('sheet-hist').scrollTop = 0; };
+  $('frHistBtn').onclick = () => { histWho = friendId; renderHist(); openSheet('sheet-hist'); $('sheet-hist').scrollTop = 0; };
+  $('hWho').addEventListener('click', e => { const b = e.target.closest('[data-hw]'); if (!b) return; histWho = b.dataset.hw; renderHist(); });
 
   // people sheet
   function renderPeople() {
@@ -2578,7 +2843,7 @@ function out(o) {
       '<div><span>Money received</span><b>' + esc(gm(got, c)) + '</b></div>' +
       '<div class="wide"><span>Balance = paid − share + given − received</span><b class="' + (v > 0 ? 'good' : v < 0 ? 'over' : '') + '" style="color:' + (v > 0 ? 'var(--good)' : v < 0 ? 'var(--warn)' : 'inherit') + '">' +
         (!v ? 'Even' : (v > 0 ? '+' : '−') + esc(gm(Math.abs(v), c))) + '</b></div>';
-    personTr = simplify(c.nets).filter(t => t.from === id || t.to === id);
+    personTr = settleLeft().filter(t => t.from === id || t.to === id);
     $('frSuggest').innerHTML = personTr.length ? '<p class="small" style="margin:12px 2px 6px">To settle up</p><div class="list">' + personTr.map((t, k) => '<div class="row"><span class="mid"><b>' + esc(who(t.from)) + ' → ' + esc(who(t.to)) + '</b><small>' + esc(gmAlt(t.vnd, c)) + '</small></span><span class="amt num"><b>' + esc(gm(t.vnd, c)) + '</b></span><button type="button" class="mini" data-fs="' + k + '" style="flex:none">Paid</button></div>').join('') + '</div>' : '';
     $('frWithMe').hidden = isMe;
     if (isMe && frFilter === 'withme') frFilter = 'all';
@@ -2611,7 +2876,7 @@ function out(o) {
       else L.push('• ' + dateOf(r.ts) + ' ' + (r.t.kind === 'loan' ? shareName(r.t.to) + ' borrowed ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd)) + ' from ' + shareName(r.t.from) : shareName(r.t.from) + ' paid back ' + shareName(r.t.to) + ' ' + (r.t.cur ? fmtCur(r.t.amt, r.t.cur) : m(r.t.vnd))) + (r.t.note ? ' (' + r.t.note + ')' : '') + ' → ' + sign);
     });
     L.push('', '*Balance:* ' + (!v ? 'even ✅' : (v > 0 ? 'gets back ' : 'owes ') + m(Math.abs(v)) + (state.groupCur === 'NPR' ? '' : ' (' + npr(Math.abs(v) * c.nprPerVnd) + ')')));
-    simplify(c.nets).filter(t => t.from === id || t.to === id).forEach(t => L.push('→ ' + shareName(t.from) + ' pays ' + shareName(t.to) + ' ' + m(t.vnd)));
+    settleLeft().filter(t => t.from === id || t.to === id).forEach(t => L.push('→ ' + shareName(t.from) + ' pays ' + shareName(t.to) + ' ' + m(t.vnd)));
     const rn = ratesUsed(rows.filter(r => r.kind === 'bill').map(r => r.e), rows.filter(r => r.kind === 'pay').map(r => r.t));
     if (rn) L.push('', '_Rates used: ' + rn + '_');
     L.push('', '_Sent from Deal Calc_');
@@ -2652,7 +2917,7 @@ function out(o) {
     $('pmTo').innerHTML = people.map(p => '<button type="button" class="' + (PM.to === p.id ? 'sel' : '') + '" data-pt="' + esc(p.id) + '"' + (p.id === PM.from ? ' disabled' : '') + '>' + esc(p.name) + '</button>').join('');
     $('pmCur').innerHTML = Object.entries(CURS).map(([k, v]) => '<button type="button" class="' + (k === PM.cur ? 'sel' : '') + '" data-pc="' + k + '">' + v.label + '</button>').join('');
     $('pmAmt').step = PM.cur === 'VND' ? '1000' : 'any';
-    const amt = Number($('pmAmt').value) || 0, v = amt * vndPer(PM.cur, c);
+    const amt = moneyNum($('pmAmt')), v = amt * vndPer(PM.cur, c);
     const involved = PM.from === 'me' || PM.to === 'me';
     $('pmNote').textContent = (PM.cur !== 'VND' ? (amt ? '≈ ' + vnd(v) + ' at ' : 'Rate: ') + rateText(PM.cur, vndPer(PM.cur, c)) + '. ' : '') + (!involved ? 'Doesn’t touch your wallet.'
       : PM.cur === 'VND' ? (PM.to === 'me' ? 'Adds to the dong in your wallet.' : 'Comes out of the dong in your wallet.')
@@ -2662,7 +2927,7 @@ function out(o) {
     PM = { from: from || null, to: to || null, cur: state.groupCur === 'NPR' && vndAmt ? 'NPR' : 'VND', kind: kind || 'pay' };
     $('pmText').value = '';
     const c = calc();
-    $('pmAmt').value = vndAmt ? (PM.cur === 'NPR' ? Math.round(vndAmt * c.nprPerVnd) : Math.round(vndAmt)) : '';
+    setMoney($('pmAmt'), vndAmt ? (PM.cur === 'NPR' ? Math.round(vndAmt * c.nprPerVnd) : Math.round(vndAmt)) : '');
     $('pmErr').textContent = '';
     renderPayment(); openSheet('sheet-paym');
   }
@@ -2672,7 +2937,7 @@ function out(o) {
   $('pmCur').addEventListener('click', e => { const b = e.target.closest('[data-pc]'); if (!b) return; PM.cur = b.dataset.pc; renderPayment(); });
   $('pmAmt').addEventListener('input', renderPayment);
   $('pmSave').onclick = () => {
-    const amt = Number($('pmAmt').value);
+    const amt = moneyNum($('pmAmt'));
     if (!PM.from || !PM.to) { $('pmErr').textContent = 'Pick who paid and who received it.'; return; }
     if (!(amt > 0)) { $('pmErr').textContent = 'Enter an amount above zero.'; $('pmAmt').focus(); return; }
     const v = Math.round(amt * vndPer(PM.cur));
@@ -2987,6 +3252,7 @@ function out(o) {
   let pushTimer = null, pushing = false;
   SYNC = (() => { try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) { return {}; } })();
   if (!SYNC.secret) { SYNC.secret = (crypto.randomUUID ? crypto.randomUUID() : uid() + uid()) + '-' + uid(); }
+  if (!SYNC.groupToken) { SYNC.groupToken = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : uid() + uid() + uid()).slice(0, 24); }
   if (SYNC.auto === undefined) SYNC.auto = true;
   saveSync();
   const validUrl = u => /^https:\/\/script\.google(usercontent)?\.com\/.+/.test(u || '');
@@ -3013,7 +3279,7 @@ function out(o) {
     tabs['Balances'] = [['Person','Net ₫ (+ gets back, − owes)','Net NPR','']]
       .concat(people.map(p => { const v = cashRound(c.nets[p] || 0); return [n(p), v, Math.round(v * c.nprPerVnd), !v ? 'even' : v > 0 ? 'gets back' : 'owes']; }))
       .concat([['','','',''], ['Settle up: who pays whom','₫','NPR','']])
-      .concat(simplify(c.nets).map(t => [n(t.from) + ' → ' + n(t.to), t.vnd, Math.round(t.vnd * c.nprPerVnd), '']))
+      .concat(settleLeft().map(t => [n(t.from) + ' → ' + n(t.to), t.vnd, Math.round(t.vnd * c.nprPerVnd), '']))
       .concat([['','','',''], ['Dollars left', Math.round(c.usdLeft * 100) / 100, '', ''], ['Dong in wallet', Math.round(c.vndLeft), '', ''], ['Updated', new Date().toLocaleString('en-GB'), '', '']]);
     return tabs;
   }
@@ -3024,10 +3290,10 @@ function out(o) {
     pushing = true; if (manual) setGsStatus('Backing up…', false);
     try {
       const res = await withTimeout(fetch(SYNC.url, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-        body: JSON.stringify({ secret:SYNC.secret, tabs:sheetTabs(), backup:backupText() }) }), 45000);
+        body: JSON.stringify({ secret:SYNC.secret, tabs:sheetTabs(), backup:backupText(), group: JSON.stringify(reportData('trip')), groupToken:SYNC.groupToken }) }), 45000);
       const j = await res.json().catch(() => null);
       if (!j || !j.ok) throw new Error((j && j.error) || 'The sheet didn’t answer properly. Check the link, and that access is set to “Anyone”.');
-      SYNC.last = Date.now(); SYNC.dirty = false; SYNC.error = null; saveSync();
+      SYNC.last = Date.now(); SYNC.dirty = false; SYNC.error = null; SYNC.v = Number(j.v) || 1; saveSync();
       state.lastBackup = Date.now(); save(true);
       setGsStatus(null); if (tab === 'spent') renderSpent();
     } catch (e) {
@@ -3041,7 +3307,7 @@ function out(o) {
     if (!validUrl(SYNC.url)) { el.textContent = 'Not connected. Back up everything to a Google Sheet you own: set-up steps below.'; el.style.color = ''; return; }
     if (SYNC.error) { el.textContent = '⚠ Last backup failed: ' + SYNC.error; el.style.color = 'var(--warn)'; return; }
     el.style.color = '';
-    el.textContent = SYNC.last ? '✓ Backed up to Google Sheets ' + ago(SYNC.last) + (SYNC.dirty ? ' · newer changes waiting' + (navigator.onLine ? '' : ' for internet') : '') : 'Connected. Tap Back up now for the first backup.';
+    el.textContent = (SYNC.last && SYNC.v < 2 ? '⬆ Update the sheet script to version 2 (steps below) to get a live link for the group. ' : '') + (SYNC.last ? '✓ Backed up to Google Sheets ' + ago(SYNC.last) + (SYNC.dirty ? ' · newer changes waiting' + (navigator.onLine ? '' : ' for internet') : '') : 'Connected. Tap Back up now for the first backup.');
   }
   function fillGs() {
     $('gsUrl').value = SYNC.url || ''; $('gsAuto').checked = !!SYNC.auto;
@@ -3085,7 +3351,79 @@ function out(o) {
   if (SYNC.dirty || (SYNC.last && Date.now() - SYNC.last > 6 * 3600e3)) { SYNC.dirty = true; scheduleSheetPush(4000); }
 
   // ---------- go ----------
-  function renderAll() { renderDeal(); renderSpent(); renderCash(); renderGroup(); renderPack(); renderRateStatus(); }
+  function cashRunway(c) {
+    if (!state.exchanges.length) return null;
+    const first = state.exchanges.reduce((a, x) => x.ts < a ? x.ts : a, state.exchanges[0].ts);
+    const days = Math.max(1, Math.round((Date.now() - new Date(dayKey(first) + 'T00:00')) / 864e5));
+    const used = c.vndIn - c.vndLeft; if (!(used > 0)) return null;
+    const avg = used / days;
+    return { avg, dongDays: Math.max(0, c.vndLeft) / avg, totalDays: (Math.max(0, c.vndLeft) + Math.max(0, c.usdLeft) * c.vndPerUsd) / avg, tripLeft: daysLeft() };
+  }
+  // ---------- converter (Home) ----------
+  let cvVal = '', cvCur = 'VND';
+  const CV = { VND:'₫', NPR:'NPR', USD:'$' };
+  function cvFmt(v, cur) { return cur === 'VND' ? vnd(v) : cur === 'USD' ? usd(Math.round(v * 100) / 100) : cur === 'INR' ? '₹' + fmt(v, v < 100 ? 2 : 0) : 'NPR ' + fmt(v, v < 100 ? 2 : 0); }
+  function renderConverter() {
+    const c = calc(), amt = Number(cvVal) || 0, inVnd = amt * vndPer(cvCur, c);
+    $('cvCur').innerHTML = Object.entries(CV).map(([k, l]) => '<button type="button" class="' + (k === cvCur ? 'sel' : '') + '" data-cv="' + k + '">' + l + '</button>').join('');
+    $('cvIn').innerHTML = amt ? esc(cvFmt(amt, cvCur)) : '<span class="ph">0 ' + esc(CV[cvCur]) + '</span>';
+    $('cvOut').innerHTML = Object.keys(CV).filter(k => k !== cvCur).map(k => '<div><span>' + ({ VND:'Dong', NPR:'Nepali rupee', USD:'US dollar', INR:'Indian rupee' })[k] + '</span><b>' + (amt ? esc(cvFmt(inVnd / vndPer(k, c), k)) : '–') + '</b></div>').join('');
+    $('cvRate').textContent = (c.real ? 'Your exchange rate ' : 'Online rate ') + fmt(c.vndPerUsd) + ' ₫/$ · $1 = NPR ' + fmt(state.nprPerUsd, 2);
+    $('cvLog').disabled = !amt;
+  }
+  $('cvCur').addEventListener('click', e => { const b = e.target.closest('[data-cv]'); if (!b) return; cvCur = b.dataset.cv; renderConverter(); });
+  (() => { let t = null, held = false;
+    document.querySelectorAll('#cvPad .key').forEach(btn => {
+      const k = btn.dataset.ck;
+      if (k === 'back') {
+        btn.addEventListener('pointerdown', () => { held = false; t = setTimeout(() => { held = true; cvVal = ''; renderConverter(); }, 450); });
+        ['pointerup','pointerleave','pointercancel'].forEach(ev => btn.addEventListener(ev, () => clearTimeout(t)));
+        btn.addEventListener('click', () => { if (!held) { cvVal = cvVal.slice(0, -1); renderConverter(); } held = false; });
+      } else btn.addEventListener('click', () => { if (!cvVal && k[0] === '0') return; if ((cvVal + k).length > 11) return; cvVal += k; renderConverter(); });
+    });
+  })();
+  $('cvBargain').onclick = () => {
+    const c = calc(), v = Math.round((Number(cvVal) || 0) * vndPer(cvCur, c) / 1000) * 1000;
+    if (v) { setVal('ask', String(v)); setVal('paid', ''); active = 'ask'; setActive('ask', true); }
+    showTab('deal');
+  };
+  $('cvLog').onclick = () => { const amt = Number(cvVal) || 0; if (!amt) return; openLog('manual', { amt, cur: cvCur }); };
+  // ---------- Home dashboard ----------
+  function renderHome() {
+    const c = calc(), b = budgetNumbers(c), today = dayKey(new Date());
+    renderConverter();
+    const spentToday = state.entries.filter(e => dayKey(e.ts) === today).reduce((a, e) => a + myNpr(e), 0);
+    const dl = daysLeft(), allowance = dl ? (b.left + spentToday) / dl : NaN;
+    $('hTodayV').textContent = npr(spentToday);
+    const days = tripDays(), elapsed = days.filter(d => d <= today).length, plan = days.length ? b.total / days.length : 0;
+    const diff = plan * elapsed - c.spentNpr, hs = $('hTodayS');
+    hs.className = 'hs num ' + (elapsed ? (diff >= 0 ? 'good' : 'over') : '');
+    hs.textContent = Number.isFinite(allowance) && allowance > 0 ? 'of ' + npr(allowance) + ' · ' + (elapsed ? (diff >= 0 ? npr(diff) + ' under' : npr(-diff) + ' over') : 'trip not started') : 'Set a budget in Settings';
+    $('hWalletV').textContent = c.real ? short(c.vndLeft) + ' ₫' : usd(c.usdLeft);
+    const rw = cashRunway(c), ws = $('hWalletS');
+    ws.className = 'hs num' + (rw && rw.dongDays < 1.5 ? ' over' : '');
+    ws.textContent = (c.real ? usd(c.usdLeft) + ' left' : 'No exchange yet') + (rw ? ' · dong ~' + Math.round(rw.dongDays * 10) / 10 + ' days' : '');
+    const me = typeof cashRound === 'function' ? cashRound(c.nets.me || 0) : Math.round(c.nets.me || 0);
+    $('hGroup').hidden = !state.friends.length;
+    $('hGroupV').textContent = !me ? 'All even with the group' : (me > 0 ? 'You get back ' : 'You owe ') + vnd(Math.abs(me));
+    const tr = settleLeft().filter(t => t.from === 'me' || t.to === 'me');
+    $('hGroupS').textContent = tr.length ? tr.slice(0, 2).map(t => (t.from === 'me' ? 'You → ' + friendName(t.to) : friendName(t.from) + ' → you') + ' ' + short(t.vnd) + ' ₫').join(' · ') + (tr.length > 2 ? ' …' : '') : 'Tap to see balances and share them';
+    const recent = state.entries.filter(e => paidOf(e, 'me') > 0 || myShare(e) > 0 || isShared(e)).sort((a, b2) => b2.ts.localeCompare(a.ts)).slice(0, 5);
+    $('hRecentEmpty').hidden = recent.length > 0;
+    $('hRecent').innerHTML = recent.length ? '<div class="list">' + recent.map(e => { const m = CATS[e.cat], sh = isShared(e);
+      return '<button type="button" class="row" data-entry="' + esc(e.id) + '"><span class="emo" style="background:' + m.c + '22">' + m.e + '</span><span class="mid"><b>' + esc(e.item) + (sh ? '<span class="tag">split</span>' : '') + '</b><small>' + esc(dateOf(e.ts) + ' · ' + timeOf(e.ts)) + '</small></span>' +
+        '<span class="amt num"><b>' + esc(inOwn(e, sh ? myShare(e) : e.vnd)) + '</b><small>' + (sh ? 'of ' + esc(inOwn(e, e.vnd)) : esc(npr(myNpr(e)))) + '</small></span></button>'; }).join('') + '</div>' : '';
+    const all = state.checklist.flatMap(x => x.items), done = all.filter(i => i.done).length;
+    $('hPack').textContent = '🎒 Packing' + (all.length ? ' ' + done + '/' + all.length : '');
+  }
+  $('hRecent').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
+  $('hToday').onclick = () => showTab('spent');
+  $('hWallet').onclick = () => showTab('cash');
+  $('hGroup').onclick = () => showTab('group');
+  $('hPack').onclick = () => showTab('pack');
+  $('hDeal').onclick = () => showTab('deal');
+
+  function renderAll() { renderDeal(); renderSpent(); renderCash(); renderGroup(); renderPack(); renderRateStatus(); if (tab === 'home') renderHome(); }
   applyTheme();
   renderAll();
   fetchRate();
@@ -3097,8 +3435,10 @@ function out(o) {
   }
   window.addEventListener('storage', e => { if (e.key === KEY || e.key === NOTE_KEY || e.key === null) reloadFromStorage(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { reloadFromStorage(); fetchRate(); } });
+  showTab('home');
   const hand = /^#a(\d{1,11})p(\d{0,11})$/.exec(location.hash || '');
   if (hand && Number(hand[1]) > 0) {
+    showTab('deal');
     setVal('ask', hand[1]); if (Number(hand[2]) > 0) setVal('paid', hand[2]);
     setActive(Number(hand[2]) > 0 ? 'paid' : 'ask');
     openAdvice();

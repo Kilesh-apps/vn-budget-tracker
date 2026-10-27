@@ -100,8 +100,27 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
     return JSON.parse(await new Response(stream).text());
   }
-  let D;
-  try { D = await decode(location.hash); } catch (e) { fail('This link doesn’t contain a report, or it was cut off.'); return; }
+  let D, live = null;
+  const h = location.hash.replace(/^#/, '');
+  if (h.startsWith('live.')) {
+    // live link: #live.<web-app address>.<read token> → fetch the latest group summary
+    const rest = h.slice(5), dot = rest.lastIndexOf('.');
+    try {
+      const b64 = rest.slice(0, dot).replace(/-/g, '+').replace(/_/g, '/');
+      const url = new TextDecoder().decode(Uint8Array.from(atob(b64 + '==='.slice((b64.length + 3) % 4)), c => c.charCodeAt(0)));
+      if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) throw new Error('bad');
+      live = { url, token: rest.slice(dot + 1) };
+    } catch (e) { fail('This live link is damaged.'); return; }
+    app.innerHTML = '<p class="err">Loading the latest balances…</p>';
+    try {
+      const r = await fetch(live.url + (live.url.includes('?') ? '&' : '?') + 'group=' + encodeURIComponent(live.token), { cache:'no-store' });
+      const j = await r.json();
+      if (!j.ok) { fail(j.error || 'Nothing shared yet.'); return; }
+      D = JSON.parse(j.report); live.at = j.at;
+    } catch (e) { fail('Couldn’t load the live balances. Check your internet and try again.'); return; }
+  } else {
+    try { D = await decode(location.hash); } catch (e) { fail('This link doesn’t contain a report, or it was cut off.'); return; }
+  }
   const CAT = { Shopping:'🛍️', Food:'🍜', Drinks:'🍺', Transport:'🛵', Stay:'🏨', Activities:'🎟️', Other:'✨' };
   const P = D.people, n = P.length;
   let cur = D.cur === 'NPR' ? 'NPR' : 'VND';
@@ -124,7 +143,10 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
     const order = P.map((_, i) => i).filter(i => used[i] || paid[i]).sort((a, b) => used[b] - used[a]);
     const maxUse = Math.max(1, ...used), maxCat = Math.max(1, ...Object.values(cats));
     const dayTot = dayKeys.map(d => days[d].reduce((a, x) => a + x, 0)), maxDay = Math.max(1, ...dayTot);
-    let h = '<header><h1>🇻🇳 ' + esc(D.t) + '</h1><p>' + esc(D.p) + ' · snapshot from ' + esc(new Date(D.g).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })) + '</p>' +
+    const when = new Date(live && live.at ? live.at : D.g), mins = Math.round((Date.now() - when) / 60000);
+    const agoTxt = mins < 1 ? 'just now' : mins < 60 ? mins + ' min ago' : mins < 2880 ? Math.round(mins / 60) + ' h ago' : when.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    let h = '<header><h1>🇻🇳 ' + esc(D.t) + '</h1><p>' + esc(D.p) + ' · ' + (live ? '<b style="color:var(--good)">● Live</b>, updated ' + esc(agoTxt) + ' · <a href="" id="reload" style="color:var(--accent)">refresh</a>'
+      : 'snapshot from ' + esc(when.toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }))) + '</p>' +
       '<div class="toggle" role="group" aria-label="Currency"><button type="button" data-c="VND" class="' + (cur === 'VND' ? 'on' : '') + '">₫ Dong</button><button type="button" data-c="NPR" class="' + (cur === 'NPR' ? 'on' : '') + '">NPR</button></div></header>';
     h += '<h2>💸 Settle up</h2>';
     h += D.settle.length ? '<div class="settle">' + D.settle.map(([f, t, v]) => '<div class="pay"><div class="who">' + esc(P[f]) + '<span>→</span>' + esc(P[t]) + '</div><div class="amt num"><b>' + esc(money(v)) + '</b><small>' + esc(alt(v)) + '</small></div></div>').join('') + '</div>'
@@ -150,10 +172,11 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
     const top = D.bills.slice().sort((a, b) => b[3] - a[3]).slice(0, 8);
     h += '<h2>🔝 Biggest bills</h2><div class="card">' + top.map((b, i) => '<div class="bill"><span class="rank">' + (i + 1) + '</span><div class="mid"><b>' + esc(b[1]) + '</b><small>' + esc(dayName(b[0])) + ' · paid by ' + esc(b[4].map(([j]) => P[j]).join(' + ')) + ' · ' + b[5].length + ' people</small></div><div class="v num">' + esc(b[6] ? b[6] : k(b[3])) + '</div></div>').join('') + '</div>';
     if (D.rates) h += '<p class="meta" style="margin:14px 2px 0">Rates used: ' + esc(D.rates) + '</p>';
-    h += '<footer>Snapshot made with Deal Calc · it doesn’t update by itself</footer>';
+    h += '<footer>' + (live ? 'Live from Deal Calc · updates whenever the organiser’s phone backs up' : 'Snapshot made with Deal Calc · it doesn’t update by itself') + '</footer>';
     app.innerHTML = h;
   }
   app.addEventListener('click', e => {
+    if (e.target.id === 'reload') { e.preventDefault(); location.reload(); return; }
     const c = e.target.closest('[data-c]'); if (c) { cur = c.dataset.c; render(); return; }
     const d = e.target.closest('[data-d]'); if (d) { selDay = selDay === d.dataset.d ? null : d.dataset.d; render(); }
   });
