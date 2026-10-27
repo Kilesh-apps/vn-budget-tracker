@@ -3271,7 +3271,7 @@ function out(o) {
   if (!SYNC.groupToken) { SYNC.groupToken = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : uid() + uid() + uid()).slice(0, 24); }
   if (SYNC.auto === undefined) SYNC.auto = true;
   saveSync();
-  const validUrl = u => /^https:\/\/script\.google(usercontent)?\.com\/.+/.test(u || '');
+  const validUrl = u => /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[^/]+\/exec\/?(\?.*)?$/.test((u || '').trim());
   function scheduleSheetPush(ms) {
     clearTimeout(pushTimer);
     if (!SYNC || !SYNC.auto || !validUrl(SYNC.url)) return;
@@ -3333,7 +3333,7 @@ function out(o) {
   }
   $('gsUrl').addEventListener('change', () => {
     const u = $('gsUrl').value.trim();
-    if (u && !validUrl(u)) { setGsStatus('That doesn’t look like an Apps Script web-app link (it starts with https://script.google.com/macros/s/).', true); return; }
+    if (u && !validUrl(u)) { setGsStatus(/\/macros\/library\//.test(u) ? 'That’s the Library link. In Apps Script → Deploy → Manage deployments, copy the link under “Web app” instead (it ends in /exec).' : /\/dev\/?$/.test(u) ? 'That’s the test (/dev) link. Copy the Web app link from Deploy → Manage deployments (it ends in /exec).' : 'That doesn’t look like a Web app link. It should look like https://script.google.com/macros/s/…/exec', true); return; }
     SYNC.url = u; SYNC.error = null; SYNC.dirty = true; saveSync(); fillGs();
   });
   $('gsCodeCopy').onclick = async () => { try { await navigator.clipboard.writeText(SYNC.secret); $('gsCodeCopy').textContent = 'Copied ✓'; } catch (e) { $('gsCodeShow').select(); } setTimeout(() => { $('gsCodeCopy').textContent = 'Copy'; }, 2000); };

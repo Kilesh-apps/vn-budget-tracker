@@ -1,5 +1,5 @@
 // Bump this whenever you change any file, or the phone keeps the old copy.
-const CACHE = 'vdc-v35';
+const CACHE = 'vdc-v37';
 const ASSETS = ['./','./index.html','./report.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./icon-192-maskable.png','./icon-512-maskable.png'];
 const FONT_HOSTS = ['fonts.googleapis.com','fonts.gstatic.com'];
 
@@ -18,6 +18,14 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin !== location.origin) return;
+  if (url.pathname.endsWith('/report.html')) {
+    // The page friends open from shared links: always try the newest version first, saved copy only when offline.
+    e.respondWith(fetch(e.request, { cache:'reload' }).then(r => {
+      if (r && r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put('./report.html', copy)); }
+      return r;
+    }).catch(() => caches.match('./report.html')));
+    return;
+  }
   e.respondWith(caches.match(e.request, { ignoreSearch:true }).then(hit => hit || fetch(e.request).catch(() => {
     if (e.request.mode === 'navigate') return caches.match('./index.html');
   })));
