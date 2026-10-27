@@ -621,6 +621,7 @@ button.ck-row:active{background:var(--raised)}
         <div id="gdBody"></div>
       </div>
       <h3>Shared bills</h3>
+      <div class="legend" id="sharedCats"></div>
       <div id="sharedList"></div>
       <button type="button" class="secondary more" id="sharedMore" hidden></button>
       <p class="empty-msg" id="sharedEmpty">No shared bills yet.</p>
@@ -1125,8 +1126,10 @@ function out(o) {
     <label for="gsCodeIn">New phone? Paste your recovery code</label>
     <div class="rate-wrap"><input id="gsCodeIn" autocomplete="off" spellcheck="false" placeholder="Paste code, then Restore from sheet"><button type="button" class="mini" id="gsCodeUse">Use</button></div>
   </div>
+  <button type="button" class="secondary" id="gsCopyTop" style="margin-top:10px">📋 Copy the sheet script (version 2)</button>
+  <p class="small" id="gsUpdateHow" style="margin:6px 2px 0">To update: open your sheet → Extensions → Apps Script → select all → paste → 💾 Save → Deploy → Manage deployments → ✏️ → Version: <b>New version</b> → Deploy. The link stays the same; then tap Back up now.</p>
   <details class="gs-help" style="margin-top:10px">
-    <summary style="font-weight:600;cursor:pointer;min-height:40px;display:flex;align-items:center">How to set it up (about 5 minutes)</summary>
+    <summary style="font-weight:600;cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:14px;padding:0 14px">First-time set-up steps <span aria-hidden="true">▾</span></summary>
     <ol class="small" style="padding-left:20px">
       <li>In Chrome (Desktop site on), open <b>sheets.new</b> and name the sheet, e.g. “Vietnam trip backup”.</li>
       <li><b>Extensions → Apps Script</b>. Delete what’s there, tap <b>Copy the script</b> below, paste it in, and tap 💾 Save.</li>
@@ -2573,7 +2576,13 @@ function out(o) {
         '<span class="mid"><b>' + esc(name) + '</b><small>' + (even ? 'Even' : v > 0 ? 'gets back' : 'owes the group') + '</small></span>' +
         '<span class="amt num"><b class="' + (even ? '' : v > 0 ? 'good' : 'over') + '">' + (even ? '—' : esc(gm(Math.abs(v), c))) + '</b>' + (even ? '' : '<small>' + esc(gmAlt(Math.abs(v), c)) + '</small>') + '</span></button>';
     }).join('') + '</div>' : '';
-    const shared = state.entries.filter(isShared).sort((a,b) => b.ts.localeCompare(a.ts));
+    const allShared = state.entries.filter(isShared);
+    const catTot = {}; allShared.forEach(e => { catTot[e.cat] = (catTot[e.cat] || 0) + e.vnd; });
+    if (sharedCat && !catTot[sharedCat]) sharedCat = null;
+    const cats = Object.entries(catTot).sort((a, b) => b[1] - a[1]);
+    $('sharedCats').innerHTML = cats.length > 1 ? '<button type="button" class="' + (!sharedCat ? 'sel' : '') + '" data-scat="">All ' + esc(short(allShared.reduce((a, e) => a + e.vnd, 0))) + '</button>' +
+      cats.map(([k, v]) => '<button type="button" class="num' + (sharedCat === k ? ' sel' : '') + '" data-scat="' + k + '"><i style="background:' + CATS[k].c + '"></i>' + CATS[k].e + ' ' + esc(k) + ' ' + esc(short(v)) + '</button>').join('') : '';
+    const shared = allShared.filter(e => !sharedCat || e.cat === sharedCat).sort((a,b) => b.ts.localeCompare(a.ts));
     $('sharedEmpty').hidden = shared.length > 0;
     $('sharedMore').hidden = shared.length <= sharedLimit;
     $('sharedMore').textContent = 'Show ' + (shared.length - sharedLimit) + ' older shared bills';
@@ -2584,7 +2593,8 @@ function out(o) {
         '<span class="amt num"><b>' + esc(inOwn(e, e.vnd)) + '</b><small>' + (mine ? 'you ' + esc(inOwn(e, mine)) : 'not you') + '</small></span></button>';
     }).join('') + '</div>' : '';
   }
-  let sharedLimit = 30, settleTr = [], personTr = [];
+  let sharedLimit = 30, settleTr = [], personTr = [], sharedCat = null;
+  $('sharedCats').addEventListener('click', e => { const b = e.target.closest('[data-scat]'); if (!b) return; sharedCat = b.dataset.scat || null; sharedLimit = 30; renderGroup(); });
   $('sharedMore').onclick = () => { sharedLimit = Infinity; renderGroup(); };
   $('sharedList').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
   $('grpRound').addEventListener('click', e => { const b = e.target.closest('[data-ru]'); if (!b) return; state.roundUnit = Number(b.dataset.ru); save(); renderAll(); });
@@ -2689,7 +2699,13 @@ function out(o) {
       bills: bills.map(e => [dayKey(e.ts).replace(/-/g, ''), String(e.item).slice(0, 60), e.cat, Math.round(e.vnd),
         Object.entries(payersOf(e)).filter(([p]) => p in idx).map(([p, v]) => [idx[p], Math.round(v)]),
         e.among.filter(p => p in idx).map(p => [idx[p], Math.round(shareOf(e, p))]),
-        curOf(e) === 'VND' ? 0 : fmtCur(e.amt, e.cur)]),
+        curOf(e) === 'VND' ? 0 : fmtCur(e.amt, e.cur), timeOf(e.ts).replace(':', '')]),
+      // money between people (paybacks and loans) in the same period, so balances add up in the page
+      pays: state.settlements.filter(t => inP(t) && t.from in idx && t.to in idx).sort((a, b) => a.ts.localeCompare(b.ts))
+        .map(t => [dayKey(t.ts).replace(/-/g, ''), timeOf(t.ts).replace(':', ''), idx[t.from], idx[t.to], Math.round(t.vnd), t.kind === 'loan' ? 1 : 0, String(t.note || '').slice(0, 40), t.cur ? fmtCur(t.amt, t.cur) : 0]),
+      // everyone's overall balance (whole trip), matching the settle-up
+      net: ids.map(p => cashRound(c.nets[p] || 0)),
+      full: per === 'trip' ? 1 : 0,
       rates: ratesUsed(bills, state.settlements) };
     return data;
   }
@@ -3329,6 +3345,11 @@ function out(o) {
   };
   $('gsAuto').addEventListener('change', () => { SYNC.auto = $('gsAuto').checked; saveSync(); if (SYNC.auto && SYNC.dirty) scheduleSheetPush(1000); });
   $('gsNow').onclick = () => { $('gsUrl').dispatchEvent(new Event('change')); if (validUrl(SYNC.url)) pushToSheet(true); };
+  $('gsCopyTop').onclick = async () => {
+    try { await navigator.clipboard.writeText($('gsCode').textContent.trim()); $('gsCopyTop').textContent = '✓ Copied. Now paste it in Apps Script'; }
+    catch (e) { const d = document.querySelector('.gs-help'); d.open = true; $('gsCopyTop').textContent = 'Couldn’t copy: long-press the code below'; }
+    setTimeout(() => { $('gsCopyTop').textContent = '📋 Copy the sheet script (version 2)'; }, 3500);
+  };
   $('gsCopy').onclick = async () => {
     try { await navigator.clipboard.writeText($('gsCode').textContent.trim()); $('gsCopy').textContent = 'Copied ✓'; }
     catch (e) { $('gsCopy').textContent = 'Long-press the code below to copy it'; }

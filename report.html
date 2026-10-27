@@ -76,6 +76,17 @@ tfoot td{font-weight:700;border-bottom:0}
 .bill .mid b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bill .mid small{color:var(--muted);font-size:.8rem}
 .bill .v{font-weight:700;text-align:right}
+.more{border:0;background:transparent;color:var(--accent);font:inherit;font-weight:600;font-size:.85rem;padding:6px 0 0;cursor:pointer}
+.lines{margin-top:8px;border-top:1px dashed var(--line)}
+.line{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.line:last-child{border-bottom:0}
+.line .mid{flex:1;min-width:0}
+.line .mid b{display:block;font-size:.9rem;font-weight:600}
+.line .mid small{color:var(--muted);font-size:.78rem}
+.line .r{text-align:right;flex:none}
+.line .r b{display:block;font-size:.9rem}
+.line .r b.pos{color:var(--good)} .line .r b.neg{color:var(--warn)}
+.line .r small{color:var(--muted);font-size:.74rem}
 footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
 .err{text-align:center;padding:60px 20px}
 @media (max-width:380px){.stats{grid-template-columns:1fr 1fr}.big{font-size:1.9rem}}
@@ -136,6 +147,28 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
     cats[b[2]] = (cats[b[2]] || 0) + b[3];
   });
   const total = D.bills.reduce((a, b) => a + b[3], 0), dayKeys = Object.keys(days).sort();
+  const PAYS = D.pays || [];
+  const open = new Set();
+  function linesFor(i) {
+    const rows = [];
+    D.bills.forEach(b => {
+      const paid = (b[4].find(([j]) => j === i) || [0, 0])[1], share = (b[5].find(([j]) => j === i) || [0, 0])[1];
+      if (!paid && !share) return;
+      rows.push({ key: b[0] + (b[7] || '0000'), day: b[0], title: (CAT[b[2]] || '✨') + ' ' + b[1],
+        sub: (paid ? (paid < b[3] - 1 ? 'paid ' + k(paid) + ' of ' + (b[6] || k(b[3])) : 'paid ' + (b[6] || k(b[3]))) : b[4].map(([j]) => P[j]).join(' + ') + ' paid') + ' · share ' + k(share), eff: paid - share });
+    });
+    PAYS.forEach(t => {
+      if (t[2] !== i && t[3] !== i) return;
+      const loan = t[5] === 1, amt = t[7] || k(t[4]);
+      rows.push({ key: t[0] + t[1], day: t[0], title: loan ? '💸 ' + P[t[3]] + ' borrowed ' + amt + ' from ' + P[t[2]] : '✅ ' + P[t[2]] + ' paid back ' + P[t[3]] + ' ' + amt,
+        sub: (loan ? 'Loan' : 'Payback') + (t[6] ? ' · ' + t[6] : ''), eff: t[2] === i ? t[4] : -t[4] });
+    });
+    rows.sort((a, b) => a.key.localeCompare(b.key));
+    let run = 0; rows.forEach(r => { run += r.eff; r.bal = run; });
+    return rows.reverse();
+  }
+  // overall balance per person: from the app (whole trip) or worked out from what's in the link
+  const netOf = i => D.net ? D.net[i] : (paid[i] - used[i] + PAYS.reduce((a, t) => a + (t[2] === i ? t[4] : t[3] === i ? -t[4] : 0), 0));
   const dayName = d => new Date(d.slice(0,4) + '-' + d.slice(4,6) + '-' + d.slice(6) + 'T12:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
   let selDay = null;
 
@@ -153,10 +186,16 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
       : '<div class="card even">Everyone is even ✅</div>';
     h += '<h2>📊 Total</h2><div class="card"><p class="big num">' + esc(money(total)) + '</p><p class="meta num" style="margin:4px 0 12px">' + esc(alt(total)) + '</p>' +
       '<div class="stats num"><div class="stat"><span>Shared bills</span><b>' + D.bills.length + '</b></div><div class="stat"><span>Days</span><b>' + dayKeys.length + '</b></div><div class="stat"><span>Per day</span><b>' + esc(k(total / Math.max(1, dayKeys.length))) + '</b></div></div></div>';
-    h += '<h2>👥 Who spent · who paid</h2><div class="card">' + order.map(i => {
-      const net = paid[i] - used[i], cls = Math.abs(net) < (D.ru || 1000) / 2 ? 'zero' : net > 0 ? 'pos' : 'neg';
-      return '<div class="person"><div class="prow"><b>' + esc(P[i]) + '</b><span class="net num ' + cls + '">' + (cls === 'zero' ? 'even' : (net > 0 ? 'paid ' + esc(k(net)) + ' extra' : 'used ' + esc(k(-net)) + ' more')) + '</span></div>' +
-        '<div class="bar"><i style="width:' + (used[i] / maxUse * 100) + '%"></i></div><div class="meta num">Share ' + esc(money(used[i])) + ' · paid ' + esc(money(paid[i])) + '</div></div>';
+    const everyone = P.map((_, i) => i).filter(i => used[i] || paid[i] || PAYS.some(t => t[2] === i || t[3] === i)).sort((a, b) => used[b] - used[a]);
+    h += '<h2>👥 Each person</h2><div class="card">' + everyone.map(i => {
+      const net = netOf(i), cls = Math.abs(net) < (D.ru || 1000) / 2 ? 'zero' : net > 0 ? 'pos' : 'neg';
+      const rows = open.has(i) ? linesFor(i) : null;
+      return '<div class="person"><div class="prow"><b>' + esc(P[i]) + '</b><span class="net num ' + cls + '">' + (cls === 'zero' ? 'even' : (net > 0 ? 'gets back ' : 'owes ') + esc(k(Math.abs(net)))) + '</span></div>' +
+        '<div class="bar"><i style="width:' + (used[i] / maxUse * 100) + '%"></i></div><div class="meta num">Share ' + esc(money(used[i])) + ' · paid for bills ' + esc(money(paid[i])) + '</div>' +
+        '<button type="button" class="more" data-p="' + i + '">' + (rows ? 'Hide' : 'See') + ' their bills &amp; payments ' + (rows ? '▴' : '▾') + '</button>' +
+        (rows ? '<div class="lines num">' + (rows.length ? rows.map(r => '<div class="line"><div class="mid"><b>' + esc(r.title) + '</b><small>' + esc(dayName(r.day)) + ' · ' + esc(r.sub) + '</small></div>' +
+          '<div class="r"><b class="' + (r.eff > 0 ? 'pos' : r.eff < 0 ? 'neg' : '') + '">' + (r.eff > 0 ? '+' : r.eff < 0 ? '−' : '') + esc(k(Math.abs(r.eff))) + '</b>' + (D.full !== 0 ? '<small>bal ' + (Math.abs(r.bal) < (D.ru || 1000) / 2 ? '0' : (r.bal > 0 ? '+' : '−') + esc(k(Math.abs(r.bal)))) + '</small>' : '') + '</div></div>').join('') : '<p class="meta">Nothing yet.</p>') +
+          '<p class="meta" style="margin:6px 0 0">+ means they put money in (paid a bill, paid someone back or lent money); − means they owe more (their share of a bill, or money they borrowed or were paid back). “bal” is their running balance.' + (D.full === 0 ? ' Balances above are for the whole trip.' : '') + '</p></div>' : '') + '</div>';
     }).join('') + '</div>';
     h += '<h2>🗂️ By category</h2><div class="card">' + Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([c, v]) =>
       '<div class="cat"><span class="e">' + (CAT[c] || '✨') + '</span><span class="n">' + esc(c) + '</span><span class="v num">' + esc(k(v)) + ' · ' + Math.round(v / total * 100) + '%</span><div class="bar"><i style="width:' + (v / maxCat * 100) + '%"></i></div></div>').join('') + '</div>';
@@ -178,7 +217,8 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:32px}
   app.addEventListener('click', e => {
     if (e.target.id === 'reload') { e.preventDefault(); location.reload(); return; }
     const c = e.target.closest('[data-c]'); if (c) { cur = c.dataset.c; render(); return; }
-    const d = e.target.closest('[data-d]'); if (d) { selDay = selDay === d.dataset.d ? null : d.dataset.d; render(); }
+    const d = e.target.closest('[data-d]'); if (d) { selDay = selDay === d.dataset.d ? null : d.dataset.d; render(); return; }
+    const m = e.target.closest('[data-p]'); if (m) { const i = Number(m.dataset.p); open.has(i) ? open.delete(i) : open.add(i); const y = window.scrollY; render(); window.scrollTo(0, y); }
   });
   render();
 })();
