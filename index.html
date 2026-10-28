@@ -313,6 +313,9 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 #backBtn{margin-left:-8px;font-size:1.6rem;line-height:1}
 /* home */
 .conv-cur{display:flex;gap:6px}
+.conv-row{display:flex;align-items:center;gap:10px}
+.conv-row .conv-in{flex:1;min-width:0}
+.cv-clr{width:36px;height:36px;font-size:1rem;flex:none}
 .conv-in{font-size:2.3rem;font-weight:700;color:var(--num);margin:8px 0 2px;line-height:1.15;overflow-wrap:anywhere}
 .conv-in .ph{color:var(--muted);font-weight:500}
 .conv-out{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:8px 0 10px}
@@ -446,7 +449,7 @@ button.ck-row:active{background:var(--raised)}
     <section class="view" id="view-home">
       <div class="card">
         <div class="pack-top"><span class="lbl">Convert</span><div class="seg seg-sm" id="cvCur"></div></div>
-        <p class="conv-in num" id="cvIn"></p>
+        <div class="conv-row"><p class="conv-in num" id="cvIn"></p><button type="button" class="clr cv-clr" id="cvClear" aria-label="Clear amount" hidden>✕</button></div>
         <div class="conv-out num" id="cvOut"></div>
         <div class="keypad sm" id="cvPad">
           <button type="button" class="key" data-ck="1">1</button><button type="button" class="key" data-ck="2">2</button><button type="button" class="key" data-ck="3">3</button>
@@ -3391,7 +3394,9 @@ function out(o) {
     $('cvOut').innerHTML = Object.keys(CV).filter(k => k !== cvCur).map(k => '<div><span>' + ({ VND:'Dong', NPR:'Nepali rupee', USD:'US dollar', INR:'Indian rupee' })[k] + '</span><b>' + (amt ? esc(cvFmt(inVnd / vndPer(k, c), k)) : '–') + '</b></div>').join('');
     $('cvRate').textContent = (c.real ? 'Your exchange rate ' : 'Online rate ') + fmt(c.vndPerUsd) + ' ₫/$ · $1 = NPR ' + fmt(state.nprPerUsd, 2);
     $('cvLog').disabled = !amt;
+    $('cvClear').hidden = !cvVal;
   }
+  $('cvClear').onclick = () => { cvVal = ''; renderConverter(); };
   $('cvCur').addEventListener('click', e => { const b = e.target.closest('[data-cv]'); if (!b) return; cvCur = b.dataset.cv; renderConverter(); });
   (() => { let t = null, held = false;
     document.querySelectorAll('#cvPad .key').forEach(btn => {
