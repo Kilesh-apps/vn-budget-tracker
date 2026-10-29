@@ -421,6 +421,19 @@ button.ck-row:active{background:var(--raised)}
 .hist-route{font-size:.84rem;padding:3px 0}
 .hist-route b{font-weight:600}
 .hist.focus{border-color:var(--sel)}
+.lg-row{display:flex;align-items:flex-start;gap:10px;width:100%;padding:10px 14px;border:0;border-top:1px solid var(--line);background:transparent;text-align:left;font:inherit;color:inherit}
+.lg-row:first-child{border-top:0}
+button.lg-row:active{background:var(--raised)}
+.lg-row .mid{flex:1;min-width:0}
+.lg-row .mid b{display:block;font-weight:600;font-size:.94rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-row .mid small{color:var(--muted);font-size:.78rem}
+.lg-row .r{text-align:right;flex:none}
+.lg-row .r b{display:block;font-size:.94rem}
+.lg-row .r b.pos{color:var(--good)} .lg-row .r b.neg{color:var(--warn)}
+.lg-row .r small{color:var(--muted);font-size:.74rem}
+.lg-row.off{opacity:.62}
+.lg-row.count{background:var(--accent-soft)}
+.flag{display:inline-block;font-size:.68rem;font-weight:700;border:1px solid var(--warn);color:var(--warn);border-radius:6px;padding:0 5px;margin-left:6px;vertical-align:1px}
 .preview{white-space:pre-wrap;font:.86rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0 0;max-height:42vh;overflow:auto;color:var(--ink)}
 .checks{display:grid;gap:4px;margin-top:6px}
 .checks label{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;font-size:.92rem;min-height:36px}
@@ -550,6 +563,7 @@ button.ck-row:active{background:var(--raised)}
         <button type="button" class="primary" id="openExchange">Exchange money</button>
         <button type="button" class="secondary" id="openCount">Count &amp; fix wallet</button>
       </div>
+      <button type="button" class="secondary" id="openLedger" style="margin-top:10px">📒 Cash ledger: every dong in and out</button>
       <h3>Exchanges</h3>
       <div id="xList"></div>
       <p class="empty-msg" id="xEmpty">No exchanges yet. Log each one as you change dollars into dong.</p>
@@ -1011,6 +1025,18 @@ function out(o) {
   <div id="hList"></div>
 </div>
 
+<!-- cash ledger -->
+<div class="sheet" id="sheet-ledger" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
+  <div class="grab"></div>
+  <h2 id="lgTitle">Cash ledger</h2>
+  <p class="lead" id="lgLead"></p>
+  <div class="seg seg-sm" id="lgCur"><button type="button" data-lc="VND">₫ Dong</button><button type="button" data-lc="USD">$ Dollars</button></div>
+  <div class="stmt num" id="lgStats" style="margin-top:10px"></div>
+  <div class="seg seg-sm" id="lgFilter" style="margin-top:12px"><button type="button" data-lf="all">Everything</button><button type="button" data-lf="since">Since last count</button><button type="button" data-lf="check">Check these</button></div>
+  <p class="small" id="lgHint" style="margin:8px 2px 0"></p>
+  <div id="lgList"></div>
+</div>
+
 <!-- record a payment -->
 <div class="sheet" id="sheet-paym" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
   <div class="grab"></div>
@@ -1240,7 +1266,7 @@ function out(o) {
   function fresh() {
     return { v:3, startUsd:1000, targetNpr:null, tripStart:'2026-10-22', tripEnd:'2026-11-02',
       nprPerUsd:DEF.nprPerUsd, marketVndPerUsd:DEF.marketVndPerUsd, rateFetchedAt:null, rateSource:null,
-      exchanges:[], entries:[], settlements:[], adjustments:[], friends:[], myName:'', roundUnit:1000,  groupCur:'VND', lastCat:'Shopping', city:'Ho Chi Minh City',
+      exchanges:[], entries:[], settlements:[], adjustments:[], counts:[], friends:[], myName:'', roundUnit:1000,  groupCur:'VND', lastCat:'Shopping', city:'Ho Chi Minh City',
       theme:'auto', lastBackup:null, ttsSlow:false, phrases:[], checklist:[], ai:{ key:'', place:'Market stall', search:false } };
   }
   function payersOf(e) { return e.paidBy === 'multi' && e.payers ? e.payers : { [e.paidBy || 'me']: e.vnd }; }
@@ -1316,6 +1342,8 @@ function out(o) {
         kind: t.kind === 'loan' ? 'loan' : 'pay', note: String(t.note || '').slice(0, 60) };
     }).filter(Boolean);
     b.phrases = uniqById(b.phrases);
+    b.counts = uniqById((raw.counts || []).filter(k => k && k.id && (k.cur === 'VND' || k.cur === 'USD') && Number.isFinite(Number(k.have)))
+      .map(k => ({ id:String(k.id), ts:validTs(k.ts), cur:k.cur, have:Number(k.have), expected:Number(k.expected) || 0 })));
     b.adjustments = uniqById((raw.adjustments || []).filter(a => a && a.id && (a.cur === 'VND' || a.cur === 'USD') && Number(a.amt))
       .map(a => ({ id:String(a.id), ts:validTs(a.ts), cur:a.cur, amt:Number(a.amt), note:String(a.note || '').slice(0, 80) })));
     if (Array.isArray(raw.checklist)) {
@@ -2441,6 +2469,84 @@ function out(o) {
     if (!confirm('Undo this correction (' + (a.amt > 0 ? '+' : '−') + (a.cur === 'USD' ? usd(Math.abs(a.amt)) : vnd(Math.abs(a.amt))) + ')?')) return;
     state.adjustments = state.adjustments.filter(x => x.id !== a.id); save(); renderAll();
   });
+  // ---------- cash ledger: every movement of physical cash, with a running balance ----------
+  let lgCur = 'VND', lgFilter = 'all';
+  function ledgerRows(cur) {
+    const rows = [], V = cur === 'VND';
+    if (!V) rows.push({ ts:'0000', title:'Dollars you brought', sub:'Starting cash', amt:state.startUsd, kind:'start' });
+    state.exchanges.forEach(x => rows.push({ ts:x.ts, title:'💱 Exchanged ' + usd(x.usd) + ' → ' + short(x.vnd) + ' ₫', sub:(x.where || 'Exchange') + ' · ' + fmt(x.vnd / x.usd) + ' ₫/$', amt: V ? x.vnd : -x.usd, kind:'exchange', id:x.id }));
+    state.entries.forEach(e => {
+      const mine = paidOf(e, 'me'); if (!(mine > 0)) return;
+      const ec = curOf(e), card = e.method === 'card';
+      if (V ? ec === 'USD' : ec !== 'USD') return;           // dollar purchases live in the dollar ledger
+      const counts = !card && (V ? ec === 'VND' : true);
+      const amt = V ? mine : mine * e.amt / e.vnd;
+      const m = CATS[e.cat] || CATS.Other;
+      rows.push({ ts:e.ts, title:m.e + ' ' + e.item + (isShared(e) ? ' (shared bill)' : ''),
+        sub: (card ? '💳 card · not from your cash' : V && ec !== 'VND' ? 'paid in ' + ec + ' · not from your dong' : '💵 cash') + (e.paidBy === 'multi' ? ' · your part of ' + inOwn(e, e.vnd) : ''),
+        amt: counts ? -amt : 0, shown: -amt, kind:'purchase', off: !counts, id:e.id, flag: card ? 'card' : V && ec !== 'VND' ? ec : null });
+    });
+    state.settlements.forEach(t => {
+      if (t.from !== 'me' && t.to !== 'me') return;
+      const tc = t.cur || 'VND', inCur = V ? tc === 'VND' : tc === 'USD';
+      const other = t.from === 'me' ? t.to : t.from, inbound = t.to === 'me';
+      const amt = V ? t.vnd : (t.amt || 0);
+      const label = t.kind === 'loan' ? (inbound ? '💸 Borrowed from ' + friendName(other) : '💸 Lent to ' + friendName(other)) : (inbound ? '✅ ' + friendName(other) + ' paid you back' : '✅ You paid back ' + friendName(other));
+      if (!inCur && !(V && tc !== 'USD')) return;
+      rows.push({ ts:t.ts, title:label, sub: (inCur ? 'cash' : 'paid in ' + tc + ' · not in your ' + (V ? 'dong' : 'dollars')) + (t.note ? ' · ' + t.note : ''),
+        amt: inCur ? (inbound ? amt : -amt) : 0, shown: inbound ? amt : -amt, kind:'pay', off: !inCur, id:t.id, flag: inCur ? null : tc });
+    });
+    state.adjustments.filter(a => a.cur === cur).forEach(a => rows.push({ ts:a.ts, title:'🧮 ' + (a.note || 'Wallet correction'), sub:'correction after counting', amt:a.amt, kind:'adj', id:a.id }));
+    rows.sort((a, b) => a.ts.localeCompare(b.ts));
+    let bal = 0; rows.forEach(r => { bal += r.amt; r.bal = bal; });
+    // counted checkpoints sit between movements
+    const counts = state.counts.filter(k => k.cur === cur).slice().sort((a, b) => a.ts.localeCompare(b.ts));
+    counts.forEach(k => {
+      const before = rows.filter(r => r.ts <= k.ts && r.kind !== 'count'); const b = before.length ? before[before.length - 1].bal : 0;
+      rows.push({ ts:k.ts, title:'🧮 You counted ' + (V ? vnd(k.have) : usd(k.have)), sub: Math.abs(k.have - k.expected) < (V ? 1000 : 0.01) ? 'matched ✓' : 'app expected ' + (V ? vnd(k.expected) : usd(k.expected)), amt:0, bal:b, kind:'count' });
+    });
+    rows.sort((a, b) => a.ts.localeCompare(b.ts) || (a.kind === 'count') - (b.kind === 'count'));
+    return rows;
+  }
+  function renderLedger() {
+    const c = calc(), V = lgCur === 'VND', m = v => V ? vnd(v) : usd(Math.round(v * 100) / 100), sm = v => V ? short(v) + ' ₫' : usd(Math.round(v * 100) / 100);
+    document.querySelectorAll('#lgCur [data-lc]').forEach(b => b.classList.toggle('sel', b.dataset.lc === lgCur));
+    document.querySelectorAll('#lgFilter [data-lf]').forEach(b => b.classList.toggle('sel', b.dataset.lf === lgFilter));
+    const rows = ledgerRows(lgCur);
+    const lastCount = rows.filter(r => r.kind === 'count').pop();
+    const since = rows.filter(r => !lastCount || r.ts > lastCount.ts);
+    const sumIn = since.filter(r => r.amt > 0).reduce((a, r) => a + r.amt, 0), sumOut = since.filter(r => r.amt < 0).reduce((a, r) => a - r.amt, 0);
+    const now = V ? c.vndLeft : c.usdLeft;
+    $('lgLead').textContent = 'Every ' + (V ? 'dong' : 'dollar') + ' that went in or out of your cash, with the balance after each. Greyed lines (card, rupees) didn’t touch your cash: if one was really paid in cash, tap it and fix it.';
+    $('lgStats').innerHTML = '<div><span>' + (lastCount ? 'Counted ' + esc(dateOf(lastCount.ts) + ' ' + timeOf(lastCount.ts)) : 'Start') + '</span><b>' + esc(m(lastCount ? lastCount.bal : 0)) + '</b></div>' +
+      '<div><span>Should have now</span><b>' + esc(m(now)) + '</b></div>' +
+      '<div><span>In since then</span><b style="color:var(--good)">+' + esc(sm(sumIn)) + '</b></div>' +
+      '<div><span>Out since then</span><b style="color:var(--warn)">−' + esc(sm(sumOut)) + '</b></div>';
+    const checks = rows.filter(r => r.off || r.kind === 'adj');
+    $('lgHint').textContent = lgFilter === 'check' ? (checks.length ? 'Card and rupee lines, plus past corrections. A wrong card/cash choice here is the most common reason a count is off.' : 'Nothing to check.') :
+      lgFilter === 'since' ? (lastCount ? 'Only what changed since you last counted.' : 'You haven’t saved a count yet. Use Count & fix wallet; when it matches, tap “Save this count”.') : '';
+    let list = lgFilter === 'since' ? since : lgFilter === 'check' ? checks : rows;
+    list = list.filter(r => r.kind !== 'start' || lgFilter === 'all').slice().reverse();
+    const groups = {}; list.forEach(r => { const d = r.ts === '0000' ? 'Start' : dayKey(r.ts); (groups[d] ||= []).push(r); });
+    $('lgList').innerHTML = list.length ? Object.entries(groups).map(([d, items]) => {
+      const label = d === 'Start' ? 'Start' : d === dayKey(new Date()) ? 'Today' : new Date(d + 'T12:00').toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+      return '<div class="day num"><span>' + esc(label) + '</span><span>end of day ' + esc(sm(items[0].bal)) + '</span></div><div class="list">' + items.map(r => {
+        const tag = r.kind === 'purchase' ? 'data-entry="' + esc(r.id) + '"' : r.kind === 'pay' ? 'data-lpay="' + esc(r.id) + '"' : '';
+        const val = r.kind === 'count' ? '' : (r.off ? sm(Math.abs(r.shown)) : (r.amt > 0 ? '+' : r.amt < 0 ? '−' : '') + sm(Math.abs(r.amt)));
+        return '<' + (tag ? 'button type="button"' : 'div') + ' class="lg-row' + (r.off ? ' off' : '') + (r.kind === 'count' ? ' count' : '') + '" ' + tag + '>' +
+          '<span class="mid"><b>' + esc(r.title) + (r.flag ? '<span class="flag">' + esc(r.flag === 'card' ? 'card' : r.flag) + '</span>' : '') + '</b><small>' + esc((r.ts === '0000' ? '' : timeOf(r.ts) + ' · ') + r.sub) + '</small></span>' +
+          '<span class="r num"><b class="' + (r.off || r.kind === 'count' ? '' : r.amt > 0 ? 'pos' : r.amt < 0 ? 'neg' : '') + '">' + esc(val) + '</b><small>bal ' + esc(sm(r.bal)) + '</small></span></' + (tag ? 'button' : 'div') + '>';
+      }).join('') + '</div>';
+    }).join('') : '<p class="empty-msg">Nothing here.</p>';
+  }
+  $('openLedger').onclick = () => { lgCur = 'VND'; lgFilter = state.counts.some(k => k.cur === 'VND') ? 'since' : 'all'; renderLedger(); openSheet('sheet-ledger'); $('sheet-ledger').scrollTop = 0; };
+  $('lgCur').addEventListener('click', e => { const b = e.target.closest('[data-lc]'); if (!b) return; lgCur = b.dataset.lc; renderLedger(); });
+  $('lgFilter').addEventListener('click', e => { const b = e.target.closest('[data-lf]'); if (!b) return; lgFilter = b.dataset.lf; renderLedger(); });
+  $('lgList').addEventListener('click', e => {
+    const en = e.target.closest('[data-entry]'); if (en) { openEdit(en.dataset.entry); return; }
+    const pb = e.target.closest('[data-lpay]'); if (pb) { const t = state.settlements.find(x => x.id === pb.dataset.lpay); if (t) { friendId = t.from === 'me' ? t.to : t.from; renderFriend(); openSheet('sheet-friend'); } }
+  });
+
   // count & fix wallet
   let cWhy = 'spent';
   function cRead() {
@@ -2459,7 +2565,7 @@ function out(o) {
     $('cErr').textContent = '';
     p.classList.remove('warn');
     if (haveV === null && haveU === null) { p.textContent = 'Count your notes, then type the totals above.'; fix.hidden = true; return; }
-    if (!vOff && !uOff) { p.textContent = '✓ Matches. Your wallet is right.'; fix.hidden = true; return; }
+    if (!vOff && !uOff) { p.textContent = '✓ Matches. Your wallet is right.'; fix.hidden = false; fix.textContent = '✓ Save this count'; return; }
     const parts = [];
     if (vOff) parts.push('dong ' + (gapV > 0 ? '+' : '−') + vnd(Math.abs(gapV)));
     if (uOff) parts.push('dollars ' + (gapU > 0 ? '+' : '−') + usd(Math.abs(gapU)));
@@ -2479,6 +2585,10 @@ function out(o) {
     }
     if (haveU !== null && Math.abs(gapU) >= 0.01)
       state.adjustments.push({ id:uid(), ts:now, cur:'USD', amt:gapU, note: gapU > 0 ? 'Counted more dollars than expected' : 'Counted fewer dollars than expected' });
+    // a checkpoint, so the ledger can show "counted here" and what moved since
+    const later = new Date(Date.now() + 1).toISOString();
+    if (haveV !== null) state.counts.push({ id:uid(), ts:later, cur:'VND', have:haveV, expected:Math.round(c.vndLeft) });
+    if (haveU !== null) state.counts.push({ id:uid(), ts:later, cur:'USD', have:haveU, expected:Math.round(c.usdLeft * 100) / 100 });
     save(); closeSheet(); renderAll(); bump();
   };
 
@@ -3250,7 +3360,7 @@ function out(o) {
         d.settlements.forEach(t => { t.from = m(t.from); t.to = m(t.to); });
       }
       const merge = (key) => { const have = new Set(state[key].map(x => x.id)); const add = d[key].filter(x => !have.has(x.id)); state[key] = state[key].concat(add); return add.length; };
-      const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements'); merge('phrases'); merge('adjustments');
+      const nf = merge('friends'), ne = merge('entries'), nx = merge('exchanges'), ns = merge('settlements'); merge('phrases'); merge('adjustments'); merge('counts');
       // packing list: add categories and items this phone doesn't have yet
       d.checklist.forEach(dc => { const mc = state.checklist.find(c => c.id === dc.id);
         if (!mc) state.checklist.push(dc); else dc.items.forEach(i => { if (!mc.items.some(x => x.id === i.id)) mc.items.push(i); }); });
