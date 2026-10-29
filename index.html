@@ -324,7 +324,10 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 /* home */
 .conv-cur{display:flex;gap:6px}
 .conv-row{display:flex;align-items:center;gap:10px}
-.conv-row .conv-in{flex:1;min-width:0}
+.conv-row .conv-in{flex:1;min-width:0;white-space:nowrap;overflow:hidden}
+.conv-row .conv-in.wrap{white-space:normal;overflow-wrap:anywhere}
+.conv-out b{white-space:nowrap;overflow:hidden}
+.conv-out b.wrap{white-space:normal;overflow-wrap:anywhere}
 .cv-clr{width:36px;height:36px;font-size:1rem;flex:none}
 .conv-in{font-size:2.3rem;font-weight:700;color:var(--num);margin:8px 0 2px;line-height:1.15;overflow-wrap:anywhere}
 .conv-in .ph{color:var(--muted);font-weight:500}
@@ -3557,7 +3560,22 @@ function out(o) {
   // ---------- converter (Home) ----------
   let cvVal = '', cvCur = 'VND';
   const CV = { VND:'₫', NPR:'NPR', USD:'$' };
-  function cvFmt(v, cur) { return cur === 'VND' ? vnd(v) : cur === 'USD' ? usd(Math.round(v * 100) / 100) : cur === 'INR' ? '₹' + fmt(v, v < 100 ? 2 : 0) : 'NPR ' + fmt(v, v < 100 ? 2 : 0); }
+  function cvFmt(v, cur) { return cur === 'VND' ? vnd(v) : cur === 'USD' ? usd(v >= 10000 ? Math.round(v) : Math.round(v * 100) / 100) : cur === 'INR' ? '₹' + fmt(v, v < 100 ? 2 : 0) : 'NPR ' + fmt(v, v < 100 ? 2 : 0); }
+  // shrink the big amount step by step so it stays on one line, but never below a readable size
+  function fitConverter() {
+    const el = $('cvIn'); el.style.fontSize = ''; el.classList.remove('wrap');
+    requestAnimationFrame(() => {
+      let size = parseFloat(getComputedStyle(el).fontSize); const min = 18;
+      while (el.scrollWidth > el.clientWidth + 1 && size - 2 >= min) { size -= 2; el.style.fontSize = size + 'px'; }
+      if (el.scrollWidth > el.clientWidth + 1) el.classList.add('wrap');
+      document.querySelectorAll('#cvOut b').forEach(b => {
+        b.style.fontSize = ''; b.classList.remove('wrap');
+        let f = parseFloat(getComputedStyle(b).fontSize);
+        while (b.scrollWidth > b.clientWidth + 1 && f - 1 >= 12) { f -= 1; b.style.fontSize = f + 'px'; }
+        if (b.scrollWidth > b.clientWidth + 1) b.classList.add('wrap');
+      });
+    });
+  }
   function renderConverter() {
     const c = calc(), amt = Math.max(0, calcEval(cvVal)), inVnd = amt * vndPer(cvCur, c);
     $('cvExpr').textContent = hasOps(cvVal) ? moneyStr(cvVal) + ' =' : '';
@@ -3567,6 +3585,7 @@ function out(o) {
     $('cvRate').textContent = (c.real ? 'Your exchange rate ' : 'Online rate ') + fmt(c.vndPerUsd) + ' ₫/$ · $1 = NPR ' + fmt(state.nprPerUsd, 2);
     $('cvLog').disabled = !amt;
     $('cvClear').hidden = !cvVal;
+    fitConverter();
   }
   $('cvClear').onclick = () => { cvVal = ''; renderConverter(); };
   $('cvCur').addEventListener('click', e => { const b = e.target.closest('[data-cv]'); if (!b) return; cvCur = b.dataset.cv; renderConverter(); });
@@ -3583,7 +3602,7 @@ function out(o) {
         else {
           const lastNum = cvVal.split(/[+−×÷]/).pop();
           if (!lastNum && k[0] === '0') return;
-          if (lastNum.length + k.length > 11 || cvVal.length + k.length > 40) return;
+          if (lastNum.replace(/[^\d]/g, '').length + k.length > 15 || cvVal.length + k.length > 80) return;
           cvVal += k;
         }
         renderConverter();
