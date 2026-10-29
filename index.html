@@ -241,6 +241,16 @@ h3{font-size:.84rem;color:var(--muted);margin:22px 2px 6px}
 .rate-wrap{display:flex;gap:8px}
 .rate-wrap input{flex:1}
 .k000{flex:none;min-width:58px;font-size:.9rem}
+.calc-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px}
+.calc-strip button{min-height:40px;border:1px solid var(--line);background:var(--surface);border-radius:12px;font-weight:700;font-size:1.05rem;color:var(--ink)}
+.calc-strip button:active{background:var(--raised)}
+.calc-strip [data-op],.calc-strip [data-eq]{color:var(--accent)}
+.calc-hint{margin:6px 2px 0;font-weight:700;color:var(--accent)}
+.keypad.k4{grid-template-columns:repeat(4,1fr)}
+.cv-ops{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.cv-ops .key{height:40px;font-size:1.15rem}
+.key.op{color:var(--accent);font-weight:700}
+.conv-expr{margin:2px 0 0;color:var(--muted);font-size:.95rem;min-height:1.2em;overflow-wrap:anywhere}
 .mini{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:0 12px;min-height:40px;font-size:.82rem;font-weight:600;white-space:nowrap}
 .seg{display:flex;flex-wrap:wrap;gap:8px}
 .seg button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 13px;font-size:.88rem;font-weight:600}
@@ -462,9 +472,15 @@ button.lg-row:active{background:var(--raised)}
     <section class="view" id="view-home">
       <div class="card">
         <div class="pack-top"><span class="lbl">Convert</span><div class="seg seg-sm" id="cvCur"></div></div>
+        <p class="conv-expr num" id="cvExpr"></p>
         <div class="conv-row"><p class="conv-in num" id="cvIn"></p><button type="button" class="clr cv-clr" id="cvClear" aria-label="Clear amount" hidden>✕</button></div>
         <div class="conv-out num" id="cvOut"></div>
         <div class="keypad sm" id="cvPad">
+          <div class="cv-ops">
+            <button type="button" class="key op" data-ck="+" aria-label="Plus">+</button><button type="button" class="key op" data-ck="−" aria-label="Minus">−</button>
+            <button type="button" class="key op" data-ck="×" aria-label="Times">×</button><button type="button" class="key op" data-ck="÷" aria-label="Divide">÷</button>
+            <button type="button" class="key op" data-ck="=" aria-label="Equals">=</button>
+          </div>
           <button type="button" class="key" data-ck="1">1</button><button type="button" class="key" data-ck="2">2</button><button type="button" class="key" data-ck="3">3</button>
           <button type="button" class="key" data-ck="4">4</button><button type="button" class="key" data-ck="5">5</button><button type="button" class="key" data-ck="6">6</button>
           <button type="button" class="key" data-ck="7">7</button><button type="button" class="key" data-ck="8">8</button><button type="button" class="key" data-ck="9">9</button>
@@ -668,7 +684,7 @@ button.lg-row:active{background:var(--raised)}
   <p class="lead num" id="fLead"></p>
   <div id="fAmountWrap">
     <label for="fAmount">Amount</label>
-    <div class="rate-wrap"><input id="fAmount" type="text" inputmode="decimal" autocomplete="off" class="num money" placeholder="0"><button type="button" class="mini k000" data-k000="fAmount" aria-label="Add three zeros">000</button></div>
+    <input id="fAmount" type="text" inputmode="decimal" autocomplete="off" class="num money" placeholder="0"><div class="calc-strip" role="group" aria-label="Calculator"><button type="button" data-op="+" data-t="fAmount" aria-label="Plus">+</button><button type="button" data-op="−" data-t="fAmount" aria-label="Minus">−</button><button type="button" data-op="×" data-t="fAmount" aria-label="Times">×</button><button type="button" data-op="÷" data-t="fAmount" aria-label="Divide">÷</button><button type="button" data-k000="fAmount" aria-label="Add three zeros">000</button><button type="button" data-eq="fAmount" aria-label="Work out the total">=</button></div><p class="calc-hint num" id="fAmountCalc" hidden></p>
     <div class="seg seg-sm" id="fCur" style="margin-top:8px" aria-label="Currency"></div>
     <div id="fRateRow" hidden>
       <div class="rate-wrap" style="align-items:center;margin-top:10px">
@@ -836,7 +852,7 @@ button.lg-row:active{background:var(--raised)}
   <h2 id="cTitle">Count &amp; fix wallet</h2>
   <p class="lead">Count your cash and type what you really have. Leave a box empty to skip it.</p>
   <label for="cVnd">Dong you have (₫)</label>
-  <div class="rate-wrap"><input id="cVnd" type="text" inputmode="numeric" autocomplete="off" class="num money"><button type="button" class="mini k000" data-k000="cVnd" aria-label="Add three zeros">000</button></div>
+  <input id="cVnd" type="text" inputmode="numeric" autocomplete="off" class="num money"><div class="calc-strip" role="group" aria-label="Calculator"><button type="button" data-op="+" data-t="cVnd" aria-label="Plus">+</button><button type="button" data-op="−" data-t="cVnd" aria-label="Minus">−</button><button type="button" data-op="×" data-t="cVnd" aria-label="Times">×</button><button type="button" data-op="÷" data-t="cVnd" aria-label="Divide">÷</button><button type="button" data-k000="cVnd" aria-label="Add three zeros">000</button><button type="button" data-eq="cVnd" aria-label="Work out the total">=</button></div><p class="calc-hint num" id="cVndCalc" hidden></p>
   <p class="status num" id="cVndNote"></p>
   <label for="cUsd">Dollars you have ($)</label>
   <input id="cUsd" type="number" inputmode="decimal" min="0" step="any" class="num">
@@ -1046,7 +1062,7 @@ function out(o) {
   <span class="flabel" id="pmFromLbl">Who paid</span><div class="seg" id="pmFrom"></div>
   <span class="flabel" id="pmToLbl">Who received it</span><div class="seg" id="pmTo"></div>
   <label for="pmAmt">Amount</label>
-  <div class="rate-wrap"><input id="pmAmt" type="text" inputmode="decimal" autocomplete="off" class="num money" placeholder="0"><button type="button" class="mini k000" data-k000="pmAmt" aria-label="Add three zeros">000</button></div>
+  <input id="pmAmt" type="text" inputmode="decimal" autocomplete="off" class="num money" placeholder="0"><div class="calc-strip" role="group" aria-label="Calculator"><button type="button" data-op="+" data-t="pmAmt" aria-label="Plus">+</button><button type="button" data-op="−" data-t="pmAmt" aria-label="Minus">−</button><button type="button" data-op="×" data-t="pmAmt" aria-label="Times">×</button><button type="button" data-op="÷" data-t="pmAmt" aria-label="Divide">÷</button><button type="button" data-k000="pmAmt" aria-label="Add three zeros">000</button><button type="button" data-eq="pmAmt" aria-label="Work out the total">=</button></div><p class="calc-hint num" id="pmAmtCalc" hidden></p>
   <div class="seg seg-sm" id="pmCur" style="margin-top:8px"></div>
   <label for="pmText">Note (optional)</label>
   <input id="pmText" type="text" maxlength="60" placeholder="e.g. for SIM card, taxi money" autocomplete="off">
@@ -1275,20 +1291,49 @@ function out(o) {
     return e.paidBy === 'multi' ? Object.entries(payersOf(e)).map(([p, v]) => nameFn(p) + ' ' + short(v)).join(' + ') : nameFn(e.paidBy);
   }
   // amount boxes: show commas while typing, read back as numbers
-  function moneyStr(v) {
+  // a tiny calculator: numbers with + − × ÷ (× and ÷ first); anything else is ignored
+  const OPS = /[+\-−×*÷/]/;
+  function calcEval(str) {
+    const t = String(str == null ? '' : str).replace(/,/g, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/[^\d.+\-*/]/g, '');
+    const toks = t.match(/\d*\.?\d+|[+\-*/]/g) || [];
+    while (toks.length && /[+\-*/]/.test(toks[toks.length - 1])) toks.pop();      // ignore a trailing operator
+    while (toks.length && /[*/]/.test(toks[0])) toks.shift();
+    let i = 0;
+    const num = () => { let sign = 1; while (toks[i] === '-' || toks[i] === '+') { if (toks[i] === '-') sign = -sign; i++; } return sign * (Number(toks[i++]) || 0); };
+    const term = () => { let v = num(); while (toks[i] === '*' || toks[i] === '/') { const op = toks[i++], r = num(); v = op === '*' ? v * r : (r ? v / r : v); } return v; };
+    let v = term(); while (toks[i] === '+' || toks[i] === '-') { const op = toks[i++], r = term(); v = op === '+' ? v + r : v - r; }
+    return Number.isFinite(v) ? Math.round(v * 100) / 100 : 0;
+  }
+  const hasOps = s => /\d\s*[+\-−×*÷/]/.test(String(s || ''));
+  function numStr(v) {
     let t = String(v).replace(/[^\d.]/g, ''); const dot = t.indexOf('.');
     if (dot >= 0) t = t.slice(0, dot + 1) + t.slice(dot + 1).replace(/\./g, '').slice(0, 2);
     const [i, d] = t.split('.'); const int = (i || '').replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return d !== undefined ? (int || '0') + '.' + d : int;
   }
-  function moneyNum(el) { return Number(String(el && el.value || '').replace(/[^\d.]/g, '')) || 0; }
-  function setMoney(el, v) { el.value = v === '' || v == null || v === 0 ? '' : moneyStr(v); }
+  // formats each number with commas and keeps the operators: "120,000 + 45,000 − 5,000"
+  function moneyStr(v) {
+    const t = String(v).replace(/\*/g, '×').replace(/\//g, '÷').replace(/-/g, '−').replace(/[^\d.,+−×÷]/g, '');
+    if (!/[+−×÷]/.test(t)) return numStr(t);
+    return t.split(/([+−×÷])/).map(x => /[+−×÷]/.test(x) ? ' ' + x + ' ' : numStr(x)).join('').replace(/\s+/g, ' ').replace(/^ /, '');
+  }
+  function moneyNum(el) { return Math.max(0, calcEval(el && el.value)); }
+  function setMoney(el, v) { el.value = v === '' || v == null || v === 0 ? '' : moneyStr(v); calcHint(el); }
   function formatMoneyEl(el) {
+    const sig = /[\d.+−×÷*/-]/;
     const pos = el.selectionStart == null ? el.value.length : el.selectionStart;
-    const digitsBefore = el.value.slice(0, pos).replace(/[^\d.]/g, '').length;
+    const before = [...el.value.slice(0, pos)].filter(ch => sig.test(ch)).length;
     el.value = moneyStr(el.value);
-    let n = 0, i = 0; while (i < el.value.length && n < digitsBefore) { if (/[\d.]/.test(el.value[i])) n++; i++; }
+    let n = 0, i = 0; while (i < el.value.length && n < before) { if (sig.test(el.value[i])) n++; i++; }
     try { el.setSelectionRange(i, i); } catch (e) {}
+    calcHint(el);
+  }
+  function calcHint(el) {
+    if (!el || !el.id) return;
+    const h = document.getElementById(el.id + 'Calc'); if (!h) return;
+    const show = hasOps(el.value);
+    h.hidden = !show;
+    if (show) h.textContent = '= ' + numStr(String(Math.max(0, calcEval(el.value))));
   }
   function validTs(t) { const d = new Date(t); return t && !isNaN(d) ? d.toISOString() : new Date().toISOString(); }
   function uniqById(arr) { const seen = new Set(); return arr.filter(x => !seen.has(x.id) && seen.add(x.id)); }
@@ -1489,11 +1534,27 @@ function out(o) {
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-k000]'); if (!b) return;
     const el = $(b.dataset.k000); if (!el) return;
-    const raw = el.value.replace(/[^\d.]/g, ''); if (!raw || raw.includes('.') || raw.length > 9) return;
-    el.value = moneyStr(raw + '000'); el.dispatchEvent(new Event('input', { bubbles:true }));
+    const v = el.value.trim(), last = v.split(/[+−×÷]/).pop().replace(/[^\d.]/g, '');
+    if (!last || last.includes('.') || last.length > 9) return;
+    el.value = moneyStr(v + '000'); el.dispatchEvent(new Event('input', { bubbles:true }));
     try { el.focus({ preventScroll:true }); el.setSelectionRange(el.value.length, el.value.length); } catch (err) {}
   });
 
+  document.addEventListener('pointerdown', e => { if (e.target.closest('.calc-strip button')) e.preventDefault(); });
+  document.addEventListener('click', e => {
+    const o = e.target.closest('[data-op]'), q = e.target.closest('[data-eq]');
+    if (!o && !q) return;
+    const el = $((o || q).dataset.t || (q && q.dataset.eq)); if (!el) return;
+    let v = el.value.trim();
+    if (o) {
+      if (!v || !/\d/.test(v)) return;
+      v = v.replace(/\s*[+−×÷]\s*$/, '') + ' ' + o.dataset.op + ' ';
+      el.value = v;
+    } else el.value = calcEval(v) ? moneyStr(String(calcEval(v))) : '';
+    calcHint(el);
+    el.dispatchEvent(new Event('input', { bubbles:true }));
+    try { el.focus({ preventScroll:true }); el.setSelectionRange(el.value.length, el.value.length); } catch (err) {}
+  });
   // ---------- sheets (Android back closes them) ----------
   let openId = null, wakeLock = null, afterClose = null;
   function openSheet(id) {
@@ -3498,7 +3559,8 @@ function out(o) {
   const CV = { VND:'₫', NPR:'NPR', USD:'$' };
   function cvFmt(v, cur) { return cur === 'VND' ? vnd(v) : cur === 'USD' ? usd(Math.round(v * 100) / 100) : cur === 'INR' ? '₹' + fmt(v, v < 100 ? 2 : 0) : 'NPR ' + fmt(v, v < 100 ? 2 : 0); }
   function renderConverter() {
-    const c = calc(), amt = Number(cvVal) || 0, inVnd = amt * vndPer(cvCur, c);
+    const c = calc(), amt = Math.max(0, calcEval(cvVal)), inVnd = amt * vndPer(cvCur, c);
+    $('cvExpr').textContent = hasOps(cvVal) ? moneyStr(cvVal) + ' =' : '';
     $('cvCur').innerHTML = Object.entries(CV).map(([k, l]) => '<button type="button" class="' + (k === cvCur ? 'sel' : '') + '" data-cv="' + k + '">' + l + '</button>').join('');
     $('cvIn').innerHTML = amt ? esc(cvFmt(amt, cvCur)) : '<span class="ph">0 ' + esc(CV[cvCur]) + '</span>';
     $('cvOut').innerHTML = Object.keys(CV).filter(k => k !== cvCur).map(k => '<div><span>' + ({ VND:'Dong', NPR:'Nepali rupee', USD:'US dollar', INR:'Indian rupee' })[k] + '</span><b>' + (amt ? esc(cvFmt(inVnd / vndPer(k, c), k)) : '–') + '</b></div>').join('');
@@ -3515,15 +3577,25 @@ function out(o) {
         btn.addEventListener('pointerdown', () => { held = false; t = setTimeout(() => { held = true; cvVal = ''; renderConverter(); }, 450); });
         ['pointerup','pointerleave','pointercancel'].forEach(ev => btn.addEventListener(ev, () => clearTimeout(t)));
         btn.addEventListener('click', () => { if (!held) { cvVal = cvVal.slice(0, -1); renderConverter(); } held = false; });
-      } else btn.addEventListener('click', () => { if (!cvVal && k[0] === '0') return; if ((cvVal + k).length > 11) return; cvVal += k; renderConverter(); });
+      } else btn.addEventListener('click', () => {
+        if ('+−×÷'.includes(k)) { if (!/\d/.test(cvVal)) return; cvVal = cvVal.replace(/[+−×÷]$/, '') + k; }
+        else if (k === '=') { const r = Math.max(0, calcEval(cvVal)); cvVal = r ? String(r) : ''; }
+        else {
+          const lastNum = cvVal.split(/[+−×÷]/).pop();
+          if (!lastNum && k[0] === '0') return;
+          if (lastNum.length + k.length > 11 || cvVal.length + k.length > 40) return;
+          cvVal += k;
+        }
+        renderConverter();
+      });
     });
   })();
   $('cvBargain').onclick = () => {
-    const c = calc(), v = Math.round((Number(cvVal) || 0) * vndPer(cvCur, c) / 1000) * 1000;
+    const c = calc(), v = Math.round(Math.max(0, calcEval(cvVal)) * vndPer(cvCur, c) / 1000) * 1000;
     if (v) { setVal('ask', String(v)); setVal('paid', ''); active = 'ask'; setActive('ask', true); }
     showTab('deal');
   };
-  $('cvLog').onclick = () => { const amt = Number(cvVal) || 0; if (!amt) return; openLog('manual', { amt, cur: cvCur }); };
+  $('cvLog').onclick = () => { const amt = Math.max(0, calcEval(cvVal)); if (!amt) return; openLog('manual', { amt, cur: cvCur }); };
   // ---------- Home dashboard ----------
   function renderHome() {
     const c = calc(), b = budgetNumbers(c), today = dayKey(new Date());
