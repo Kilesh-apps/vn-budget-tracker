@@ -447,6 +447,12 @@ button.lg-row:active{background:var(--raised)}
 .lg-row.off{opacity:.62}
 .lg-row.count{background:var(--accent-soft)}
 .flag{display:inline-block;font-size:.68rem;font-weight:700;border:1px solid var(--warn);color:var(--warn);border-radius:6px;padding:0 5px;margin-left:6px;vertical-align:1px}
+.own .orow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:.92rem}
+.own .orow span:first-child{color:var(--muted)}
+.own .orow b{font-weight:600}
+.own .otot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+.own .otot b{font-size:1.45rem;font-weight:700;color:var(--num)}
+.own .good{color:var(--good)} .own .over{color:var(--warn)}
 .preview{white-space:pre-wrap;font:.86rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0 0;max-height:42vh;overflow:auto;color:var(--ink)}
 .checks{display:grid;gap:4px;margin-top:6px}
 .checks label{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;font-size:.92rem;min-height:36px}
@@ -576,6 +582,7 @@ button.lg-row:active{background:var(--raised)}
         <div class="c"><span>Dollars left</span><strong class="num" id="usdLeft"></strong><small class="num" id="usdSub"></small></div>
         <div class="c vnd"><span>Dong in wallet</span><strong class="num" id="vndLeft"></strong><small class="num" id="vndSub"></small></div>
       </div>
+      <div class="card own num" id="ownCard" style="margin-top:10px"></div>
       <p class="rate-line num" id="rateLine"></p>
       <p class="status" id="rateStatus"></p>
       <div class="btn-pair">
@@ -2408,8 +2415,21 @@ function out(o) {
   $('spentList').addEventListener('click', e => { const b = e.target.closest('[data-entry]'); if (b) openEdit(b.dataset.entry); });
 
   // ---------- cash ----------
+  // everything you own if everyone settled up now: dong + dollars (at your rate) ± group balance
+  function ownTotal(c) {
+    const group = typeof cashRound === 'function' ? cashRound(c.nets.me || 0) : Math.round(c.nets.me || 0);
+    const dollarsVnd = Math.max(0, c.usdLeft) * c.vndPerUsd;
+    return { dong:c.vndLeft, dollars:c.usdLeft, dollarsVnd, group, total:c.vndLeft + dollarsVnd + group };
+  }
   function renderCash() {
     const c = calc();
+    const o = ownTotal(c);
+    $('ownCard').innerHTML = '<span class="lbl">Everything you own</span>' +
+      '<div class="orow" style="margin-top:6px"><span>💵 Dong in wallet</span><b>' + esc(vnd(o.dong)) + '</b></div>' +
+      '<div class="orow"><span>💲 Dollars (' + esc(usd(o.dollars)) + ')</span><b>≈ ' + esc(vnd(o.dollarsVnd)) + '</b></div>' +
+      (state.friends.length ? '<div class="orow"><span>👥 ' + (o.group > 0 ? 'Friends owe you' : o.group < 0 ? 'You owe the group' : 'Group: all even') + '</span><b class="' + (o.group > 0 ? 'good' : o.group < 0 ? 'over' : '') + '">' + (o.group > 0 ? '+' : o.group < 0 ? '−' : '') + esc(vnd(Math.abs(o.group))) + '</b></div>' : '') +
+      '<div class="otot"><span class="lbl">Total</span><span style="text-align:right"><b>' + esc(vnd(o.total)) + '</b><br><span class="small">' + esc(npr(o.total * c.nprPerVnd)) + ' · ' + esc(usd(Math.round(o.total / c.vndPerUsd))) + '</span></span></div>' +
+      '<p class="small" style="margin:8px 0 0">As if everyone settled up today. Dollars at ' + (c.real ? 'your exchange rate' : 'the online rate') + ' of ' + esc(fmt(c.vndPerUsd)) + ' ₫/$.</p>';
     $('usdLeft').textContent = usd(c.usdLeft);
     $('usdSub').textContent = 'of ' + usd(state.startUsd) + ' · ' + npr(c.usdLeft * state.nprPerUsd);
     $('vndLeft').textContent = c.vndLeft < 0 ? '−' + vnd(-c.vndLeft) : vnd(c.vndLeft);
@@ -3651,7 +3671,7 @@ function out(o) {
     $('hWalletV').textContent = c.real ? short(c.vndLeft) + ' ₫' : usd(c.usdLeft);
     const rw = cashRunway(c), ws = $('hWalletS');
     ws.className = 'hs num' + (rw && rw.dongDays < 1.5 ? ' over' : '');
-    ws.textContent = (c.real ? usd(c.usdLeft) + ' left' : 'No exchange yet') + (rw ? ' · dong ~' + Math.round(rw.dongDays * 10) / 10 + ' days' : '');
+    ws.textContent = (c.real ? usd(c.usdLeft) + ' left' : 'No exchange yet') + (rw ? ' · dong ~' + Math.round(rw.dongDays * 10) / 10 + ' days' : '') + ' · total ' + npr(ownTotal(c).total * c.nprPerVnd);
     const me = typeof cashRound === 'function' ? cashRound(c.nets.me || 0) : Math.round(c.nets.me || 0);
     $('hGroup').hidden = !state.friends.length;
     $('hGroupV').textContent = !me ? 'All even with the group' : (me > 0 ? 'You get back ' : 'You owe ') + vnd(Math.abs(me));
