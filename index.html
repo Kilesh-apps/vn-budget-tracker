@@ -845,8 +845,10 @@ button.lg-row:active{background:var(--raised)}
   <p class="status">Worked out from the rate. If they hand you a different amount, type what you actually got.</p>
   <label for="xWhere">Where (optional)</label>
   <input id="xWhere" type="text" maxlength="60" placeholder="e.g. Gold shop, District 1" autocomplete="off">
+  <div id="xWhenWrap" hidden><label for="xWhen">When</label><input id="xWhen" type="datetime-local" aria-label="Date and time of the exchange"></div>
   <div class="note num" id="xPreview"></div>
   <button type="button" class="primary" id="xSave">Save exchange</button>
+  <button type="button" class="danger" id="xDelete" hidden>Delete exchange</button>
 </div>
 
 <!-- count & fix wallet -->
@@ -2481,12 +2483,25 @@ function out(o) {
     } catch (e) { showError('that photo couldn’t be opened'); }
   };
 
+  // tap an exchange to edit it (amounts, rate, place, time) or delete it
+  let xEditId = null;
   $('xList').addEventListener('click', e => {
     const b = e.target.closest('[data-x]'); if (!b) return;
     const x = state.exchanges.find(y => y.id === b.dataset.x); if (!x) return;
-    if (!confirm('Delete this exchange: ' + usd(x.usd) + ' → ' + vnd(x.vnd) + '?')) return;
-    state.exchanges = state.exchanges.filter(y => y.id !== x.id); save(); renderAll();
+    xEditId = x.id;
+    $('xTitle').textContent = 'Edit exchange';
+    $('xUsd').value = x.usd; $('xRate').value = Math.round(x.vnd / x.usd); setMoney($('xVnd'), x.vnd); $('xWhere').value = x.where || '';
+    $('xWhen').value = toLocalInput(x.ts); $('xWhenWrap').hidden = false; $('xDelete').hidden = false;
+    $('xSave').textContent = 'Save changes';
+    $('xRateNote').textContent = 'Fix the dollars, the rate on the board or the dong you got. Purchases already logged keep the rate they were logged at.';
+    $('xUseRef').textContent = 'Online ' + fmt(refRate());
+    xUpdate('vnd'); openSheet('sheet-exchange');
   });
+  $('xDelete').onclick = () => {
+    const x = state.exchanges.find(y => y.id === xEditId); if (!x) { closeSheet(); return; }
+    if (!confirm('Delete this exchange: ' + usd(x.usd) + ' → ' + vnd(x.vnd) + '?')) return;
+    state.exchanges = state.exchanges.filter(y => y.id !== x.id); xEditId = null; save(); closeSheet(); renderAll();
+  };
 
   // exchange sheet
   const refRate = () => state.marketVndPerUsd;
@@ -2514,6 +2529,7 @@ function out(o) {
   $('xVnd').addEventListener('input', () => xUpdate('vnd'));
   $('xUseRef').onclick = () => { $('xRate').value = refRate(); $('xRateNote').textContent = 'Online reference rate. Shops usually pay a little less.'; xUpdate('rate'); };
   $('openExchange').onclick = () => {
+    xEditId = null; $('xTitle').textContent = 'Exchange money'; $('xSave').textContent = 'Save exchange'; $('xWhenWrap').hidden = true; $('xDelete').hidden = true;
     const d = defaultPlaceRate();
     $('xUsd').value = ''; $('xVnd').value = ''; $('xWhere').value = '';
     $('xRate').value = d.rate; $('xRateNote').textContent = d.why + '. Change it to the rate on this shop’s board.';
@@ -2523,6 +2539,12 @@ function out(o) {
   $('xSave').onclick = () => {
     const u = Number($('xUsd').value), v = moneyNum($('xVnd'));
     if (!(u > 0 && v > 0)) { $('xPreview').textContent = 'Enter the dollars and the rate (or the dong you got) first.'; $('xPreview').classList.add('warn'); return; }
+    if (xEditId) {
+      const x = state.exchanges.find(y => y.id === xEditId);
+      const when = new Date($('xWhen').value);
+      if (x) Object.assign(x, { usd:u, vnd:v, where:$('xWhere').value.trim(), ts: $('xWhen').value && !isNaN(when) && when.getTime() <= Date.now() + 5 * 60000 ? when.toISOString() : x.ts });
+      xEditId = null; save(); closeSheet(); renderAll(); return;
+    }
     state.exchanges.push({ id:uid(), ts:new Date().toISOString(), usd:u, vnd:v, where:$('xWhere').value.trim() });
     save(); closeSheet(); renderAll(); bump();
   };
