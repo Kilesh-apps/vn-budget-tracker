@@ -709,6 +709,8 @@ button.lg-row:active{background:var(--raised)}
   <label for="fItem">What is it?</label>
   <input id="fItem" type="text" maxlength="80" placeholder="e.g. Silk scarf, pho, Grab" autocomplete="off" enterkeyhint="done">
   <div class="when-row"><span class="flabel" style="margin:0">When</span><button type="button" class="mini" id="fWhenBtn">Now · change</button></div>
+  <div class="when-row" id="fCityRow"><span class="flabel" style="margin:0">Where</span><button type="button" class="mini" id="fCityBtn"></button></div>
+  <div class="seg seg-sm" id="fCity" style="margin-top:8px" hidden></div>
   <input id="fWhen" type="datetime-local" aria-label="Date and time of the purchase" style="margin-top:8px" hidden>
   <div class="split-box" id="fSplitBox">
     <div class="split-head"><b id="fSplitTitle">Just for me, I paid</b><button type="button" class="mini" id="fSplitToggle">Split</button></div>
@@ -2156,6 +2158,9 @@ function out(o) {
       $('fSplitSum').textContent = amt ? splitSummary(amt) : '';
     }
     $('fWhenBtn').hidden = F.mode === 'edit' || F.whenOpen;
+    $('fCityBtn').textContent = '📍 ' + (F.city || 'Not set') + ' · change';
+    $('fCityBtn').hidden = !!F.cityOpen; $('fCity').hidden = !F.cityOpen;
+    $('fCity').innerHTML = CITIES.map(x => '<button type="button" class="' + (x === F.city ? 'sel' : '') + '" data-fcity="' + esc(x) + '">' + esc(x) + '</button>').join('');
     $('fWhen').hidden = !(F.mode === 'edit' || F.whenOpen);
     $('fCats').innerHTML = catButtons(F.cat);
     $('fDelete').hidden = F.mode !== 'edit';
@@ -2187,6 +2192,8 @@ function out(o) {
     if (want && !F.custom) F.shares = evenShares(formAmount());
     F.custom = want; customKey = ''; renderForm();
   });
+  $('fCityBtn').onclick = () => { F.cityOpen = true; renderForm(); };
+  $('fCity').addEventListener('click', e => { const b = e.target.closest('[data-fcity]'); if (!b) return; F.city = b.dataset.fcity; F.cityOpen = false; renderForm(); });
   $('fWhenBtn').onclick = () => { F.whenOpen = true; $('fWhen').value = toLocalInput(new Date()); renderForm(); $('fWhen').focus(); };
   function readWhen() {
     if (F.mode === 'log' && !F.whenOpen) return { ts:new Date().toISOString() };
@@ -2211,7 +2218,7 @@ function out(o) {
   function openLog(manual, preset) {
     tidy('ask'); tidy('paid');
     const amount = preset ? preset.amt : manual ? 0 : Number(vals.paid) || Number(vals.ask); if (!manual && !amount) return;
-    F = { mode:'log', fromDeal:!manual, cur: preset && preset.cur ? preset.cur : 'VND', method:'cash', cat:state.lastCat, paidBy:'me', payers:{}, among:['me'], open:manual === 'shared', asked: manual ? null : Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false };
+    F = { mode:'log', fromDeal:!manual, cur: preset && preset.cur ? preset.cur : 'VND', method:'cash', cat:state.lastCat, paidBy:'me', payers:{}, among:['me'], open:manual === 'shared', asked: manual ? null : Number(vals.ask) || null, custom:false, shares:{}, whenOpen:false, city:state.city, cityOpen:false };
     customKey = '';
     setMoney($('fAmount'), amount || '');
     $('fItem').value = manual ? '' : lastAdviceItem || '';
@@ -2226,7 +2233,7 @@ function out(o) {
     if (e.shares) Object.keys(e.shares).forEach(p => { sh[p] = Math.round(e.shares[p] / factor * 100) / 100; });
     const py = {}; if (e.paidBy === 'multi') Object.entries(payersOf(e)).forEach(([p, x]) => { py[p] = Math.round(x / factor * 100) / 100; });
     payersKey = '';
-    F = { mode:'edit', id, cur, origCur:cur, origFactor:factor, method:e.method || 'cash', cat:e.cat, paidBy:e.paidBy, payers:py, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate,
+    F = { mode:'edit', id, cur, origCur:cur, origFactor:factor, method:e.method || 'cash', cat:e.cat, paidBy:e.paidBy, payers:py, among:e.among.slice(), open:isShared(e), asked:e.asked, rate:e.rate, city:e.city || null, cityOpen:!e.city,
       custom:!!e.shares, shares:sh, whenOpen:true };
     customKey = '';
     setMoney($('fAmount'), cur === 'VND' ? e.vnd : e.amt); $('fItem').value = e.item; $('fWhen').value = toLocalInput(e.ts);
@@ -2288,7 +2295,7 @@ function out(o) {
     const w = readWhen(); if (w.err) { $('fErr').textContent = w.err; return; }
     const c = calc();
     const entry = Object.assign({ id:uid(), ts:w.ts, item:$('fItem').value.trim() || F.cat, cat:F.cat,
-      rate:c.nprPerVnd, paidBy:F.paidBy, among:F.among.slice(), asked: F.cur === 'VND' ? F.asked : null, city:state.city }, amountFields(c));
+      rate:c.nprPerVnd, paidBy:F.paidBy, among:F.among.slice(), asked: F.cur === 'VND' ? F.asked : null, city:F.city || state.city }, amountFields(c));
     state.entries.push(entry); state.lastCat = entry.cat; save(); lastAdviceItem = '';
     if (F.fromDeal) { setVal('ask', ''); setVal('paid', ''); active = 'ask'; setActive('ask', true); }
     closeSheet(); renderAll(); if (F.fromDeal) flash($('logBtn'), '✓ Logged ' + inOwn(entry, entry.vnd)); bump();
@@ -2298,7 +2305,7 @@ function out(o) {
     if (!(formAmount() > 0)) { $('fErr').textContent = 'Enter an amount above zero.'; return; }
     const err = validSplit(); if (err) { $('fErr').textContent = err; return; }
     const w = readWhen(); if (w.err) { $('fErr').textContent = w.err; return; }
-    Object.assign(e, { ts:w.ts, item:$('fItem').value.trim() || F.cat, cat:F.cat, paidBy:F.paidBy, among:F.among.slice() }, amountFields(calc()));
+    Object.assign(e, { ts:w.ts, item:$('fItem').value.trim() || F.cat, cat:F.cat, paidBy:F.paidBy, among:F.among.slice(), city:F.city || null }, amountFields(calc()));
     save(); closeSheet(); renderAll();
   }
   $('fDelete').onclick = () => {
